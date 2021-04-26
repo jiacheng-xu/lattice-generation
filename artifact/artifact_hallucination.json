@@ -1,0 +1,23 @@
+[
+    {
+        "input":"The RoBERTa model was proposed in RoBERTa: A Robustly Optimized BERT Pretraining Approach by Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, Veselin Stoyanov. It is based on Google’s BERT model released in 2018. It builds on BERT and modifies key hyperparameters, removing the next-sentence pretraining objective and training with much larger mini-batches and learning rates.",
+        "prefix":"An improved version of Google’s BERT training model has been developed"
+    },
+    {
+        "input":"The T5 model was presented in Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer by Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, Peter J. Liu. The abstract from the paper is the following: Transfer learning, where a model is first pre-trained on a data-rich task before being fine-tuned on a downstream task, has emerged as a powerful technique in natural language processing (NLP). The effectiveness of transfer learning has given rise to a diversity of approaches, methodology, and practice. In this paper, we explore the landscape of transfer learning techniques for NLP by introducing a unified framework that converts every language problem into a text-to-text format. Our systematic study compares pretraining objectives, architectures, unlabeled datasets, transfer approaches, and other factors on dozens of language understanding tasks. By combining the insights from our exploration with scale and our new “Colossal Clean Crawled Corpus”, we achieve state-of-the-art results on many benchmarks covering summarization, question answering, text classification, and more. To facilitate future work on transfer learning for NLP, we release our dataset, pre-trained models, and code.",
+        "prefix":"A model that converts every language problem into a text-to-text format has been presented"
+    },
+    {
+        "input":"White House press secretary Jen Psaki said President Biden believes 'protests must be peaceful' in response to Rep. Maxine Waters, D-Calif., calling for demonstrators to ramp up their actions in the event that Derek Chauvin is acquitted of murder for the death of George Floyd. In controversial comments over the weekend, Waters said protesters in Minnesota should 'stay on the street and get more active, more confrontational.' When asked if Biden agrees with this, Psaki did not directly answer, but she made clear that while the president is very much in favor of protesting in general, he opposes violence.",
+        "comment":"always Vice president Biden ['US Vice President Joe Biden opposes violence during protests, the White House has said.']        ",
+        "prefix":""
+    },
+    {
+        "input":"Sarah Levy, a former White House press secretary, is to join Foxox News. While spokeswoman, she was known for her quarrels with reporters and an uneasy relationship with the truth.",
+        "prefix":"A former"
+    },
+    {
+        "input":"Police in suburban Minneapolis shot and killed a man Sunday afternoon who was allegedly involved in a carjacking and fired shots at pursuing officers, according to a release from the Burnsville Police Department.",
+        "prefix":"A man has been killed in a confrontation with police in"
+    }
+]

@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# custom
+.html
+.json
+0416.html
+0419.html
+*.html
