@@ -13,7 +13,7 @@ class SuperBeam(object):
 
     def __repr__(self):
         return "Beam(" + repr(list(self.get_elts_and_scores())) + ")"
-
+    
     def __str__(self):
         return self.__repr__()
 

@@ -78,6 +78,8 @@ class Beam(object):
     def head(self):
         return self.elts[0]
 
+def run_baseline_bs():
+    pass
 
 def test_beam():
     print("TESTING BEAM")
