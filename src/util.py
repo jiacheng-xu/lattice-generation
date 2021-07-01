@@ -1,18 +1,29 @@
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
 
-
+import sys
 from statistics import mode
 from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 import logging
 import torch
 import datetime; now_time = datetime.datetime.now()
 logname = f"{str(now_time)[:15]}.txt"
+
+
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+root.addHandler(handler)
+
 logging.basicConfig(filename=logname,
                             filemode='w',
                             format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
-logging.getLogger().setLevel(logging.INFO)
+
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name ='facebook/bart-large-xsum'

@@ -44,7 +44,7 @@ def compare_ancestor_of_states(bs1, bs2):
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, cur_distb, cur_distb_token_id,  prev=[]) -> None:
         super().__init__()
-        self.score = -math.log(cur_distb[cur_idx_in_distb])
+        self.score = math.log(cur_distb[cur_idx_in_distb])
         # self.distb = cur_idx_in_distb # rank in the current peer
         self.token = cur_distb_token_id[cur_idx_in_distb] # token
         self.token_str = tokenizer.decode(self.token) if tokenizer else "[empty]"
@@ -88,7 +88,7 @@ class BeamState(object):
         return statistics.mean(self.extract_prev_score() + [self.score]) 
 
     def __repr__(self):
-        return f"Score: {pnum(self.get_score())}\tTokens: {tokenizer.decode(self.get_tokens()[::-1],clean_up_tokenization_spaces=True)}"
+        return f"Score: {pnum(self.get_score())}\tTokens: {tokenizer.decode(self.get_tokens()[::-1], skip_special_tokens=True, clean_up_tokenization_spaces=False)}"
 
 def sublist(lst1, lst2):
     return set(lst1) <= set(lst2)
