@@ -1,201 +1,74 @@
+MODEL_CACHE = '/mnt/data1/jcxu/cache'
 
-import argparse
+
+from statistics import mode
+from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 import logging
-import os
-import pickle
-import random
-import statistics
-import sys
-from datetime import datetime
-from typing import Dict, List
-import multiprocessing
 import torch
+import datetime; now_time = datetime.datetime.now()
+logname = f"{str(now_time)[:15]}.txt"
+logging.basicConfig(filename=logname,
+                            filemode='w',
+                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
+
+model_name = 'sshleifer/distilbart-xsum-12-6'
+model_name ='facebook/bart-large-xsum'
+
+tokenizer = BartTokenizer.from_pretrained(model_name,cache_dir=MODEL_CACHE)
+debug = False    # fake model output
+# debug = True    # fake model output
+if not debug:
+    device = torch.device('cuda:0') 
+    logging.info('Loading model')
+    model = BartForConditionalGeneration.from_pretrained(model_name,cache_dir=MODEL_CACHE)
+    model = model.to(device)
+else:
+    device = torch.device('cpu') 
+logging.info('Loading dataset')
 from datasets import load_dataset
-from transformers import BartForConditionalGeneration, BartModel, BartTokenizer
-import numpy as np
-import pandas as pd
-
-tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
-
-kld = torch.nn.KLDivLoss(log_target=True, reduction='none')
-
-now = datetime.now()
-
-logger = logging.getLogger('sum')
-logger.setLevel(logging.DEBUG)
-# create file handler which logs even debug messages
-fh = logging.FileHandler(f"{now.strftime('%m')}{now.strftime('%d')}.html")
-fh.setLevel(logging.DEBUG)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-# create formatter and add it to the handlers
-formatter = logging.Formatter('<br>%(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-fh.setFormatter(formatter)
-# add the handlers to logger
-logger.addHandler(ch)
-logger.addHandler(fh)
-
-
-def load_pickle(dir, fname) -> Dict:
-    with open(os.path.join(dir, fname), 'rb') as rfd:
-        data = pickle.load(rfd)
-    return data
+dataset = load_dataset('xsum', split='validation')
 
 
 def pnum(num):
     return "{:.2f}".format(num)
 
 
-def add_dataname_to_suffix(args, args_dir) -> str:
-    out = f"{args_dir}_{args.data_name}"
-    out = add_temp_to_suffix(args, out)
-    if not os.path.exists(out):
-        os.makedirs(out)
-    return out
+@torch.no_grad()
+def run_full_model_slim(model, input_ids, attention_mask=None, decoder_input_ids=None, targets=None, device='cuda:0', output_dec_hid=False, T=1):
+    decoder_input_ids = decoder_input_ids.to(device)
+    input_ids = input_ids.to(device)
+    if attention_mask is not None:
+        attention_mask = attention_mask.to(device)
+    assert decoder_input_ids.size()[0] == input_ids.size()[0]
 
+    model_inputs = {"input_ids": input_ids,
+                    "attention_mask": attention_mask,
+                    "decoder_input_ids": decoder_input_ids,
+                    }
 
-def add_temp_to_suffix(args, args_dir) -> str:
-    out = f"{args_dir}_{args.temp}"
-    # if not os.path.exists(out):
-    # os.makedirs(out)
-    return out
+    outputs = model(**model_inputs,
+                    output_hidden_states=output_dec_hid,
+                    use_cache=False, return_dict=True)
 
-
-def dec_print_wrap(func):
-    def wrapper(*args, **kwargs):
-        logging.info("=" * 20)
-        out = func(*args, **kwargs)
-        logging.info("-" * 20)
-        return out
-    return wrapper
-
-
-def read_meta_data(dir, fname):
-    file_package = load_pickle(dir, fname)
-    data: List = file_package['data']
-    meta = file_package['meta']
-    return data, meta
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
+    # batch, dec seq, vocab size
+    next_token_logits = outputs.logits[:, -1, :]
+    if targets is not None:
+        targets = targets.to(device)
+        loss = torch.nn.functional.cross_entropy(
+            input=next_token_logits, target=targets, reduction='none')
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-flatten = lambda t: [item for sublist in t for item in sublist]
-
-def common_args():
-
-    task_choice = ['inp_grad', 'int_grad', 'random', 'occ', 'lead','attn','sent']
-    eval_mode = ['sel_tok', 'rm_tok', 'sel_sent', 'rm_sent']
-    settings = ['all','ctx', 'novel', 'fusion', 'lm', 'hard']
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-model_family", default='bart')
-    parser.add_argument("-data_name", default='xsum', help='name of dataset')
-    parser.add_argument("-mname_lm", default='facebook/bart-large')
-    parser.add_argument("-mname_sum", default='facebook/bart-large-xsum')
-    parser.add_argument('-truncate_sent', default=15,
-                        help='the max sent used for perturbation')
-    parser.add_argument('-truncate_word', default=70,
-                        help='the max token in each single sentence')
-    parser.add_argument(
-        '-dir_meta', default="/mnt/data0/jcxu/meta_pred", help="The location to meta data.")
-    parser.add_argument('-dir_base', default="/mnt/data0/jcxu/output_base")
-    parser.add_argument('-dir_stat', default="/mnt/data0/jcxu/csv")
-
-    parser.add_argument("-debug", type=str2bool, nargs='?',
-                        const=True, default=False,
-                        help="Activate debug mode.")
-
-    parser.add_argument("-sent_pre_sel", type=str2bool, nargs='?',
-                        const=True, default=False,
-                        help="Use sentence to filter the input document.")
-
-    parser.add_argument("-task", dest='task', choices=task_choice)
-    parser.add_argument("-device", help="device to use", default='cuda:0')
-    parser.add_argument('-max_example', default=5000,
-                        help='The max number of examples (documents) to look at.')
-    parser.add_argument('-num_run_cut', default=40)
-    parser.add_argument('-batch_size', default=100, type=int)
-    parser.add_argument('-eval_mode', dest='eval_mode', choices=eval_mode)
-    parser.add_argument('-temp', type=float, default=0.5)
-    parser.add_argument('-eval_set',dest='eval_set',choices=settings)
-    parser.add_argument('-hard_max_len',default=500,type=int)
-    return parser
+        loss = 0
     
-import time
-from operator import itemgetter
-
-
-
-
-
-def show_top_k(prob, tokenizer,name="", prefix="", k=5):
-    prob = prob.squeeze()
-    topk_v, top_idx = torch.topk(prob, k=k)
-    index = top_idx.tolist()
-    toks = [tokenizer.convert_ids_to_tokens(i) for i in index]
-
-    logger.info(f"Type: {name}")
-    result = []
-    for i, t in enumerate(toks):
-        logger.info(f"{i}: {pnum(topk_v[i].item())} {prefix}{t}")
-        result.append((pnum(topk_v[i].item()), t))
-    return result
-
-
-def argsort(seq):
-    return sorted(range(len(seq)), key=seq.__getitem__)
-
-def prepare_filtered_input_document(output_base_step, sent_token_ids, num_sent=2):
-
-    single_distb = output_base_step['pert_distb']
-    if 'pert_comb' in output_base_step:
-        if output_base_step['pert_top1_double'] < output_base_step['pert_top']:
-           
-            sorted_index = argsort(single_distb)[::-1]
-            use_index = sorted_index[:num_sent] 
-        else:
-            pert_comb = output_base_step['pert_comb']
-            pert_double_distb = output_base_step['pert_distb_double']
-            sorted_combo = argsort(pert_double_distb)[::-1][0]
-            use_index = pert_comb[sorted_combo]
-
-    else:
-
-        sorted_index = argsort(single_distb)[::-1]
-        use_index = sorted_index[:num_sent]
-    use_sent = [sent_token_ids[idx] for idx in use_index]
-    input_doc = [0]+ flatten(use_sent) +[2]
-
-    # return new document (list start 0 end 2), and the index of the selected sentences
-    return input_doc
-
-
-def fix_args(args):
-    args.dir_base = add_dataname_to_suffix(args, args.dir_base)
-    args.dir_meta = add_dataname_to_suffix(args, args.dir_meta)
-    args.dir_stat = add_dataname_to_suffix(args, args.dir_stat)
-    if args.debug:
-        args.device = 'cpu'
-        args.mname_sum = 'sshleifer/distilbart-xsum-6-6'
-    if hasattr(args, 'task'):
-        if args.sent_pre_sel == True:
-            args.task = f"{args.task}_sent_sel"
-
-        args.dir_task = f"/mnt/data0/jcxu/task_{args.task}"
-        args.dir_task = add_dataname_to_suffix(args, args.dir_task)
-        args.dir_eval_save = f"/mnt/data0/jcxu/eval_{args.task}_{args.eval_mode}"
-        args.dir_eval_save = add_dataname_to_suffix(args, args.dir_eval_save)
-    return args
-
-
-random.seed(2021)
+    prob = torch.nn.functional.softmax(next_token_logits/T, dim=-1)
+    # prob = next_token_logits.softmax(dim=-1)
+    next_token = torch.argmax(next_token_logits, dim=-1)
+    # next_token = next_token.unsqueeze(-1)
+    next_token = next_token.tolist()    # confrim nested list?
+    # print(f"Gold: {tokenizer.decode(targets[0].item())}")
+    output = [tokenizer.decode(tk) for tk in next_token]
+    # logging.info(f"Next token: {output}")
+    # outputs['output'] = output
+    return output, prob, next_token_logits, loss

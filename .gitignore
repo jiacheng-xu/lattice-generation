@@ -130,7 +130,7 @@ dmypy.json
 
 # custom
 .html
+.txt
 .json
-0416.html
-0419.html
 *.html
+*.txt
