@@ -6,24 +6,21 @@ from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 import logging
 import torch
 import datetime; now_time = datetime.datetime.now()
-logname = f"{str(now_time)[:15]}.txt"
-
-
-root = logging.getLogger()
-root.setLevel(logging.INFO)
+logname = f"{str(now_time)[:16]}.txt"
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('- %(message)s')
 handler.setFormatter(formatter)
-root.addHandler(handler)
+logger.addHandler(handler)
 
-logging.basicConfig(filename=logname,
-                            filemode='w',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.INFO)
+file_handler = logging.FileHandler(logname,'w')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
 
+logger.addHandler(file_handler)
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name ='facebook/bart-large-xsum'
@@ -45,6 +42,18 @@ dataset = load_dataset('xsum', split='validation')
 
 def pnum(num):
     return "{:.2f}".format(num)
+
+import argparse
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 @torch.no_grad()
