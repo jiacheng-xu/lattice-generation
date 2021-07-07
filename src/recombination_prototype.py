@@ -69,18 +69,67 @@ def compare_ancestor_of_states(bs1, bs2):
 
 
 class BeamState(object):
-    def __init__(self, cur_idx_in_distb, cur_distb, cur_distb_token_id,  prev=[], min_len=10, finished=False) -> None:
+    def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False) -> None:
         super().__init__()
-        self.score = math.log(cur_distb[cur_idx_in_distb])
-        # self.distb = cur_idx_in_distb # rank in the current peer
-        self.token = cur_distb_token_id[cur_idx_in_distb]  # token
+        self.score = math.log(prob_distrib[cur_idx_in_distb])
+        self.prob = prob_distrib[cur_idx_in_distb]
+        self.token = token_id_distb[cur_idx_in_distb]  # token
         self.token_str = tokenizer.decode(
             self.token) if tokenizer else "[empty]"
+
+        self.peer_prob = prob_distrib  # rank in the current peer
+        self.peer_token_id = token_id_distb
+
         self.prev = prev
         self.assign_uid()
         self.finished = finished
         self.min_len = min_len
         self.has_finished()
+
+    def get_complete_repr(self, k=2):
+        tokens = [self.token]
+        probs = [self.prob]
+        top_k_tokens = [self.peer_token_id[:k]]
+        top_k_probs = [self.peer_prob[:k]]
+        prev = self.prev
+        while prev:
+            tokens.append(prev.token)
+            probs.append(prev.prob)
+            top_k_tokens.append(prev.peer_token_id[:k])
+            top_k_probs.append(prev.peer_prob[:k])
+            prev = prev.prev
+        tokens = tokens[::-1]
+        probs = probs[::-1]
+        tokens_str = [tokenizer.convert_ids_to_tokens(x) for x in tokens]
+        top_k_tokens = top_k_tokens[::-1]
+        top_k_tokens_str = [[tokenizer.convert_ids_to_tokens(
+            tk) for tk in x] for x in top_k_tokens]
+        top_k_probs = top_k_probs[::-1]
+
+        header = ['T', 'TP'] + [f"[{idx}]" for idx in range(k)]
+
+        rows = [[] for _ in range(len(header))]
+        rows[0] = [header[0]] + ['{:15d}'.format(x) for x in range(len(tokens_str))]
+        rows[1] = [header[1]] + \
+            ["{:3s} {:10s}".format(pnum(y),x) for x, y in zip(tokens_str, probs)]
+        for idx in range(k):
+            for x, y in zip(top_k_tokens_str, top_k_probs):
+                rows[2+idx].append("{:3s} {:10s}".format(pnum(y[idx]),x[idx]) )
+            rows[2+idx] = [header[2+idx]] + rows[2+idx]
+
+        pointer = 0
+        cache = [[] for _ in range(len(header))]
+        while pointer < len(tokens):
+            for jdx, r in enumerate(rows):
+                cache[jdx].append(r[pointer])
+            if pointer % 8 == 7:
+                for c in cache:
+                    logging.info("\t".join(c))
+                cache = [[] for _ in range(len(header))]
+            pointer += 1
+        if cache[0]!= []:
+            for c in cache:
+                logging.info("\t".join(c))
 
     def has_finished(self):
         if self.token_str.strip() == '.' and len(self.get_tokens()) >= self.min_len:
@@ -169,32 +218,60 @@ def entrance_merge(beam: List[BeamState]):
                 continue
             merge_compare(cand_a, cand_b)
 
-def measure_ref_score(doc_input_ids, ref_sum:str):
+
+def measure_ref_score(doc_input_ids, ref_sum: str):
     start = tokenizer.eos_token_id
-    ref_sum_token_ids = tokenizer([tokenizer.eos_token + ref_sum], return_tensors='pt')['input_ids'][:,1:-1].to(device)
+    ref_sum_token_ids = tokenizer(
+        [tokenizer.eos_token + ref_sum], return_tensors='pt')['input_ids'][:, 1:-1].to(device)
     all_values = []
     _, timesteps = ref_sum_token_ids.size()
     for _t in range(1, timesteps):
         output_tokens, output_prob, output_score, _ = run_full_model_slim(
-                    model, doc_input_ids, decoder_input_ids=ref_sum_token_ids[:,:_t], device=device, output_dec_hid=False, T=1)
-        values, indices = torch.topk(output_prob, k=5)
+            model, doc_input_ids, decoder_input_ids=ref_sum_token_ids[:, :_t], device=device, output_dec_hid=False, T=1)
+        # values, indices = torch.topk(output_prob, k=5)
+        # values = values[0].tolist()
+        # indices = indices[0].tolist()
+        all_values.append(math.log(output_prob[0][ref_sum_token_ids[:,_t]].float() ))
 
-        values = values[0].tolist()
-        indices = indices[0].tolist()
-        all_values.append(math.log(values[0]))
-    
     calibrate_all_values = all_values[:MAX_STEP]
     avg_values = statistics.mean(all_values)
     logging.info(f"Ref Score: {pnum(avg_values)}")
-    logging.info(f"Length Calib Ref Score: {pnum(statistics.mean(calibrate_all_values))}")
+    logging.info(
+        f"Length Calib Ref Score: {pnum(statistics.mean(calibrate_all_values))}")
+    return avg_values
 
-def run_example(document, ref_sum):
-    doc_input_ids = tokenizer(document, return_tensors='pt')[
-        'input_ids'][:, :600]
-    doc_input_ids = doc_input_ids.to(device)
-    measure_ref_score(doc_input_ids,ref_sum)
-    whole_beam = [BeamState(cur_idx_in_distb=0, cur_distb=[
-                            1.], cur_distb_token_id=[tokenizer.eos_token_id])]
+def greedy(doc_input_ids):
+    start = tokenizer.eos_token_id
+    decoder_inputs = [[tokenizer.eos_token_id]]
+    decoder_input_ids = torch.LongTensor(decoder_inputs).to(device)
+
+    all_values = []
+    for _t in range(1, MAX_STEP):
+        output_tokens, output_prob, output_score, _ = run_full_model_slim(
+            model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
+        values, indices = torch.topk(output_prob, k=5)
+        values = values[0].tolist()
+        indices = indices[0].tolist()
+        if indices[0] == tokenizer.eos_token_id:
+            break
+        decoder_inputs[0].append(indices[0])
+        decoder_input_ids = torch.LongTensor(decoder_inputs).to(device)
+        all_values.append(math.log(values[0]))
+
+    calibrate_all_values = all_values[:MAX_STEP]
+    avg_values = statistics.mean(all_values)
+    logging.info(f"Greedy Output: {tokenizer.decode(decoder_inputs[0])}")
+    logging.info(f"Greedy Score: {pnum(avg_values)}")
+    logging.info(
+        f"Length Calib Greedy Score: {pnum(statistics.mean(calibrate_all_values))}")
+    return avg_values
+
+
+def beam_search(doc_input_ids):
+    logging.info(f"\nBEAM SEARCH\n")
+
+    whole_beam = [BeamState(cur_idx_in_distb=0, prob_distrib=[1., 0, 0, 0, 0], token_id_distb=[
+                            tokenizer.eos_token_id, tokenizer.pad_token_id, tokenizer.pad_token_id, tokenizer.pad_token_id, tokenizer.pad_token_id])]
     for t in range(MAX_STEP):
         candidates = []
         for beam_item in whole_beam:
@@ -206,9 +283,10 @@ def run_example(document, ref_sum):
                 decoder_input_ids = beam_item.get_prefix()
                 output_tokens, output_prob, output_score, _ = run_full_model_slim(
                     model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
-                pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
+
+                # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
                 # print(pnum(pred_entropy))
-                dynamic_k = min(BS, math.ceil(pred_entropy))
+                # dynamic_k = min(BS, math.ceil(pred_entropy))
                 dynamic_k = BS
                 values, indices = torch.topk(output_prob, k=dynamic_k)
             else:
@@ -224,17 +302,29 @@ def run_example(document, ref_sum):
         sorted_candidates = sorted(
             candidates, key=lambda x: x.get_score(), reverse=True)
         whole_beam = sorted_candidates[:BS]
-
-    gather_outputs = []
     for unit in whole_beam:
-        logging.info(unit)
-        gather_outputs.append(unit.get_output_str())
-    # calculate diversity
-    diversity_score = eval_group_diversity(gather_outputs)
-    logging.info(f"Diversity Score: {pnum(diversity_score)}")
-    # print(whole_beam)
+        logging.info(unit.get_complete_repr())
+
+    scores = []
+    for unit in whole_beam:
+        score = unit.get_score()
+        scores.append(score)
+    return scores
+
+def select_top_p(prob_distribution, target_index=None):
+    pass
+
+
+def run_example(document, ref_sum):
+    doc_input_ids = tokenizer(document, return_tensors='pt')[
+        'input_ids'][:, :800]
+    doc_input_ids = doc_input_ids.to(device)
+
+    ref_score = measure_ref_score(doc_input_ids,ref_sum)
+    beam_scores = beam_search(doc_input_ids)
+    greedy_score = greedy(doc_input_ids)
     logging.info('done')
-    return diversity_score
+    return ref_score, beam_scores, greedy_score
 
 
 def process_arg():
@@ -252,9 +342,11 @@ def process_arg():
 if __name__ == '__main__':
     args = process_arg()
     logging.info(args)
-    nexample = 40
+    nexample = 20
     cnt = 0
-    all_scores = []
+    all_scores_ref = []
+    all_scores_beam = []
+    all_scores_greey = []
     for example in dataset:
         cnt += 1
         document = example['document']
@@ -264,8 +356,12 @@ if __name__ == '__main__':
         doc_id = example['id']
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:200]}\n---Sum: {ref_sum}")
-        score = run_example(inp, ref_sum.strip())
-        all_scores.append(score)
+        ref_score, beam_scores, greedy_score = run_example(inp, ref_sum.strip())
+        all_scores_ref.append(ref_score)
+        all_scores_beam.append(statistics.mean(beam_scores))
+        all_scores_greey.append(greedy_score)
         if cnt > nexample:
             break
-    logging.info(f"My Baseline: {statistics.mean(all_scores)}")
+    logging.info(f"Ref: {statistics.mean(all_scores_ref)}")
+    logging.info(f"Beam: {statistics.mean(all_scores_beam)}")
+    logging.info(f"Greedy: {statistics.mean(all_scores_greey)}")
