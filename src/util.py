@@ -27,7 +27,7 @@ model_name ='facebook/bart-large-xsum'
 
 tokenizer = BartTokenizer.from_pretrained(model_name,cache_dir=MODEL_CACHE)
 debug = False    # fake model output
-# debug = True    # fake model output
+debug = True    # fake model output
 if not debug:
     device = torch.device('cuda:0') 
     logging.info('Loading model')

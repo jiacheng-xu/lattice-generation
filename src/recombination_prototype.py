@@ -67,121 +67,6 @@ def compare_ancestor_of_states(bs1, bs2):
         distance2 = father2.index(element)
     return distance1, distance2
 
-
-class BeamState(object):
-    def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False) -> None:
-        super().__init__()
-        self.score = math.log(prob_distrib[cur_idx_in_distb])
-        self.prob = prob_distrib[cur_idx_in_distb]
-        self.token = token_id_distb[cur_idx_in_distb]  # token
-        self.token_str = tokenizer.decode(
-            self.token) if tokenizer else "[empty]"
-
-        self.peer_prob = prob_distrib  # rank in the current peer
-        self.peer_token_id = token_id_distb
-
-        self.prev = prev
-        self.assign_uid()
-        self.finished = finished
-        self.min_len = min_len
-        self.has_finished()
-
-    def get_complete_repr(self, k=2):
-        tokens = [self.token]
-        probs = [self.prob]
-        top_k_tokens = [self.peer_token_id[:k]]
-        top_k_probs = [self.peer_prob[:k]]
-        prev = self.prev
-        while prev:
-            tokens.append(prev.token)
-            probs.append(prev.prob)
-            top_k_tokens.append(prev.peer_token_id[:k])
-            top_k_probs.append(prev.peer_prob[:k])
-            prev = prev.prev
-        tokens = tokens[::-1]
-        probs = probs[::-1]
-        tokens_str = [tokenizer.convert_ids_to_tokens(x) for x in tokens]
-        top_k_tokens = top_k_tokens[::-1]
-        top_k_tokens_str = [[tokenizer.convert_ids_to_tokens(
-            tk) for tk in x] for x in top_k_tokens]
-        top_k_probs = top_k_probs[::-1]
-
-        header = ['T', 'TP'] + [f"[{idx}]" for idx in range(k)]
-
-        rows = [[] for _ in range(len(header))]
-        rows[0] = [header[0]] + ['{:15d}'.format(x) for x in range(len(tokens_str))]
-        rows[1] = [header[1]] + \
-            ["{:3s} {:10s}".format(pnum(y),x) for x, y in zip(tokens_str, probs)]
-        for idx in range(k):
-            for x, y in zip(top_k_tokens_str, top_k_probs):
-                rows[2+idx].append("{:3s} {:10s}".format(pnum(y[idx]),x[idx]) )
-            rows[2+idx] = [header[2+idx]] + rows[2+idx]
-
-        pointer = 0
-        cache = [[] for _ in range(len(header))]
-        while pointer < len(tokens):
-            for jdx, r in enumerate(rows):
-                cache[jdx].append(r[pointer])
-            if pointer % 8 == 7:
-                for c in cache:
-                    logging.info("\t".join(c))
-                cache = [[] for _ in range(len(header))]
-            pointer += 1
-        if cache[0]!= []:
-            for c in cache:
-                logging.info("\t".join(c))
-
-    def has_finished(self):
-        if self.token_str.strip() == '.' and len(self.get_tokens()) >= self.min_len:
-            self.finished = True
-        else:
-            self.finished = False
-
-    def get_tokens(self):
-        tokens = [self.token]
-        prev = self.prev
-        while prev:
-            tokens.append(prev.token)
-            prev = prev.prev
-        return tokens
-
-    def get_prefix(self):
-        tokens = self.get_tokens()[::-1]
-        dec_prefix = torch.tensor([tokens], dtype=torch.long).to(device)
-        return dec_prefix
-
-    def get_ancestor_uid(self):
-        UIDs = []
-        prev = self.prev
-        while prev:
-            UIDs.append(prev.uid)
-            prev = prev.prev
-        return UIDs
-
-    def extract_prev_score(self):
-        scores = []
-        prev = self.prev
-        while prev:
-            scores.append(prev.score)
-            prev = prev.prev
-
-        return scores
-
-    def assign_uid(self):
-        global GLOBAL_UID_CNT
-        self.uid = GLOBAL_UID_CNT
-        GLOBAL_UID_CNT += 1
-
-    def get_output_str(self):
-        return tokenizer.decode(self.get_tokens()[::-1], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-
-    def get_score(self):
-        return statistics.mean(self.extract_prev_score() + [self.score])
-
-    def __repr__(self):
-        return f"Score: {pnum(self.get_score())}\tTokens: {self.get_output_str()}"
-
-
 def sublist(lst1, lst2):
     return set(lst1) <= set(lst2)
 
@@ -267,7 +152,7 @@ def greedy(doc_input_ids):
     return avg_values
 
 
-def beam_search(doc_input_ids):
+def beam_search(doc_input_ids, greedy_point=2):
     logging.info(f"\nBEAM SEARCH\n")
 
     whole_beam = [BeamState(cur_idx_in_distb=0, prob_distrib=[1., 0, 0, 0, 0], token_id_distb=[
@@ -280,14 +165,17 @@ def beam_search(doc_input_ids):
                 continue
             if not debug:
                 # prefix
-                decoder_input_ids = beam_item.get_prefix()
+                decoder_input_ids = beam_item.get_tokens_as_input()
                 output_tokens, output_prob, output_score, _ = run_full_model_slim(
                     model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
 
                 # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
                 # print(pnum(pred_entropy))
                 # dynamic_k = min(BS, math.ceil(pred_entropy))
-                dynamic_k = BS
+                if t >= greedy_point:
+                    dynamic_k = 1
+                else:
+                    dynamic_k = BS
                 values, indices = torch.topk(output_prob, k=dynamic_k)
             else:
                 values, indices = fake_model_output()      # replace it with something real
@@ -302,8 +190,13 @@ def beam_search(doc_input_ids):
         sorted_candidates = sorted(
             candidates, key=lambda x: x.get_score(), reverse=True)
         whole_beam = sorted_candidates[:BS]
+
     for unit in whole_beam:
-        logging.info(unit.get_complete_repr())
+        logging.info(repr(unit))
+
+    for unit in whole_beam:
+        logging.info(unit.get_simple_repr())
+        # logging.info(unit.get_complete_repr())
 
     scores = []
     for unit in whole_beam:
@@ -355,7 +248,7 @@ if __name__ == '__main__':
 
         doc_id = example['id']
         ref_sum = example['summary']
-        logging.info(f"\n\n===Inp Doc: {document[:200]}\n---Sum: {ref_sum}")
+        logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         ref_score, beam_scores, greedy_score = run_example(inp, ref_sum.strip())
         all_scores_ref.append(ref_score)
         all_scores_beam.append(statistics.mean(beam_scores))
