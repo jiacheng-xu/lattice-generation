@@ -6,9 +6,9 @@ from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 import logging
 import torch
 import datetime; now_time = datetime.datetime.now()
-logname = f"{str(now_time)[:16]}.txt"
+logname = f"recomb_dynk_{str(now_time)[:16]}.txt"
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
@@ -27,7 +27,7 @@ model_name ='facebook/bart-large-xsum'
 
 tokenizer = BartTokenizer.from_pretrained(model_name,cache_dir=MODEL_CACHE)
 debug = False    # fake model output
-debug = True    # fake model output
+# debug = True    # fake model output
 if not debug:
     device = torch.device('cuda:0') 
     logging.info('Loading model')

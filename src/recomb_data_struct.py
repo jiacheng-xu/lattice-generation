@@ -51,7 +51,7 @@ class BeamState(object):
         while prev:
             scores.append(prev.score)
             prev = prev.prev
-        return scores
+        return scores[::-1]
 
     def get_tokens_as_input(self):
         tokens = self.get_tokens()
@@ -67,7 +67,8 @@ class BeamState(object):
         return sum(all_scores) + self.len_reward * len(all_scores)
     
     def get_partial_score(self, start_idx, end_idx):
-        partial_scores = self.get_scores()[start_idx:end_idx]
+        all_scores= self.get_scores()
+        partial_scores = all_scores[start_idx:end_idx]
         return sum(partial_scores) + self.len_reward * len(partial_scores)
 
 
@@ -168,7 +169,16 @@ class BeamState(object):
         return tokenizer.decode(self.get_tokens(), skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
     def __repr__(self):
-        return f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\tTokens: {self.get_output_str()}\nToken IDs: {self.get_tokens()}"
+        # retrieve merges
+        merge_str = []
+        if self.merge:
+            for meg in self.merge:
+                sp, sp_option = meg
+                merge_str.append(f"-Option: {sp} <-> {sp_option}")
+        merge_str = "\n".join(merge_str)
+        init_str =  f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\nTokens: {self.get_output_str()}\n"
+        return init_str + merge_str
+
     
     def add_merge_record(self, my_span, merged_span, merge_histroy_of_target):
         logging.info(f"MERGE!")

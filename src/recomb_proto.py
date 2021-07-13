@@ -8,16 +8,16 @@ from scipy.stats import entropy
 from numpy.lib.utils import who
 from util import *
 from recomb_data_struct import BeamState
+from recombination_prototype import eval_group_diversity
 
-
-LEN_DIFF = 3  # max diff of two string
-MAX_STEP = 20  # max gen steps
-BS = 10
+LEN_DIFF = 4  # max diff of two string
+MAX_STEP = 30  # max gen steps
+BS = 20
 NGRAM_SUF = 2  # last NGRAM_SUF tokens match
-RWD_LEN = 0.1  # score = \sum RWD_len + log p(y)
+RWD_LEN = 0.08  # score = \sum RWD_len + log p(y)
 logging.info(f"BS:{BS} SUFFIX:{NGRAM_SUF} MAX_STEP:{MAX_STEP}")
 
-debug = True
+debug = False
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
 tokenizer = BartTokenizer.from_pretrained(model_name)
@@ -93,6 +93,7 @@ def merge_compare(beam_a, beam_b):
     if abs(len(a_tokens) - len(b_tokens)) < LEN_DIFF:
         logging.debug(f"Stage 2: Len Diff SUCCESS")
     else:
+        logging.debug(f"Stage 2: Len Diff FAIL")
         return [beam_a, beam_b]
     a_tokens_str = beam_a.get_tokens_str()
     b_tokens_str = beam_b.get_tokens_str()
@@ -136,6 +137,8 @@ def merge_compare(beam_a, beam_b):
 def entrance_merge(beam: List[BeamState]):
     for idx, b in enumerate(beam):
         for jdx in range(len(beam)):
+            if idx == jdx:
+                continue
             cand_a, cand_b = beam[idx], beam[jdx]
             if (not cand_a) or (not cand_b):
                 continue    # if has been merged, will be None
@@ -155,16 +158,18 @@ def recomb_beam_search(doc_input_ids, pad_token_id=0, eos_token_id=21):
             if beam_item.finished:
                 candidates.append(beam_item)
                 continue
+
             if not debug:
                 # prefix
-                decoder_input_ids = beam_item.get_prefix()
+                decoder_input_ids = beam_item.get_tokens_as_input()
                 output_tokens, output_prob, output_score, _ = run_full_model_slim(
                     model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
 
                 # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
                 # print(pnum(pred_entropy))
-                # dynamic_k = min(BS, math.ceil(pred_entropy))
-                values, indices = torch.topk(output_prob, k=BS)
+                dynamic_k = min(BS, t+1)
+                # dynamic_k= BS
+                values, indices = torch.topk(output_prob, k=dynamic_k)
                 values = values[0].tolist()
                 indices = indices[0].tolist()
             else:
@@ -184,34 +189,38 @@ def recomb_beam_search(doc_input_ids, pad_token_id=0, eos_token_id=21):
         whole_beam = entrance_merge(whole_beam)
         logging.info(f"COUNT: {original_len}->{len(whole_beam)}")
 
+    outputs = []
     for unit in whole_beam:
         logging.info(repr(unit))
+        outputs.append(unit.get_output_str())
+    score = eval_group_diversity(outputs)
 
-    for unit in whole_beam:
-        logging.info(repr(unit))
+    # for unit in whole_beam:
+    #     logging.info(repr(unit))
         # logging.info(unit.get_simple_repr())
         # logging.info(unit.get_complete_repr())
 
-    scores = []
-    for unit in whole_beam:
-        score = unit.get_score_sum()
-        scores.append(score)
-    return scores
+    # scores = []
+    # for unit in whole_beam:
+    #     score = unit.get_score_sum()
+    #     scores.append(score)
+    return score
 
 
 def run_example(document):
     doc_input_ids = tokenizer(document, return_tensors='pt')[
         'input_ids'][:, :800]
     doc_input_ids = doc_input_ids.to(device)
-    recomb_beam_search(doc_input_ids)
-
+    recomb_diverse_score = recomb_beam_search(doc_input_ids,pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id)
+    logger.info(f"Diverse Score: {recomb_diverse_score}")
+    return recomb_diverse_score
 
 if __name__ == '__main__':
 
     # logging.info(args)
     nexample = 20
     cnt = 0
-    all_scores_ref = []
+    all_scores = []
     all_scores_beam = []
     all_scores_greey = []
     for example in dataset:
@@ -223,13 +232,9 @@ if __name__ == '__main__':
         doc_id = example['id']
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
-        ref_score, beam_scores, greedy_score = run_example(
+        score = run_example(
             inp)
-        all_scores_ref.append(ref_score)
-        all_scores_beam.append(statistics.mean(beam_scores))
-        all_scores_greey.append(greedy_score)
+        all_scores.append(score)
         if cnt > nexample:
             break
-    logging.info(f"Ref: {statistics.mean(all_scores_ref)}")
-    logging.info(f"Beam: {statistics.mean(all_scores_beam)}")
-    logging.info(f"Greedy: {statistics.mean(all_scores_greey)}")
+    logging.info(f"Ref: {statistics.mean(all_scores)}")

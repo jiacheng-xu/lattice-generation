@@ -95,7 +95,7 @@ def merge_compare(beam_a, beam_b):
         return None
 
 
-def entrance_merge(beam: List[BeamState]):
+def entrance_merge(beam):
     for idx, b in enumerate(beam):
         for jdx in range(idx+1, len(beam)):
             cand_a, cand_b = beam[idx], beam[jdx]
