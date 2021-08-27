@@ -1,11 +1,19 @@
-import torch,math
+import torch
+import math
 import logging
 from util import pnum
 import statistics
 from util import tokenizer
+import random,string
+
+def gen_rand_id(N=5):
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
+
+
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False, len_reward=0.0) -> None:
         super().__init__()
+        self.uid = gen_rand_id()
         self.score = math.log(prob_distrib[cur_idx_in_distb])
         self.prob = prob_distrib[cur_idx_in_distb]
         self.token = token_id_distb[cur_idx_in_distb]  # token
@@ -16,16 +24,17 @@ class BeamState(object):
         self.peer_token_id = token_id_distb
 
         self.prev = prev
-        # self.assign_uid()
+
         self.finished = finished
         self.min_len = min_len
-        self.len_reward=len_reward
+        self.len_reward = len_reward
         self.has_finished()
         if prev == []:
             self.len = 1
         else:
             self.len = self.prev.len + 1
         self.merge = []
+
     def has_finished(self):
         if self.token_str.strip() == '.' and len(self.get_tokens()) >= self.min_len:
             self.finished = True
@@ -58,19 +67,17 @@ class BeamState(object):
         dec_prefix = torch.tensor([tokens], dtype=torch.long)
         return dec_prefix
 
-
     def get_avg_score(self):
         return statistics.mean(self.get_scores())
 
     def get_score_sum(self):
         all_scores = self.get_scores()
         return sum(all_scores) + self.len_reward * len(all_scores)
-    
+
     def get_partial_score(self, start_idx, end_idx):
-        all_scores= self.get_scores()
+        all_scores = self.get_scores()
         partial_scores = all_scores[start_idx:end_idx]
         return sum(partial_scores) + self.len_reward * len(partial_scores)
-
 
     def get_complete_repr(self, k=2):
         tokens = [self.token]
@@ -95,12 +102,14 @@ class BeamState(object):
         header = ['T', 'TP'] + [f"[{idx}]" for idx in range(k)]
 
         rows = [[] for _ in range(len(header))]
-        rows[0] = [header[0]] + ['{:15d}'.format(x) for x in range(len(tokens_str))]
+        rows[0] = [header[0]] + \
+            ['{:15d}'.format(x) for x in range(len(tokens_str))]
         rows[1] = [header[1]] + \
-            ["{:3s} {:10s}".format(pnum(y),x) for x, y in zip(tokens_str, probs)]
+            ["{:3s} {:10s}".format(pnum(y), x)
+             for x, y in zip(tokens_str, probs)]
         for idx in range(k):
             for x, y in zip(top_k_tokens_str, top_k_probs):
-                rows[2+idx].append("{:3s} {:10s}".format(pnum(y[idx]),x[idx]) )
+                rows[2+idx].append("{:3s} {:10s}".format(pnum(y[idx]), x[idx]))
             rows[2+idx] = [header[2+idx]] + rows[2+idx]
 
         pointer = 0
@@ -113,10 +122,9 @@ class BeamState(object):
                     logging.info("\t".join(c))
                 cache = [[] for _ in range(len(header))]
             pointer += 1
-        if cache[0]!= []:
+        if cache[0] != []:
             for c in cache:
                 logging.info("\t".join(c))
-
 
     def get_simple_repr(self):
         tokens = [self.token]
@@ -131,12 +139,14 @@ class BeamState(object):
         probs = probs[::-1]
         tokens_str = [tokenizer.convert_ids_to_tokens(x) for x in tokens]
 
-        header = ['T', 'TP'] 
+        header = ['T', 'TP']
 
         rows = [[] for _ in range(len(header))]
-        rows[0] = [header[0]] + ['{:12d}'.format(x) for x in range(len(tokens_str))]
+        rows[0] = [header[0]] + \
+            ['{:12d}'.format(x) for x in range(len(tokens_str))]
         rows[1] = [header[1]] + \
-            ["{:3s} {:8s}".format(pnum(y),x) for x, y in zip(tokens_str, probs)]
+            ["{:3s} {:8s}".format(pnum(y), x)
+             for x, y in zip(tokens_str, probs)]
         pointer = 0
         cache = [[] for _ in range(len(header))]
         while pointer < len(tokens):
@@ -147,10 +157,9 @@ class BeamState(object):
                     logging.info("\t".join(c))
                 cache = [[] for _ in range(len(header))]
             pointer += 1
-        if cache[0]!= []:
+        if cache[0] != []:
             for c in cache:
                 logging.info("\t".join(c))
-
 
     def get_ancestor_uid(self):
         UIDs = []
@@ -160,10 +169,6 @@ class BeamState(object):
             prev = prev.prev
         return UIDs
 
-    def assign_uid(self):
-        global GLOBAL_UID_CNT
-        self.uid = GLOBAL_UID_CNT
-        GLOBAL_UID_CNT += 1
 
     def get_output_str(self):
         return tokenizer.decode(self.get_tokens(), skip_special_tokens=True, clean_up_tokenization_spaces=False)
@@ -176,12 +181,11 @@ class BeamState(object):
                 sp, sp_option = meg
                 merge_str.append(f"-Option: {sp} <-> {sp_option}")
         merge_str = "\n".join(merge_str)
-        init_str =  f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\nTokens: {self.get_output_str()}\n"
+        init_str = f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\nTokens: {self.get_output_str()}\n"
         return init_str + merge_str
 
-    
     def add_merge_record(self, my_span, merged_span, merge_histroy_of_target):
-        logging.info(f"MERGE!")
+        # logging.info(f"MERGE!")
         logging.info(f"WinSpan: {my_span}\nLostSpan: {merged_span}")
         self.merge.append([my_span, merged_span])
         self.merge += merge_histroy_of_target

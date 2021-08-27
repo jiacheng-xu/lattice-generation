@@ -8,6 +8,8 @@ from statistics import mode
 import sys
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
 
+def return_str(tokens):
+    return tokenizer.decode(tokens, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
 def setup_logger(name):
     import datetime

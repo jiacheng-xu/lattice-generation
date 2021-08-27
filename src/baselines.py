@@ -1,3 +1,4 @@
+from early_stop import best_first_search
 from eval_bench import *
 from transformers import (
     AutoTokenizer,
@@ -7,22 +8,22 @@ from transformers import (
     HammingDiversityLogitsProcessor,
     BeamSearchScorer,
 )
+from recomb_proto import recomb_beam_search
 from util import *
 
 
 def process_arg():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-model", type=str, choices=['dbs', 'bs', 'greedy', 'delay', 'topp', 'recon'], default='topp',
-                        help="the multiplier of beam entropy")
-    parser.add_argument('-beam_size', type=int, default=20)
+    parser.add_argument("-model", type=str, choices=['dbs', 'bs', 'greedy', 'delay', 'topp', 'recom',' best'], default='best')
+    parser.add_argument('-beam_size', type=int, default=5)
     parser.add_argument('-top_p', type=float, default=0.8)
-    
+
     parser.add_argument('-beam_group', type=int, default=5)
     parser.add_argument('-hamming_penalty', type=float, default=1.)
-    parser.add_argument('-min_len', type=int, default=20)
-    parser.add_argument('-max_len', type=int, default=30)
-    parser.add_argument('-num_beam_hyps_to_keep', type=int, default=20)
+    parser.add_argument('-min_len', type=int, default=5)
+    parser.add_argument('-max_len', type=int, default=5)
+    parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
     return args
@@ -82,7 +83,6 @@ def run_bs(args, model, input_doc: str):
         max_length=args.max_len,
         num_beams=args.beam_size,
         device=model.device,
-
         num_beam_hyps_to_keep=args.num_beam_hyps_to_keep
     )
 
@@ -97,16 +97,32 @@ def run_bs(args, model, input_doc: str):
     decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
     return decoded_outputs
 
+
 def run_topp(args, model, input_doc):
-    input_ids = tokenizer(input_doc, return_tensors="pt").input_ids.to(args.device)
+    input_ids = tokenizer(
+        input_doc, return_tensors="pt").input_ids.to(args.device)
     outputs = []
     for i in range(args.num_beam_hyps_to_keep):
-        output = model.generate(input_ids=input_ids, top_p=args.top_p,do_sample=True, min_length=args.min_len,max_length=args.max_len)
+        output = model.generate(input_ids=input_ids, top_p=args.top_p,
+                                do_sample=True, min_length=args.min_len, max_length=args.max_len)
         outputs.append(output[0].cpu().tolist())
     # print("Generated:", tokenizer.batch_decode(outputs, skip_special_tokens=True))
     decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
     return decoded_outputs
 
+
+def run_recom(args, model, input_doc):
+    input_ids = tokenizer(
+        input_doc, return_tensors="pt").input_ids.to(args.device)
+    output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
+                       eos_token_id=tokenizer.eos_token_id, beam_sz=5, max_len=5, num_return_hypo=100)
+    return output
+def run_best(args, model, inp):
+    input_ids = tokenizer(
+        inp, return_tensors="pt").input_ids.to(args.device)
+    output = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
+                       eos_token_id=tokenizer.eos_token_id,  max_len=30)
+    return output 
 def main(args):
     eval_rouge, eval_bleu, eval_rep = [], [], []
     # logging.info(args)
@@ -127,12 +143,17 @@ def main(args):
             output = run_dbs(args, model, inp)
         elif args.model == 'bs':
             output = run_bs(args, model, inp)
-        elif args.model =='topp':
+        elif args.model == 'topp':
             output = run_topp(args, model, inp)
+        elif args.model =='recom':
+            output = run_recom(args, model, inp)
+        elif args.model == 'best':
+            output = run_best(args, model, inp)
         all_outputs.append(output)
         all_summaries.append(ref_sum)
         if cnt > nexample:
             break
+    """
     for summ, out in zip(all_summaries, all_outputs):
         eval_rouge.append(rouge(out, summ))
         eval_rep.append(repetition(out))
@@ -141,7 +162,7 @@ def main(args):
     eval_rep = statistics.mean(eval_rep)
     eval_bleu = statistics.mean(eval_bleu)
     logging.info(f"{eval_rouge},{eval_rep},{eval_bleu}")
-
+    """
 
 if __name__ == "__main__":
     # execute only if run as a script

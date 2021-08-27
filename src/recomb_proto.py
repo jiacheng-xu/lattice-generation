@@ -10,10 +10,10 @@ from util import *
 from recomb_data_struct import BeamState
 from recombination_prototype import eval_group_diversity
 
-LEN_DIFF = 4  # max diff of two string
+LEN_DIFF = 8  # max diff of two string
 MAX_STEP = 30  # max gen steps
 BS = 20
-NGRAM_SUF = 2  # last NGRAM_SUF tokens match
+NGRAM_SUF = 3  # last NGRAM_SUF tokens match
 RWD_LEN = 0.08  # score = \sum RWD_len + log p(y)
 logging.info(f"BS:{BS} SUFFIX:{NGRAM_SUF} MAX_STEP:{MAX_STEP}")
 
@@ -74,7 +74,7 @@ def find_suffix(seq_a, seq_b):
     return [pointer_a, pointer_b]
 
 
-def merge_compare(beam_a, beam_b):
+def merge_compare(beam_a, beam_b, merge_to_a:bool=False):
     # we assume we are matching the suffix of a and b although their length can be different
     # try to merge a -> b
     # Step 1: suffix match
@@ -105,7 +105,7 @@ def merge_compare(beam_a, beam_b):
                       prefix=[], suffix=a_tokens)
         span_b = Span(b_tokens, b_tokens_str, score=score_b,
                       prefix=[], suffix=b_tokens)
-        if score_a > score_b:
+        if merge_to_a or score_a > score_b:
             beam_a.add_merge_record(span_a, span_b, beam_b.merge)
             return [beam_a, None]
         else:
@@ -126,7 +126,7 @@ def merge_compare(beam_a, beam_b):
 
     span_b = Span(b_tokens[prefix_b:suf_b+1], b_tokens_str[prefix_b:suf_b+1],
                   score=score_b, prefix=b_tokens[:prefix_b], suffix=b_tokens[suf_b+1:])
-    if score_a > score_b:
+    if merge_to_a or score_a > score_b:
         beam_a.add_merge_record(span_a, span_b, beam_b.merge)
         return [beam_a, None]
     else:
@@ -147,12 +147,12 @@ def entrance_merge(beam: List[BeamState]):
     return beam
 
 
-def recomb_beam_search(doc_input_ids, pad_token_id=0, eos_token_id=21):
+def recomb_beam_search(doc_input_ids,model,  pad_token_id=0, eos_token_id=21, beam_sz=5, max_len=20, num_return_hypo=10000):
     logging.info(f"\nBEAM SEARCH\n")
 
     whole_beam = [BeamState(cur_idx_in_distb=0, prob_distrib=[1., 0, 0, 0, 0], token_id_distb=[
                             eos_token_id, pad_token_id, pad_token_id, pad_token_id, pad_token_id])]
-    for t in range(MAX_STEP):
+    for t in range(max_len):
         candidates = []
         for beam_item in whole_beam:
             if beam_item.finished:
@@ -167,53 +167,49 @@ def recomb_beam_search(doc_input_ids, pad_token_id=0, eos_token_id=21):
 
                 # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
                 # print(pnum(pred_entropy))
-                dynamic_k = min(BS, t+1)
-                # dynamic_k= BS
+                # dynamic_k = min(BS, t+1)
+                dynamic_k = beam_sz
                 values, indices = torch.topk(output_prob, k=dynamic_k)
                 values = values[0].tolist()
                 indices = indices[0].tolist()
+                # trim
+                values = [x for x in values if x>0.05]
+                indices = indices[:len(values)]
             else:
                 values, indices = fake_model_output()      # replace it with something real
                 values = values.tolist()
                 indices = indices.tolist()
 
-            for idx, v, i in zip(range(BS), values, indices):
+            for idx, v, i in zip(range(beam_sz), values, indices):
                 tmp_state = BeamState(idx, values, indices, prev=beam_item)
                 candidates.append(tmp_state)
 
         # sort candidates by scores
         sorted_candidates = sorted(
             candidates, key=lambda x: x.get_score_sum(), reverse=True)
-        whole_beam = sorted_candidates[:BS]
+        
+        whole_beam = sorted_candidates[:num_return_hypo]
         original_len = len(whole_beam)
         whole_beam = entrance_merge(whole_beam)
         logging.info(f"COUNT: {original_len}->{len(whole_beam)}")
-
+    logging.info(f"Whole Beam Len: {len(whole_beam)}")
     outputs = []
     for unit in whole_beam:
         logging.info(repr(unit))
         outputs.append(unit.get_output_str())
-    score = eval_group_diversity(outputs)
-
-    # for unit in whole_beam:
-    #     logging.info(repr(unit))
-        # logging.info(unit.get_simple_repr())
-        # logging.info(unit.get_complete_repr())
-
-    # scores = []
-    # for unit in whole_beam:
-    #     score = unit.get_score_sum()
-    #     scores.append(score)
-    return score
+    # score = eval_group_diversity(outputs)
+    return outputs
 
 
 def run_example(document):
     doc_input_ids = tokenizer(document, return_tensors='pt')[
         'input_ids'][:, :800]
     doc_input_ids = doc_input_ids.to(device)
-    recomb_diverse_score = recomb_beam_search(doc_input_ids,pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id)
+    recomb_diverse_score = recomb_beam_search(
+        doc_input_ids, pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id)
     logger.info(f"Diverse Score: {recomb_diverse_score}")
     return recomb_diverse_score
+
 
 if __name__ == '__main__':
 
