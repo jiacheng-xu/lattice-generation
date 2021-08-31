@@ -1,10 +1,12 @@
 import torch
 import math
 import logging
-from util import pnum
+from .util import pnum, tokenizer
 import statistics
-from util import tokenizer
-import random,string
+
+import random
+import string
+
 
 def gen_rand_id(N=5):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -168,7 +170,6 @@ class BeamState(object):
             UIDs.append(prev.uid)
             prev = prev.prev
         return UIDs
-
 
     def get_output_str(self):
         return tokenizer.decode(self.get_tokens(), skip_special_tokens=True, clean_up_tokenization_spaces=False)

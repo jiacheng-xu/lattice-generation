@@ -1,4 +1,5 @@
-from recombination_prototype import _get_ngrams
+
+from rouge_score import rouge_scorer
 import statistics
 from collections import defaultdict
 from collections import Counter
@@ -11,6 +12,15 @@ import spacy
 nlp = spacy.load("en_core_web_sm")
 
 
+def _get_ngrams(n, text):
+    ngram_set = set()
+    text_length = len(text)
+    max_index_ngram_start = text_length - n
+    for i in range(max_index_ngram_start + 1):
+        ngram_set.add(tuple(text[i:i + n]))
+    return ngram_set
+
+
 def tokenize_sentences(inp_group):
     output = []
     for inp in inp_group:
@@ -18,12 +28,14 @@ def tokenize_sentences(inp_group):
         output.append([token.text for token in doc])
     return output
 
+
 def extract_np(inp_group):
     output = []
     for inp in inp_group:
         doc = nlp(inp)
-        output.append(  set( [chunk.root.text for chunk in doc.noun_chunks]   ))
+        output.append(set([chunk.root.text for chunk in doc.noun_chunks]))
     return output
+
 
 def np_overlap(inp_group: List[str]):
     tok_inputs = extract_np(inp_group)
@@ -47,6 +59,7 @@ def self_bleu(inp_group: List[str]):
         bleu_scores.append(bleu_score)
     return statistics.mean(bleu_scores)
 
+
 def repetition(inp_group: List[str], threshold=3):
     tok_inputs = tokenize_sentences(inp_group)
     cnt = Counter()
@@ -58,16 +71,15 @@ def repetition(inp_group: List[str], threshold=3):
         if v >= threshold:
             matter += 1
     return matter / total_len
-from rouge_score import rouge_scorer
+
 
 scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
 
 
-def rouge(inp_group, reference:str)->float:
+def rouge(inp_group, reference: str) -> float:
     scores = []
     for inp in inp_group:
-        s = scorer.score(inp ,reference)
+        s = scorer.score(inp, reference)
         f1, fl = s['rouge1'].fmeasure, s['rougeL'].fmeasure
         scores.append(f1)
     return statistics.mean(scores)
-    

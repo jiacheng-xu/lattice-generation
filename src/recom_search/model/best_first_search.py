@@ -1,9 +1,16 @@
-from recomb_proto import merge_compare
-from util import *
-from recomb_data_struct import BeamState
+from transformers import PreTrainedModel, PreTrainedTokenizer
+from src.recom_search.model.model_base import SearchStrategy
+
+from src.recom_search.model.recomb_proto import merge_compare
+from .util import *
+from src.recom_search.model.beam_state import BeamState
+
 import heapq
 
-
+class BestFirstRecombination(SearchStrategy):
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, device, min_len: int, max_len: int, beam_size: int) -> None:
+        super().__init__(model, tokenizer, device, min_len, max_len, beam_size)
+    
 def greedy_generate_sequence(doc_input_ids, model, start_seed, device, max_len=20, extra_steps=7):
     pointer = start_seed
     decoder_input_ids = pointer.get_tokens_as_input()

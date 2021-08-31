@@ -1,14 +1,14 @@
 from re import split
 import statistics
-from util import str2bool
+
 import argparse
 from typing import List
 import math
 from scipy.stats import entropy
 from numpy.lib.utils import who
-from util import *
-from recomb_data_struct import BeamState
-from recombination_prototype import eval_group_diversity
+from .util import *
+from src.recom_search.model.beam_state import BeamState
+# from recombination_prototype import eval_group_diversity
 
 LEN_DIFF = 8  # max diff of two string
 MAX_STEP = 30  # max gen steps
