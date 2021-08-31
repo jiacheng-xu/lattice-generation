@@ -29,41 +29,6 @@ def process_arg():
     return args
 
 
-def run_dbs(args, model, input_doc: str):
-    encoder_input_ids = tokenizer(
-        input_doc, return_tensors="pt").input_ids.to(args.device)
-
-    # lets run diverse beam search using 6 beams
-    num_beams = args.beam_size
-    ngroups = args.beam_group
-    # define decoder start token ids
-    input_ids = torch.ones(
-        (num_beams, 1), device=model.device, dtype=torch.long)
-    input_ids = input_ids * model.config.decoder_start_token_id
-    model_kwargs = {
-        "encoder_outputs": model.get_encoder()(encoder_input_ids.repeat_interleave(num_beams, dim=0), return_dict=True)}
-    beam_scorer = BeamSearchScorer(
-        batch_size=1,
-        max_length=args.max_len,
-        num_beams=args.beam_size,
-        device=model.device,
-        num_beam_groups=args.beam_group,
-        num_beam_hyps_to_keep=args.num_beam_hyps_to_keep
-    )
-
-    # instantiate logits processors
-    logits_processor = LogitsProcessorList([
-        HammingDiversityLogitsProcessor(
-            args.hamming_penalty, num_beams=args.beam_size, num_beam_groups=args.beam_group),
-        MinLengthLogitsProcessor(
-            args.min_len, eos_token_id=model.config.eos_token_id),
-    ])
-
-    outputs = model.group_beam_search(
-        input_ids, beam_scorer, logits_processor=logits_processor, max_length=args.max_len, **model_kwargs)
-    decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    return decoded_outputs
-
 
 def run_bs(args, model, input_doc: str):
     encoder_input_ids = tokenizer(
@@ -98,17 +63,7 @@ def run_bs(args, model, input_doc: str):
     return decoded_outputs
 
 
-def run_topp(args, model, input_doc):
-    input_ids = tokenizer(
-        input_doc, return_tensors="pt").input_ids.to(args.device)
-    outputs = []
-    for i in range(args.num_beam_hyps_to_keep):
-        output = model.generate(input_ids=input_ids, top_p=args.top_p,
-                                do_sample=True, min_length=args.min_len, max_length=args.max_len)
-        outputs.append(output[0].cpu().tolist())
-    # print("Generated:", tokenizer.batch_decode(outputs, skip_special_tokens=True))
-    decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    return decoded_outputs
+
 
 
 def run_recom(args, model, input_doc):
@@ -123,6 +78,7 @@ def run_best(args, model, inp):
     output = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
                        eos_token_id=tokenizer.eos_token_id,  max_len=30)
     return output 
+
 def main(args):
     eval_rouge, eval_bleu, eval_rep = [], [], []
     # logging.info(args)
