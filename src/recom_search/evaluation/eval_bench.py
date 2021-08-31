@@ -18,6 +18,25 @@ def tokenize_sentences(inp_group):
         output.append([token.text for token in doc])
     return output
 
+def extract_np(inp_group):
+    output = []
+    for inp in inp_group:
+        doc = nlp(inp)
+        output.append(  set( [chunk.root.text for chunk in doc.noun_chunks]   ))
+    return output
+
+def np_overlap(inp_group: List[str]):
+    tok_inputs = extract_np(inp_group)
+    scores = []
+    for idx, inp in enumerate(tok_inputs):
+        for jdx, x in enumerate(tok_inputs):
+            if jdx >= idx:
+                continue
+            rate = len(inp.intersection(x)) / len(inp.union(x))
+            scores.append(rate)
+
+    return statistics.mean(scores)
+
 
 def self_bleu(inp_group: List[str]):
     tok_inputs = tokenize_sentences(inp_group)
@@ -27,7 +46,6 @@ def self_bleu(inp_group: List[str]):
             [x for jdx, x in enumerate(tok_inputs) if jdx != idx], inp)
         bleu_scores.append(bleu_score)
     return statistics.mean(bleu_scores)
-
 
 def repetition(inp_group: List[str], threshold=3):
     tok_inputs = tokenize_sentences(inp_group)
@@ -53,5 +71,3 @@ def rouge(inp_group, reference:str)->float:
         scores.append(f1)
     return statistics.mean(scores)
     
-
-    pass

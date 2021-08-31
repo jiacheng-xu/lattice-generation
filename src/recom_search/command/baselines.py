@@ -1,4 +1,7 @@
+from src.recom_search.evaluation.eval_bench import np_overlap,rouge,self_bleu
+
 from early_stop import best_first_search
+
 from eval_bench import *
 from transformers import (
     AutoTokenizer,
@@ -27,42 +30,6 @@ def process_arg():
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
     return args
-
-
-
-def run_bs(args, model, input_doc: str):
-    encoder_input_ids = tokenizer(
-        input_doc, return_tensors="pt").input_ids.to(args.device)
-
-    # lets run diverse beam search using 6 beams
-    num_beams = args.beam_size
-
-    # define decoder start token ids
-    input_ids = torch.ones(
-        (num_beams, 1), device=model.device, dtype=torch.long)
-    input_ids = input_ids * model.config.decoder_start_token_id
-    model_kwargs = {
-        "encoder_outputs": model.get_encoder()(encoder_input_ids.repeat_interleave(num_beams, dim=0), return_dict=True)}
-    beam_scorer = BeamSearchScorer(
-        batch_size=1,
-        max_length=args.max_len,
-        num_beams=args.beam_size,
-        device=model.device,
-        num_beam_hyps_to_keep=args.num_beam_hyps_to_keep
-    )
-
-    # instantiate logits processors
-    logits_processor = LogitsProcessorList([
-        MinLengthLogitsProcessor(
-            args.min_len, eos_token_id=model.config.eos_token_id),
-    ])
-
-    outputs = model.beam_search(
-        input_ids, beam_scorer, logits_processor=logits_processor, max_length=args.max_len, **model_kwargs)
-    decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    return decoded_outputs
-
-
 
 
 

@@ -1,6 +1,6 @@
 
 import sys
-from src.recom_search.model.topp import GenericSearch
+from src.recom_search.model.generic_search import GenericSearch
 from transformers.testing_utils import require_torch, torch_device
 from transformers import is_torch_available
 import unittest
