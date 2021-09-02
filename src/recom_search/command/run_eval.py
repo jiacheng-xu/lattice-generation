@@ -1,5 +1,6 @@
+from collections import defaultdict
 from src.recom_search.model.generic_search import GenericSearch
-from src.recom_search.evaluation.eval_bench import np_overlap, rouge, self_bleu
+from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
 
 from src.recom_search.model.best_first_search import *
 from transformers import (
@@ -20,8 +21,10 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', ' best'], default='best')
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='best')
     parser.add_argument('-beam_size', type=int, default=20)
+    parser.add_argument('-nexample', type=int, default=50)
+    
     parser.add_argument('-top_p', type=float, default=0.8)
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=4)
@@ -47,7 +50,7 @@ def run_best(args, model, inp):
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     output = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
-                               eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len)
+                               eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len,explore_cnt=args.beam_size)
     return output
 
 
@@ -57,9 +60,9 @@ def run_baseline(args, model, inp):
                            device=device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=1)
     elif args.model == 'bs':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=args.beam_size, do_sample=False, 
-                           min_len=args.min_len, 
-                           max_len=args.max_len, 
+                           device=device, beam_size=args.beam_size, do_sample=False,
+                           min_len=args.min_len,
+                           max_len=args.max_len,
                            num_beam_hyps_to_keep=args.beam_size
                            )
     elif args.model == 'dbs':
@@ -69,27 +72,31 @@ def run_baseline(args, model, inp):
                            )
     elif args.model == 'topp':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size, 
+                           device=device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
                            top_p=args.top_p)
     elif args.model == 'temp':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=1, do_sample=True, 
+                           device=device, beam_size=1, do_sample=True,
                            min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
                            temperature=args.temp
                            )
     else:
         raise NotImplementedError
     output = gs.run(inp)
-    print(output)
+
+    return output
+    # output should be a list of str
 
 
 def main(args):
 
     # logging.info(args)
-    nexample = 3
+    nexample = args.nexample
     cnt = 0
     all_outputs = []
     all_summaries = []
+    d = defaultdict(list)
+
     for example in dataset:
         cnt += 1
         document = example['document']
@@ -109,16 +116,17 @@ def main(args):
         all_summaries.append(ref_sum)
         if cnt > nexample:
             break
-    """
+
     for summ, out in zip(all_summaries, all_outputs):
-        eval_rouge.append(rouge(out, summ))
-        eval_rep.append(repetition(out))
-        eval_bleu.append(self_bleu(out))
-    eval_rouge = statistics.mean(eval_rouge)
-    eval_rep = statistics.mean(eval_rep)
-    eval_bleu = statistics.mean(eval_bleu)
-    logging.info(f"{eval_rouge},{eval_rep},{eval_bleu}")
-    """
+        output_d = eval_main(out, summ)
+        for k, v in output_d.items():
+            d[k].append(v)
+    nums_brief = []
+    for k, v in d.items():
+        avg = statistics.mean(v)
+        logging.info(f"{k}:{pnum(avg) }")
+        nums_brief.append(pnum(avg))
+    logging.info(",".join(nums_brief))
 
 
 if __name__ == "__main__":

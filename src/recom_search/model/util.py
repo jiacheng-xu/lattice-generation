@@ -14,7 +14,7 @@ def return_str(tokens):
 def setup_logger(name):
     import datetime
     now_time = datetime.datetime.now()
-    logname = f"{name}{str(now_time)[:16]}.txt"
+    logname = f"logs/{name}{str(now_time)[:16]}.txt"
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
@@ -50,7 +50,7 @@ dataset = load_dataset('xsum', split='validation')
 
 
 def pnum(num):
-    return "{:.2f}".format(num)
+    return "{:.4f}".format(num)
 
 
 def str2bool(v):

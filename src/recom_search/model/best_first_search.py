@@ -123,17 +123,23 @@ def best_first_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, ma
 
         # print('Done')
         
-        if explored_cnt >= explore_cnt:
+        if explored_cnt >= explore_cnt *5:
             break
     logging.info(f"*************Regular len: {len(outputs)}*************")
     logging.info(f"*************Recomb len: {len(recombine_outputs)}*************")
     # UIDs of recombs
     recom_uids = [ x.uid for x in recombine_outputs]
     outputs = [x for x in outputs if x.uid not in recom_uids]
-    logging.info('\n\nStart of recom')
-    for rec in recombine_outputs:
-        logging.info(repr(rec))
-    logging.info('\n\nStart of regular')
-    for regular in outputs:
-        logging.info(repr(regular))
-    return None
+    # logging.info('\n\nStart of recom')
+    # for rec in recombine_outputs:
+    #     logging.info(repr(rec))
+    # logging.info('\n\nStart of regular')
+    # for regular in outputs:
+    #     logging.info(repr(regular))
+    #     outputs = []
+    if len(outputs) > explore_cnt:
+        outputs = outputs[:explore_cnt]
+    for unit in outputs:
+        logging.info(repr(unit))
+        outputs.append(unit)
+    return outputs

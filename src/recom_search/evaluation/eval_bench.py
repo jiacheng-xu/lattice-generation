@@ -11,6 +11,8 @@ import spacy
 
 nlp = spacy.load("en_core_web_sm")
 
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
+
 
 def _get_ngrams(n, text):
     ngram_set = set()
@@ -73,8 +75,6 @@ def repetition(inp_group: List[str], threshold=3):
     return matter / total_len
 
 
-scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
-
 
 def rouge(inp_group, reference: str) -> float:
     scores = []
@@ -83,3 +83,20 @@ def rouge(inp_group, reference: str) -> float:
         f1, fl = s['rouge1'].fmeasure, s['rougeL'].fmeasure
         scores.append(f1)
     return statistics.mean(scores)
+
+def eval_main(inp_group, reference):
+    if len(inp_group) == 1:
+        d = {
+        'ROUGE': rouge(inp_group, reference),
+        'REP': 0,
+        'SELF_BLEU': 0,
+        'NP_OVERLAP': 0,
+    }
+    else:
+        d = {
+        'ROUGE': rouge(inp_group, reference),
+        'REP':repetition(inp_group),
+        'SELF_BLEU':self_bleu(inp_group),
+        'NP_OVERLAP':np_overlap(inp_group),
+    }
+    return d
