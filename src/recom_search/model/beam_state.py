@@ -1,7 +1,8 @@
 import torch
 import math
 import logging
-from .util import pnum, tokenizer
+# from .util import pnum, tokenizer
+from src.recom_search.model.util import pnum, tokenizer
 import statistics
 
 import random

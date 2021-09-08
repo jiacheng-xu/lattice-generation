@@ -9,7 +9,10 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": ["-model", "best"],
+            "python.envFile": "${workspaceFolder}/.env"
+            // "cwd": "/mnt/data1/jcxu/back_to_fact/",
         }
     ]
 }

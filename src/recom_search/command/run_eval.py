@@ -24,11 +24,12 @@ def process_arg():
         "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='best')
     parser.add_argument('-beam_size', type=int, default=20)
     parser.add_argument('-nexample', type=int, default=50)
-    
+
     parser.add_argument('-top_p', type=float, default=0.8)
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=4)
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
+    parser.add_argument('-extra_steps', type=float, default=10)
     parser.add_argument('-min_len', type=int, default=10)
     parser.add_argument('-max_len', type=int, default=30)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
@@ -42,16 +43,19 @@ def run_recom(args, model, input_doc):
         input_doc, return_tensors="pt").input_ids.to(args.device)
     output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
                                 eos_token_id=tokenizer.eos_token_id,
-                                beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size)
+                                beam_sz=args.beam_size, 
+                                max_len=args.max_len, 
+                                num_return_hypo=args.beam_size)
     return output
 
 
 def run_best(args, model, inp):
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
-    output = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
-                               eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len,explore_cnt=args.beam_size)
-    return output
+    output, stat = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
+                                     eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, explore_cnt=args.beam_size, extra_steps=args.extra_steps)
+
+    return output, stat
 
 
 def run_baseline(args, model, inp):
@@ -67,7 +71,10 @@ def run_baseline(args, model, inp):
                            )
     elif args.model == 'dbs':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=args.beam_size, do_sample=False, min_len=args.min_len, max_len=args.max_len,  num_beam_groups=args.beam_group, diversity_penalty=args.hamming_penalty,
+                           device=device, beam_size=args.beam_size, do_sample=False, 
+                           min_len=args.min_len, max_len=args.max_len,  
+                           num_beam_groups=args.beam_group, 
+                           diversity_penalty=args.hamming_penalty,
                            num_beam_hyps_to_keep=args.beam_size
                            )
     elif args.model == 'topp':
@@ -111,7 +118,9 @@ def main(args):
         elif args.model == 'recom':
             output = run_recom(args, model, inp)
         elif args.model == 'best':
-            output = run_best(args, model, inp)
+            output, stat = run_best(args, model, inp)
+            for k, v in stat.items():
+                d[k].append(v)
         all_outputs.append(output)
         all_summaries.append(ref_sum)
         if cnt > nexample:
@@ -122,11 +131,19 @@ def main(args):
         for k, v in output_d.items():
             d[k].append(v)
     nums_brief = []
+    stat_result = analyze_stat_dict(d)
+    logging.info(f"STAT: {stat_result}")
     for k, v in d.items():
         avg = statistics.mean(v)
         logging.info(f"{k}:{pnum(avg) }")
         nums_brief.append(pnum(avg))
+
     logging.info(",".join(nums_brief))
+    # viz in one line
+    viz = [args.model, args.hamming_penalty, args.top_p, args.temp, args.extra_steps] + \
+        nums_brief + list(stat_result.values())
+    viz = [str(x) for x in viz]
+    logging.info(','.join(viz))
 
 
 if __name__ == "__main__":

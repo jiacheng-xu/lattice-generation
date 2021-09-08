@@ -6,7 +6,19 @@ import logging
 from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 from statistics import mode
 import sys
+from typing import List
+# from src.recom_search.model.beam_state import BeamState
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
+def filter_by_score(group:List, top_k=20):
+    sorts = sorted(group, key=lambda x: x.get_avg_score(), reverse=True)
+    sorts = sorts[:top_k]
+    return sorts
+
+def analyze_stat_dict(d):
+    result = {}
+    for k, v in d.items():
+        result[k] = statistics.mean(v)
+    return result
 
 def return_str(tokens):
     return tokenizer.decode(tokens, skip_special_tokens=True, clean_up_tokenization_spaces=False)
@@ -38,7 +50,7 @@ tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
 debug = False    # fake model output
 # debug = True    # fake model output
 if not debug:
-    device = torch.device('cuda:0')
+    device = torch.device('cuda:2')
     logging.info('Loading model')
     model = BartForConditionalGeneration.from_pretrained(
         model_name, cache_dir=MODEL_CACHE)
