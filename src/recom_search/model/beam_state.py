@@ -7,11 +7,13 @@ import statistics
 
 import random
 import string
-
+from typing import List
 
 def gen_rand_id(N=5):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
+def pprint(token_ids:List):
+    return tokenizer.decode(token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False, len_reward=0.0) -> None:
@@ -20,14 +22,18 @@ class BeamState(object):
         self.score = math.log(prob_distrib[cur_idx_in_distb])
         self.prob = prob_distrib[cur_idx_in_distb]
         self.token = token_id_distb[cur_idx_in_distb]  # token
-        self.token_str = tokenizer.decode(
-            self.token) if tokenizer else "[empty]"
+        self.token_str = tokenizer.decode(self.token) if tokenizer else "[empty]"
+
+        
 
         self.peer_prob = prob_distrib  # rank in the current peer
         self.peer_token_id = token_id_distb
 
         self.prev = prev
 
+        self.token_full = self.__get_tokens()
+        self.token_str_full = [tokenizer.convert_ids_to_tokens(x) for x in self.token_full]
+        self.score_full = self.__get_scores()
         self.finished = finished
         self.min_len = min_len
         self.len_reward = len_reward
@@ -39,12 +45,12 @@ class BeamState(object):
         self.merge = []
 
     def has_finished(self):
-        if self.token_str.strip() == '.' and len(self.get_tokens()) >= self.min_len:
+        if self.token_str.strip() == '.' and len(self.token_full) >= self.min_len:
             self.finished = True
         else:
             self.finished = False
 
-    def get_tokens(self):
+    def __get_tokens(self):
         tokens = [self.token]
         prev = self.prev
         while prev:
@@ -52,12 +58,7 @@ class BeamState(object):
             prev = prev.prev
         return tokens[::-1]
 
-    def get_tokens_str(self):
-        tokens = self.get_tokens()
-        tokens_str = [tokenizer.convert_ids_to_tokens(x) for x in tokens]
-        return tokens_str
-
-    def get_scores(self):
+    def __get_scores(self):
         scores = [self.score]
         prev = self.prev
         while prev:
@@ -65,20 +66,26 @@ class BeamState(object):
             prev = prev.prev
         return scores[::-1]
 
+    def get_tokens_str(self):
+        tokens = self.token_full
+        tokens_str = [tokenizer.convert_ids_to_tokens(x) for x in tokens]
+        return tokens_str
+
+
     def get_tokens_as_input(self):
-        tokens = self.get_tokens()
+        tokens = self.token_full
         dec_prefix = torch.tensor([tokens], dtype=torch.long)
         return dec_prefix
 
     def get_avg_score(self):
-        return statistics.mean(self.get_scores())
+        return statistics.mean(self.score_full)
 
     def get_score_sum(self):
-        all_scores = self.get_scores()
+        all_scores = self.score_full
         return sum(all_scores) + self.len_reward * len(all_scores)
 
     def get_partial_score(self, start_idx, end_idx):
-        all_scores = self.get_scores()
+        all_scores = self.score_full
         partial_scores = all_scores[start_idx:end_idx]
         return sum(partial_scores) + self.len_reward * len(partial_scores)
 
@@ -172,8 +179,6 @@ class BeamState(object):
             prev = prev.prev
         return UIDs
 
-    def get_output_str(self):
-        return tokenizer.decode(self.get_tokens(), skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
     def __repr__(self):
         # retrieve merges
@@ -183,8 +188,8 @@ class BeamState(object):
                 sp, sp_option = meg
                 merge_str.append(f"-Option: {sp} <-> {sp_option}")
         merge_str = "\n".join(merge_str)
-        init_str = f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\nTokens: {self.get_output_str()}\n"
-        return init_str + merge_str
+        init_str = f"Avg Score: {pnum(self.get_avg_score())}\tSum: {pnum(self.get_score_sum())}\tTokens: {pprint(self.token_full)}\n"
+        return init_str + merge_str + '\n'
 
     def add_merge_record(self, my_span, merged_span, merge_histroy_of_target):
         # logging.info(f"MERGE!")

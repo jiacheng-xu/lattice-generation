@@ -1,3 +1,4 @@
+from collections import defaultdict
 from re import split
 import statistics
 
@@ -7,7 +8,7 @@ import math
 from scipy.stats import entropy
 from numpy.lib.utils import who
 from .util import *
-from src.recom_search.model.beam_state import BeamState
+from src.recom_search.model.beam_state import BeamState, pprint
 # from recombination_prototype import eval_group_diversity
 
 LEN_DIFF = 8  # max diff of two string
@@ -25,6 +26,40 @@ tokenizer = BartTokenizer.from_pretrained(model_name)
 
 def sublist(lst1, lst2):
     return set(lst1) <= set(lst2)
+
+
+class GenHash():
+    def __init__(self, ngram: int = 3, back_track_steps: int = 2) -> None:
+        self.data = defaultdict(dict)
+        self.back_step = back_track_steps
+        self.ngram = ngram
+
+    def query(self, token_ids: List[int]):
+        if len(token_ids) < self.ngram:
+            return None
+        l = len(token_ids)  # original len
+        token_ids = token_ids[-self.ngram:]
+        k = "_".join([x for x in token_ids])
+        l = len(token_ids)
+        if k in self.data:
+            outputs = []
+            vs = self.data[k]
+            for bt in range(self.back_step):
+                if l-bt in vs:
+                    outputs += vs[l-bt]
+            if not outputs:
+                return None
+            return outputs
+        return None
+
+    def add(self, tokens: List, beam_node):
+        l = len(tokens)
+        token_ids = tokens[-self.ngram:]
+        k = "_".join([x for x in token_ids])
+        if l in self.data[k]:
+            self.data[k][l].append(beam_node)
+        else:
+            self.data[k] = {l: [beam_node]}
 
 
 def fake_model_output(vocab_size=20, k=BS):
@@ -74,31 +109,41 @@ def find_suffix(seq_a, seq_b):
     return [pointer_a, pointer_b]
 
 
-def merge_compare(beam_a, beam_b, merge_to_a:bool=False):
+def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
+
+    if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
+        if a_tokens[-ngram_suffix:] == b_tokens[-ngram_suffix:]:
+            logging.debug(f"Stage 1: Suffix match SUCCESS")
+        else:
+            return False
+    else:
+        return False
+
+    # Stage 2: length
+    if abs(len(a_tokens) - len(b_tokens)) < len_diff:
+        logging.debug(f"Stage 2: Len Diff SUCCESS")
+    else:
+        # logging.debug(f"Stage 2: Len Diff FAIL")
+        return False
+    return True
+
+
+def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 5, len_diff: int = 5):
     # we assume we are matching the suffix of a and b although their length can be different
     # try to merge a -> b
     # Step 1: suffix match
-    a_tokens = beam_a.get_tokens()
-    b_tokens = beam_b.get_tokens()
-
-    if len(a_tokens) > NGRAM_SUF and len(b_tokens) > NGRAM_SUF:
-        if a_tokens[-NGRAM_SUF:] == b_tokens[-NGRAM_SUF:]:
-            logging.debug(f"Stage 1: Suffix match SUCCESS")
-        else:
-            return [beam_a, beam_b]
-    else:
+    a_tokens = beam_a.token_full
+    b_tokens = beam_b.token_full
+    flag = similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff)
+    if not flag:
         return [beam_a, beam_b]
 
-    # Stage 2: length
-    if abs(len(a_tokens) - len(b_tokens)) < LEN_DIFF:
-        logging.debug(f"Stage 2: Len Diff SUCCESS")
-    else:
-        logging.debug(f"Stage 2: Len Diff FAIL")
-        return [beam_a, beam_b]
-    a_tokens_str = beam_a.get_tokens_str()
-    b_tokens_str = beam_b.get_tokens_str()
+    a_tokens_str = beam_a.token_str_full
+    b_tokens_str = beam_b.token_str_full
+
     # Stage 3: let's merge!
     if a_tokens == b_tokens:
+        return [beam_a, None]
         score_a = beam_a.get_score_sum()
         score_b = beam_b.get_score_sum()
         span_a = Span(a_tokens, a_tokens_str, score=score_a,
@@ -134,30 +179,51 @@ def merge_compare(beam_a, beam_b, merge_to_a:bool=False):
         return [None, beam_b]
 
 
-def entrance_merge(beam: List[BeamState]):
-    for idx, b in enumerate(beam):
-        for jdx in range(len(beam)):
-            if idx == jdx:
-                continue
-            cand_a, cand_b = beam[idx], beam[jdx]
-            if (not cand_a) or (not cand_b):
-                continue    # if has been merged, will be None
-            beam[idx], beam[jdx] = merge_compare(cand_a, cand_b)
-    beam = [x for x in beam if x != None]
-    return beam
+def async_recomb(candidates: List[BeamState], gen_hash: GenHash):  # TODO
+    output = []
+    for cand in candidates:
+        if cand in output:
+            continue
+        tokens = cand.token_full
+        possible_matches = gen_hash.query(tokens)
+        if len(possible_matches) <= 1:
+            output.append(cand)
+            continue
+        possible_matches = [x for x in possible_matches if x.uid != cand.uid]
+        tmp_cand = cand
+        for match in possible_matches:
+            out_a, out_b = merge_compare(tmp_cand, match)
+            if out_a == None or out_b == None:
+                tmp_cand = out_b or out_a
+        output.append(tmp_cand)
+    # dedup
+    for idx in range(len(output)):
+        oid = output[idx].uid
+        dups = [jdx for jdx in range(len(output)) if output[jdx].uid == oid]
+        if len(dups) > 1:
+            output[idx] = None
+    output = [x for x in output if x]
+    return output
 
 
-def recomb_beam_search(doc_input_ids,model,  pad_token_id=0, eos_token_id=21, beam_sz=5, max_len=20, num_return_hypo=10000):
-    logging.info(f"\nBEAM SEARCH\n")
+def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, beam_sz=5, max_len=20, num_return_hypo=10000):
+    gen_hash = GenHash()
 
-    whole_beam = [BeamState(cur_idx_in_distb=0, prob_distrib=[1., 0, 0, 0, 0], token_id_distb=[
-                            eos_token_id, pad_token_id, pad_token_id, pad_token_id, pad_token_id])]
+    whole_beam = [
+        BeamState(cur_idx_in_distb=0,
+                  prob_distrib=[1., 0, 0, 0, 0],
+                  token_id_distb=[eos_token_id] + [pad_token_id]*4)]
     for t in range(max_len):
         candidates = []
-        for beam_item in whole_beam:
-            if beam_item.finished:
-                candidates.append(beam_item)
-                continue
+
+        # optimize: first filter out finished nodes, then run all of them together
+        # and then run and  cache their simulation
+        finished = [beam_item for beam_item in whole_beam if beam_item.finished]
+        active = [beam_item for beam_item in whole_beam if not beam_item.finished]
+
+        # get tokens
+        # tokens = [x.token_full for x in active]
+        for beam_item in active:
 
             if not debug:
                 # prefix
@@ -173,8 +239,8 @@ def recomb_beam_search(doc_input_ids,model,  pad_token_id=0, eos_token_id=21, be
                 values = values[0].tolist()
                 indices = indices[0].tolist()
                 # trim
-                values = [x for x in values if x>0.05]
-                indices = indices[:len(values)]
+                # values = [x for x in values if x > 0.01]
+                # indices = indices[:len(values)]
             else:
                 values, indices = fake_model_output()      # replace it with something real
                 values = values.tolist()
@@ -182,21 +248,23 @@ def recomb_beam_search(doc_input_ids,model,  pad_token_id=0, eos_token_id=21, be
 
             for idx, v, i in zip(range(beam_sz), values, indices):
                 tmp_state = BeamState(idx, values, indices, prev=beam_item)
+                gen_hash.add(beam_item.token_full + [indices[idx]], tmp_state)
                 candidates.append(tmp_state)
 
-        # sort candidates by scores
+        # sort candidates by scores; these are active candidates of the current step
         sorted_candidates = sorted(
             candidates, key=lambda x: x.get_score_sum(), reverse=True)
-        
-        whole_beam = sorted_candidates[:num_return_hypo]
-        original_len = len(whole_beam)
-        whole_beam = entrance_merge(whole_beam)
-        logging.info(f"COUNT: {original_len}->{len(whole_beam)}")
+
+        # set max possible hypo
+        active_candidates = sorted_candidates[:num_return_hypo]
+        len_before_recombination = len(active_candidates)
+        whole_beam = async_recomb(active_candidates, gen_hash) + finished
+
     logging.info(f"Whole Beam Len: {len(whole_beam)}")
     outputs = []
     for unit in whole_beam:
         logging.info(repr(unit))
-        outputs.append(unit.get_output_str())
+        outputs.append(pprint(unit.token_full))
     # score = eval_group_diversity(outputs)
     return outputs
 
@@ -214,6 +282,8 @@ def run_example(document):
 if __name__ == '__main__':
 
     # logging.info(args)
+    # args.device = device
+    setup_logger(name=f"example")
     nexample = 20
     cnt = 0
     all_scores = []
