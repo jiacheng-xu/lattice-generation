@@ -17,3 +17,23 @@ PYTHONPATH=./ python src/recom_search/command/run_eval.py -model temp -temp 1.1 
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom # recom
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best -extra_steps 5 # best 
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best -extra_steps 10 # best 
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 5 -ngram_suffix 3 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 5 -ngram_suffix 4 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 5 -ngram_suffix 5 # recom
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 10 -ngram_suffix 3 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 10 -ngram_suffix 4 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 10 -ngram_suffix 5 # recom
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 20 -ngram_suffix 3 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 20 -ngram_suffix 4 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 20 -ngram_suffix 5 # recom
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 50 -ngram_suffix 3 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 50 -ngram_suffix 4 # recom
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 50 -ngram_suffix 5 # recom

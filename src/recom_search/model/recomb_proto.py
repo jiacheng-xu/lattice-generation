@@ -1,3 +1,4 @@
+import pickle
 from collections import defaultdict
 from re import split
 import statistics
@@ -7,6 +8,9 @@ from typing import List
 import math
 from scipy.stats import entropy
 from numpy.lib.utils import who
+from scipy.stats.morestats import wilcoxon
+
+from src.recom_search.evaluation.util import viz_result
 from .util import *
 from src.recom_search.model.beam_state import BeamState, pprint
 # from recombination_prototype import eval_group_diversity
@@ -29,18 +33,18 @@ def sublist(lst1, lst2):
 
 
 class GenHash():
-    def __init__(self, ngram: int = 3, back_track_steps: int = 2) -> None:
+    def __init__(self, ngram: int = 5, back_track_steps: int = 2) -> None:
         self.data = defaultdict(dict)
         self.back_step = back_track_steps
         self.ngram = ngram
 
     def query(self, token_ids: List[int]):
         if len(token_ids) < self.ngram:
-            return None
+            return []
         l = len(token_ids)  # original len
         token_ids = token_ids[-self.ngram:]
-        k = "_".join([x for x in token_ids])
-        l = len(token_ids)
+        k = "_".join([str(x) for x in token_ids])
+        # l = len(token_ids)
         if k in self.data:
             outputs = []
             vs = self.data[k]
@@ -48,14 +52,16 @@ class GenHash():
                 if l-bt in vs:
                     outputs += vs[l-bt]
             if not outputs:
-                return None
+                return []
             return outputs
-        return None
+        return []
 
     def add(self, tokens: List, beam_node):
         l = len(tokens)
+        if l < self.ngram:
+            return
         token_ids = tokens[-self.ngram:]
-        k = "_".join([x for x in token_ids])
+        k = "_".join([str(x) for x in token_ids])
         if l in self.data[k]:
             self.data[k][l].append(beam_node)
         else:
@@ -69,7 +75,7 @@ def fake_model_output(vocab_size=20, k=BS):
 
 
 class Span():
-    def __init__(self, tokens, token_strs, score: float, prefix=[], suffix=[]) -> None:
+    def __init__(self, tokens, token_strs, score: float, prefix_node=None, suffix_node=None, prefix=[], suffix=[]) -> None:
         # [A: [token, token, token], [score, score, score], B: [token, token], [score, score], .....]
         # prefix if provided
         # we might want something like model repr in future
@@ -78,6 +84,8 @@ class Span():
         self.prefix = prefix
         self.suffix = suffix
         self.token_strs = token_strs
+        self.prefix_node = prefix_node
+        self.suffix_node = suffix_node
 
     def __repr__(self) -> str:
         return f"Score: {pnum(self.score)}\n{tokenizer.decode(self.prefix)} [{tokenizer.decode(self.tokens)}] {tokenizer.decode(self.suffix)}"
@@ -128,6 +136,16 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     return True
 
 
+def get_beam_from_past(end_beam, t):
+    nodes = []
+    point = end_beam
+    while point:
+        nodes.append(point)
+        point = point.prev
+    nodes = nodes[::-1]
+    return nodes[t]
+
+
 def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 5, len_diff: int = 5):
     # we assume we are matching the suffix of a and b although their length can be different
     # try to merge a -> b
@@ -166,11 +184,22 @@ def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 
     score_a, score_b = beam_a.get_partial_score(
         prefix_a, suf_a+1), beam_b.get_partial_score(prefix_b, suf_b+1)
     # create span a and b
-    span_a = Span(a_tokens[prefix_a: suf_a+1], a_tokens_str[prefix_a:suf_a+1],
-                  score=score_a, prefix=a_tokens[:prefix_a], suffix=a_tokens[suf_a+1:])
 
+    a_pfx_node, a_suf_node = get_beam_from_past(
+        beam_a, prefix_a-1), get_beam_from_past(beam_a, suf_a+1)
+    span_a = Span(a_tokens[prefix_a: suf_a+1],
+                  a_tokens_str[prefix_a:suf_a+1],
+                  score=score_a,
+                  prefix=a_tokens[:prefix_a],
+                  suffix=a_tokens[suf_a +
+                                  1:], prefix_node=a_pfx_node, suffix_node=a_suf_node
+                  )
+    b_pfx_node, b_suf_node = get_beam_from_past(
+        beam_b, prefix_b-1), get_beam_from_past(beam_b, suf_b+1)
     span_b = Span(b_tokens[prefix_b:suf_b+1], b_tokens_str[prefix_b:suf_b+1],
-                  score=score_b, prefix=b_tokens[:prefix_b], suffix=b_tokens[suf_b+1:])
+                  score=score_b, prefix=b_tokens[:prefix_b], suffix=b_tokens[suf_b+1:],
+                  prefix_node=b_pfx_node, suffix_node=b_suf_node)
+
     if merge_to_a or score_a > score_b:
         beam_a.add_merge_record(span_a, span_b, beam_b.merge)
         return [beam_a, None]
@@ -179,12 +208,15 @@ def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 
         return [None, beam_b]
 
 
-def async_recomb(candidates: List[BeamState], gen_hash: GenHash):  # TODO
+def async_recomb(candidates: List[BeamState], gen_hash: GenHash, ngram_suffix, len_diff):  # TODO
     output = []
     for cand in candidates:
         if cand in output:
             continue
         tokens = cand.token_full
+        # if tokens[-3:] == [81, 63, 92]:
+        #     print()
+
         possible_matches = gen_hash.query(tokens)
         if len(possible_matches) <= 1:
             output.append(cand)
@@ -192,22 +224,34 @@ def async_recomb(candidates: List[BeamState], gen_hash: GenHash):  # TODO
         possible_matches = [x for x in possible_matches if x.uid != cand.uid]
         tmp_cand = cand
         for match in possible_matches:
-            out_a, out_b = merge_compare(tmp_cand, match)
+            out_a, out_b = merge_compare(
+                tmp_cand, match, ngram_suffix=ngram_suffix, len_diff=len_diff)
             if out_a == None or out_b == None:
                 tmp_cand = out_b or out_a
         output.append(tmp_cand)
     # dedup
+    num_prior_merge = len(output)
     for idx in range(len(output)):
         oid = output[idx].uid
-        dups = [jdx for jdx in range(len(output)) if output[jdx].uid == oid]
+        dups = [jdx for jdx in range(
+            len(output)) if output[jdx] and output[jdx].uid == oid]
         if len(dups) > 1:
             output[idx] = None
     output = [x for x in output if x]
+    logging.info(f"Merge from {num_prior_merge} to {len(output)}")
     return output
 
 
-def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, beam_sz=5, max_len=20, num_return_hypo=10000):
-    gen_hash = GenHash()
+def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff):
+    first_few_tokens = doc_input_ids.tolist()[0][1:10]
+    txt = tokenizer.decode(first_few_tokens)
+    params = [beam_sz, max_len, ngram_suffix, len_diff]
+    params = "_".join([str(x) for x in params])
+    return txt+params
+
+
+def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, beam_sz=5, max_len=20, num_return_hypo=10000, ngram_suffix=4, len_diff=5):
+    gen_hash = GenHash(ngram=ngram_suffix)
 
     whole_beam = [
         BeamState(cur_idx_in_distb=0,
@@ -224,7 +268,6 @@ def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, b
         # get tokens
         # tokens = [x.token_full for x in active]
         for beam_item in active:
-
             if not debug:
                 # prefix
                 decoder_input_ids = beam_item.get_tokens_as_input()
@@ -258,13 +301,24 @@ def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, b
         # set max possible hypo
         active_candidates = sorted_candidates[:num_return_hypo]
         len_before_recombination = len(active_candidates)
-        whole_beam = async_recomb(active_candidates, gen_hash) + finished
+        whole_beam = active_candidates + finished
+        whole_beam = async_recomb(whole_beam, gen_hash, ngram_suffix, len_diff)
+        # whole_beam = recombined + finished
+        # for b in whole_beam:
+        #     print(b)
+        # print('-')
 
-    logging.info(f"Whole Beam Len: {len(whole_beam)}")
+    logging.info(f"#Whole Beam: {len(whole_beam)}, #finished: {len(finished)}")
     outputs = []
-    for unit in whole_beam:
+    for unit in finished:
         logging.info(repr(unit))
         outputs.append(pprint(unit.token_full))
+
+    fname = render_name(doc_input_ids, beam_sz, max_len,
+                        ngram_suffix, len_diff) + '.pkl'
+    with open(f"vizs/{fname}", 'wb') as fd:
+        pickle.dump(whole_beam, fd)
+
     # score = eval_group_diversity(outputs)
     return outputs
 
@@ -274,8 +328,8 @@ def run_example(document):
         'input_ids'][:, :800]
     doc_input_ids = doc_input_ids.to(device)
     recomb_diverse_score = recomb_beam_search(
-        doc_input_ids, pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id)
-    logger.info(f"Diverse Score: {recomb_diverse_score}")
+        doc_input_ids, pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id, )
+    # logger.info(f"Diverse Score: {recomb_diverse_score}")
     return recomb_diverse_score
 
 

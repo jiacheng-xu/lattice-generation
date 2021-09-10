@@ -194,5 +194,7 @@ class BeamState(object):
     def add_merge_record(self, my_span, merged_span, merge_histroy_of_target):
         # logging.info(f"MERGE!")
         logging.info(f"WinSpan: {my_span}\nLostSpan: {merged_span}")
+        merged_span.prefix_node = my_span.prefix_node
+        merged_span.suffix_node = my_span.suffix_node
         self.merge.append([my_span, merged_span])
         self.merge += merge_histroy_of_target

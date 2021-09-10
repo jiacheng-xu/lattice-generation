@@ -21,9 +21,9 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='best')
-    parser.add_argument('-beam_size', type=int, default=20)
-    parser.add_argument('-nexample', type=int, default=50)
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='recom')
+    parser.add_argument('-beam_size', type=int, default=10)
+    parser.add_argument('-nexample', type=int, default=20)
 
     parser.add_argument('-top_p', type=float, default=0.8)
     parser.add_argument('-temp', type=float, default=1.5)
@@ -31,8 +31,11 @@ def process_arg():
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
     parser.add_argument('-extra_steps', type=float, default=10)
     parser.add_argument('-min_len', type=int, default=10)
-    parser.add_argument('-max_len', type=int, default=30)
+    parser.add_argument('-max_len', type=int, default=25)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
+    parser.add_argument('-ngram_suffix', type=int, default=5)
+    parser.add_argument('-len_diff', type=int, default=5)
+    
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
     return args
@@ -45,7 +48,8 @@ def run_recom(args, model, input_doc):
                                 eos_token_id=tokenizer.eos_token_id,
                                 beam_sz=args.beam_size, 
                                 max_len=args.max_len, 
-                                num_return_hypo=args.beam_size)
+                                num_return_hypo=args.beam_size,
+                                ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
     return output
 
 
