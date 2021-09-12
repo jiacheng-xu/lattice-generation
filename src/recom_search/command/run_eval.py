@@ -16,6 +16,7 @@ from src.recom_search.model.recomb_proto import *
 from src.recom_search.model.util import *
 import argparse
 
+assert model
 
 def process_arg():
 

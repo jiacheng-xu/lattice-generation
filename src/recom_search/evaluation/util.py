@@ -1,4 +1,5 @@
 
+import os
 from collections import defaultdict
 import pickle
 from operator import le
@@ -35,9 +36,12 @@ def draw_one_summary(net, final_beam, group_num, seen_merge):
         T -= 1
         if last:
             edges[f"{pointer.uid}_{last}"] = 1
-
-        net.add_node(
-            pointer.uid, label=f"{pointer.token_str}", group=group_num, shape='text')
+        if '</s>' in pointer.token_str or '.' in pointer.token_str:
+            net.add_node(
+                pointer.uid, label=f"{pointer.token_str}", group=group_num, color='red')
+        else:
+            net.add_node(
+                pointer.uid, label=f"{pointer.token_str}", group=group_num, shape='text')
 
         if last:
             net.add_edge(pointer.uid, last, weight=0.1,
@@ -57,8 +61,11 @@ def draw_one_summary(net, final_beam, group_num, seen_merge):
         # span_a is already in use?
         net.add_node(f"merge_{MERGE_CNT}", label=tokenizer.decode(
             span_b.tokens), group=group_num, color='black')
-        net.add_edge(span_b.prefix_node.uid, f"merge_{MERGE_CNT}")
-        net.add_edge(f"merge_{MERGE_CNT}", span_b.suffix_node.uid)
+        try:
+            net.add_edge(span_b.prefix_node.uid, f"merge_{MERGE_CNT}")
+            net.add_edge(f"merge_{MERGE_CNT}", span_b.suffix_node.uid)
+        except AssertionError:
+            pass
         MERGE_CNT += 1
         seen_merge.add(uid_span_b)
 
@@ -67,18 +74,22 @@ def viz_result(generated_outputs: List[BeamState]):
     for go in generated_outputs:
         print(go)
     net = Network(height='1500px', width='100%', directed=False)
-    net.repulsion(central_gravity=0.1, spring_length=30)
+    net.repulsion(central_gravity=0.2, spring_length=30)
     seen_merge = set()
     # net.toggle_stabilization(False)
     # first set all nodes and edges
     for idx, go in enumerate(generated_outputs):
         draw_one_summary(net, go, idx, seen_merge)
-
-    net.show('vizs/nx.html')
+    return net
 
 
 if __name__ == "__main__":
     # execute only if run as a script
-    with open('vizs/00.pkl', 'rb') as fd:
-        finished = pickle.load(fd)
-    viz_result(finished)
+    files = os.listdir('vizs')
+    files = [f for f in files if f.endswith('.pkl')]
+    for f in tqdm(files):
+        name = f.split('.')[0]
+        with open(f"vizs/{f}", 'rb') as fd:
+            finished = pickle.load(fd)
+        net = viz_result(finished)
+        net.show(f"vizs/html/{name}.html")

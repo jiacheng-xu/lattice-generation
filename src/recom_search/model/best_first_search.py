@@ -38,7 +38,7 @@ def greedy_generate_sequence(doc_input_ids, model, start_seed, device, max_len=2
 
         pointer = next_state
         cur_len = pointer.len
-        if pointer.finished:    #TODO
+        if pointer.finished:    # TODO
             break
         if store_state.finished:
             continue
