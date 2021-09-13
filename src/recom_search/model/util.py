@@ -46,19 +46,22 @@ def setup_logger(name):
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
 
-tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
-debug = False    # fake model output
-# debug = True    # fake model output
+
+# debug = False    # fake model output
+debug = True    # fake model output
 if not debug:
+    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
     logging.info('Loading model')
     model = BartForConditionalGeneration.from_pretrained(
         model_name, cache_dir=MODEL_CACHE)
     model = model.to(device)
+
+    logging.info('Loading dataset')
+    dataset = load_dataset('xsum', split='validation')
 else:
+    tokenizer = None
     device = torch.device('cpu')
-logging.info('Loading dataset')
-dataset = load_dataset('xsum', split='validation')
 
 
 def pnum(num):
@@ -77,7 +80,7 @@ def str2bool(v):
 
 
 @torch.no_grad()
-def run_full_model_slim(model, input_ids, attention_mask=None, decoder_input_ids=None, targets=None, device='cuda:0', output_dec_hid=False, T=1):
+def run_inference_step(model, input_ids, attention_mask=None, decoder_input_ids=None, targets=None, device='cuda:0', output_dec_hid=False, T=1):
     decoder_input_ids = decoder_input_ids.to(device)
     input_ids = input_ids.to(device)
     if attention_mask is not None:

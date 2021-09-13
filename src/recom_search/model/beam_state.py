@@ -1,3 +1,4 @@
+
 import torch
 import math
 import logging
@@ -15,6 +16,83 @@ def gen_rand_id(N=5):
 def pprint(token_ids:List):
     return tokenizer.decode(token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
+
+class NewBeamState():
+    def __init__(self, prob:float, token_idx:int, prev:List, min_len=10, finished=False, len_reward=0.0) -> None:
+        self.uid = gen_rand_id()
+        self.prob = prob
+        self.score = math.log(prob)
+        self.prev = prev      # prev is always sorted where top1 has highest score
+        self.token_idx = token_idx
+        self.token_str = tokenizer.decode(self.token_idx) if tokenizer else f"{token_idx}"
+
+        self.set_full()
+        assert self.all_token_idx
+        assert self.all_score
+        assert self.length
+        # self.all_token_idx = 
+
+        self.finished = finished
+        self.min_len = min_len
+        self.len_reward = len_reward
+        # self.has_finished()
+    def add_prev_node(self, node):
+        """
+        self: a b c d  a   f g
+        node: a b c d  x y 
+
+        """
+        self.prev.append(node)
+        # sort
+
+    def set_full(self):
+        """
+        Everytime a substructure is modified, we need to update the tokens and scores
+        """
+        tokens = [self.token_idx]
+        scores = [self.score]
+        prev = self.prev
+        while prev:
+            prev = prev[0]
+            tokens.append(prev.token_idx)
+            scores.append(prev.score)
+            prev = prev.prev
+        self.all_score = scores[::-1]
+        self.all_token_idx = tokens[::-1]
+        self.length = len(tokens)
+
+    def get_tokens_str(self):
+        out = [self.token_str]
+        prev = self.prev
+        while prev:
+            prev = prev[0]
+            out.append(prev.token_str)
+            prev = prev.prev
+        out = out[::-1]
+        return '<-'.join(out)
+
+
+    def get_token_idx_as_input(self):
+        tokens = self.all_token_idx
+        dec_prefix = torch.tensor([tokens], dtype=torch.long)
+        return dec_prefix
+
+    def _get_length(self):
+        l = 1
+        prev = self.prev
+        while prev:
+            prev = prev[0]
+            l+=1
+            prev = prev.prev
+        return l
+    
+    def get_score_sum(self):
+        all_score = self.all_score
+        return sum(all_score) + self.len_reward * len(all_score)
+
+    def get_score_avg(self):
+        return statistics.mean(self.all_score)
+    
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False, len_reward=0.0) -> None:
         super().__init__()
@@ -25,7 +103,6 @@ class BeamState(object):
         self.token_str = tokenizer.decode(self.token) if tokenizer else "[empty]"
 
         
-
         self.peer_prob = prob_distrib  # rank in the current peer
         self.peer_token_id = token_id_distb
 

@@ -27,7 +27,7 @@ def greedy_generate_sequence(doc_input_ids, model, start_seed, device, max_len=2
 
     while cur_len < target:
         decoder_input_ids = pointer.get_tokens_as_input()
-        output_tokens, output_prob, output_score, _ = run_full_model_slim(
+        output_tokens, output_prob, output_score, _ = run_inference_step(
             model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
         call += 1
         values, indices = torch.topk(output_prob, k=2)

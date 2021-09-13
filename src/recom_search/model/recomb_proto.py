@@ -9,8 +9,9 @@ import math
 from scipy.stats import entropy
 from numpy.lib.utils import who
 from scipy.stats.morestats import wilcoxon
+from transformers.utils.dummy_tokenizers_objects import LEDTokenizerFast
 
-from src.recom_search.evaluation.util import viz_result
+from src.recom_search.evaluation.vis import viz_result
 from .util import *
 from src.recom_search.model.beam_state import BeamState, pprint
 # from recombination_prototype import eval_group_diversity
@@ -34,11 +35,12 @@ def sublist(lst1, lst2):
 
 class GenHash():
     def __init__(self, ngram: int = 5, back_track_steps: int = 2) -> None:
-        self.data = defaultdict(dict)
+        self.data = defaultdict(list)
         self.back_step = back_track_steps
         self.ngram = ngram
 
     def query(self, token_ids: List[int]):
+        return None
         if len(token_ids) < self.ngram:
             return []
         l = len(token_ids)  # original len
@@ -67,12 +69,20 @@ class GenHash():
         else:
             self.data[k] = {l: [beam_node]}
 
+    def delete_successor(self):
+        pass
 
 def fake_model_output(vocab_size=20, k=BS):
     output = torch.rand(vocab_size) * 20
     softmax_scores = torch.nn.functional.softmax(output)
     return torch.topk(softmax_scores, k=k)
 
+class NewSpan():
+    def __init__(self, left, right, score) -> None:
+        self.left = left    # the left end node
+        self.right = right  # the right end node
+        self.edges = []
+        self.score = score  # the best-scored path's score in this span
 
 class Span():
     def __init__(self, tokens, token_strs, score: float, prefix_node=None, suffix_node=None, prefix=[], suffix=[]) -> None:
@@ -145,13 +155,45 @@ def get_beam_from_past(end_beam, t):
     nodes = nodes[::-1]
     return nodes[t]
 
+def new_merge_core(beam_par, beam_drop):
+    # when does their suffix starts to differ?
+    pointer_par = beam_par
+    pointer_drop = beam_drop
+    # we just assume they share a same suffix
+    par_paths = [pointer_par]
+    # beam_drop is treated as a single line
+    prev_par_paths = par_paths
+    prev_pointer_drop = beam_drop
+    while pointer_drop and par_paths:
+        
+        next_par_paths = []
+        for par_path in par_paths:
+            if pointer_drop.token_idx == par_path.token_idx:
+                next_par_paths += par_path.prev  
+        if next_par_paths:
+            prev_pointer_drop = pointer_drop
+            pointer_drop = pointer_drop.prev[0]
+            prev_par_paths = par_paths
+            par_paths = next_par_paths
+            
+        else:
+            break    # suffix match end
+    # pointer_drop is the first token that differs
+    # par_paths is the first threads differs
+    # prev_par_paths is the last match
+    # add pointer_drop to prev_par_paths 's prev
+    for path in prev_par_paths:
+        path.prev.add_prev_node(pointer_drop)
+    return beam_par
+    # go leftward to end of prev_par_paths, get all nodes
+    # go leftward to end of 
 
 def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 5, len_diff: int = 5):
     # we assume we are matching the suffix of a and b although their length can be different
     # try to merge a -> b
     # Step 1: suffix match
-    a_tokens = beam_a.token_full
-    b_tokens = beam_b.token_full
+    a_tokens = beam_a.all_token_idx
+    b_tokens = beam_b.all_token_idx
     flag = similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff)
     if not flag:
         return [beam_a, beam_b]
@@ -271,7 +313,7 @@ def recomb_beam_search(doc_input_ids, model,  pad_token_id=0, eos_token_id=21, b
             if not debug:
                 # prefix
                 decoder_input_ids = beam_item.get_tokens_as_input()
-                output_tokens, output_prob, output_score, _ = run_full_model_slim(
+                output_tokens, output_prob, output_score, _ = run_inference_step(
                     model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
 
                 # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
