@@ -17,6 +17,31 @@ def pprint(token_ids:List):
     return tokenizer.decode(token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
 
+def find_prefix(seq_a, seq_b):
+    pointer_a, pointer_b = 0, 0
+    while pointer_a < len(seq_a) and pointer_b < len(seq_b):
+        a = seq_a[pointer_a]
+        b = seq_b[pointer_b]
+        if a != b:
+            return [pointer_a, pointer_b]
+        else:
+            pointer_a += 1
+            pointer_b += 1
+    return [pointer_a, pointer_b]
+
+
+def find_suffix(seq_a, seq_b):
+    pointer_a, pointer_b = len(seq_a)-1, len(seq_b) - 1
+    while pointer_a >= 0 and pointer_b >= 0:
+        a = seq_a[pointer_a]
+        b = seq_b[pointer_b]
+        if a != b:
+            return [pointer_a, pointer_b]
+        else:
+            pointer_a -= 1
+            pointer_b -= 1
+    return [pointer_a, pointer_b]
+
 class NewBeamState():
     def __init__(self, prob:float, token_idx:int, prev:List, min_len=10, finished=False, len_reward=0.0) -> None:
         self.uid = gen_rand_id()
@@ -45,6 +70,32 @@ class NewBeamState():
         self.prev.append(node)
         # sort
 
+    def print_lattice(self):
+        # DFS to discover nodes, if a node is seen and discovered again, it's the start of a span
+        seen = {}   # key is a node, value is the latest path to this node from root. 
+        recomb_units = []
+        def dfs(node, par_nodes):
+            if not node:
+                return
+            if node.uid in seen:
+                last_path = seen[node.uid]
+                cur_path = par_nodes
+                last_path_tokens = [ x.token_idx for x in last_path]
+                cur_path_tokens = [ x.token_idx for x in cur_path]
+                # order of last_path_tokens and cur_path_tokens: [root, ->, ...]
+                shared_prefix_len, _ = find_prefix(last_path_tokens, cur_path_tokens)
+                recomb_units.append([  last_path_tokens[shared_prefix_len:], cur_path_tokens[shared_prefix_len:]] )
+                seen[node.uid] = par_nodes
+                return
+            seen[node.uid] = par_nodes
+            prevs = node.prev
+            for p in prevs:
+                dfs(p, par_nodes + [node])
+        
+        dfs(self, [])
+        if recomb_units:
+            print(recomb_units)
+        
     def set_full(self):
         """
         Everytime a substructure is modified, we need to update the tokens and scores
@@ -92,6 +143,8 @@ class NewBeamState():
 
     def get_score_avg(self):
         return statistics.mean(self.all_score)
+    def __repr__(self) -> str:
+        return self.get_tokens_str()
     
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False, len_reward=0.0) -> None:

@@ -29,17 +29,24 @@ def baseline_iterative_recomb(candidates:List[NewBeamState], param_sim_function,
                     # merge happens
                     flag_merge = True
                     break
+
+                else:
+                    # candidate get better score?
+                    break
+
             if flag_merge:
                 break
         if flag_merge:
+
             new_merge_core(pointer, candidate)
+
         else:
             next_candidate.append(candidate)
         
         if len(next_candidate) >= beam_size:
             return next_candidate
 
-
+    return next_candidate
 
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100,debug:bool=False):
     gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
@@ -72,6 +79,8 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
                 # values are list of probs sum<1, indices are token idx
 
             for idx, v, i in zip(range(beam_size), values, indices):
+                if hypo.uid == 'JFG8M':
+                    print
                 tmp_state = NewBeamState(prob=v, token_idx = i, prev=[hypo])
                 # gen_hash.add(beam_item.token_full + [indices[idx]],tmp_state)
                 candidates.append(tmp_state)
@@ -79,9 +88,9 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         # sort candidates by scores; these are active candidates of the current step
         sorted_candidates = sorted(candidates, key=lambda x: x.get_score_avg(), reverse=True)
         hypos = baseline_iterative_recomb(sorted_candidates, param_sim_function, gen_hash,beam_size=beam_size)
+        print('-'*30)
 
-
-    logging.info(f"#Whole Beam: {len(hypos)}, #finished: {len(finished)}")
+    logging.info(f"#Whole Beam: {len(hypos)}, #finished: ")
     outputs = []
     """
     for unit in finished:

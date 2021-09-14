@@ -26,7 +26,7 @@ logging.info(f"BS:{BS} SUFFIX:{NGRAM_SUF} MAX_STEP:{MAX_STEP}")
 debug = False
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
-tokenizer = BartTokenizer.from_pretrained(model_name)
+# tokenizer = BartTokenizer.from_pretrained(model_name)
 
 
 def sublist(lst1, lst2):
@@ -114,18 +114,6 @@ def find_prefix(seq_a, seq_b):
     return [pointer_a, pointer_b]
 
 
-def find_suffix(seq_a, seq_b):
-    pointer_a, pointer_b = len(seq_a)-1, len(seq_b) - 1
-    while pointer_a >= 0 and pointer_b >= 0:
-        a = seq_a[pointer_a]
-        b = seq_b[pointer_b]
-        if a != b:
-            return [pointer_a, pointer_b]
-        else:
-            pointer_a -= 1
-            pointer_b -= 1
-    return [pointer_a, pointer_b]
-
 
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
@@ -156,6 +144,8 @@ def get_beam_from_past(end_beam, t):
     return nodes[t]
 
 def new_merge_core(beam_par, beam_drop):
+    logging.debug(beam_par.all_token_idx)
+    logging.debug(beam_drop.all_token_idx)
     # when does their suffix starts to differ?
     pointer_par = beam_par
     pointer_drop = beam_drop
@@ -183,7 +173,8 @@ def new_merge_core(beam_par, beam_drop):
     # prev_par_paths is the last match
     # add pointer_drop to prev_par_paths 's prev
     for path in prev_par_paths:
-        path.prev.add_prev_node(pointer_drop)
+        path.add_prev_node(pointer_drop)
+    beam_par.print_lattice()
     return beam_par
     # go leftward to end of prev_par_paths, get all nodes
     # go leftward to end of 
