@@ -47,7 +47,7 @@ def baseline_iterative_recomb(candidates:List[NewBeamState], param_sim_function,
             return next_candidate
 
     return next_candidate
-
+import pickle
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100,debug:bool=False):
     gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
 
@@ -79,8 +79,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
                 # values are list of probs sum<1, indices are token idx
 
             for idx, v, i in zip(range(beam_size), values, indices):
-                if hypo.uid == 'JFG8M':
-                    print
+
                 tmp_state = NewBeamState(prob=v, token_idx = i, prev=[hypo])
                 # gen_hash.add(beam_item.token_full + [indices[idx]],tmp_state)
                 candidates.append(tmp_state)
@@ -96,11 +95,11 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
     for unit in finished:
         logging.info(repr(unit))
         outputs.append(pprint(unit.token_full))
-
-    fname = render_name(doc_input_ids, beam_sz, max_len,
-                        ngram_suffix, len_diff) + '.pkl'
-    with open(f"vizs/{fname}", 'wb') as fd:
-        pickle.dump(whole_beam, fd)
     """
+    fname = render_name(doc_input_ids, beam_size, max_len,
+                        param_sim_function['ngram_suffix'], param_sim_function['len_diff']    ) + '.pkl'
+    with open(f"vizs/{fname}", 'wb') as fd:
+        pickle.dump(hypos, fd)
+
     # score = eval_group_diversity(outputs)
     return outputs

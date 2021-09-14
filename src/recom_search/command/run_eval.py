@@ -1,4 +1,5 @@
 from collections import defaultdict
+from src.recom_search.model.new_baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
 
@@ -43,14 +44,15 @@ def process_arg():
 
 
 def run_recom(args, model, input_doc):
+    param_sim_function = {
+            'ngram_suffix':args.ngram_suffix,
+            'len_diff':args.len_diff
+        }
+
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
-    output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
-                                eos_token_id=tokenizer.eos_token_id,
-                                beam_sz=args.beam_size, 
-                                max_len=args.max_len, 
-                                num_return_hypo=args.beam_size,
-                                ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
+    recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False)
+    output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size,ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
     return output
 
 
