@@ -4,6 +4,8 @@ from src.recom_search.model.recomb_proto import GenHash, merge_compare, new_merg
 from src.recom_search.model.util import run_inference_step
 from typing import List
 import logging
+import torch
+
 def baseline_iterative_recomb(candidates:List[NewBeamState], param_sim_function, gen_hash, beam_size):
     next_candidate:List[NewBeamState] = []
 
@@ -29,24 +31,19 @@ def baseline_iterative_recomb(candidates:List[NewBeamState], param_sim_function,
                     # merge happens
                     flag_merge = True
                     break
-
                 else:
                     # candidate get better score?
                     break
-
             if flag_merge:
                 break
         if flag_merge:
-
             new_merge_core(pointer, candidate)
-
         else:
             next_candidate.append(candidate)
-        
         if len(next_candidate) >= beam_size:
             return next_candidate
-
     return next_candidate
+
 import pickle
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100,debug:bool=False):
     gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
@@ -58,17 +55,19 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         candidates = []
         for hypo in hypos:
             if not debug:
-                raise NotImplementedError
+                if hypo.finished:
+                    candidates.append(hypo)
+                    continue
                 # prefix
                 decoder_input_ids = hypo.get_token_idx_as_input()
                 output_tokens, output_prob, output_score, _ = run_inference_step(
-                    model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=device, output_dec_hid=False, T=1)
+                    model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=doc_input_ids.device, output_dec_hid=False, T=1)
 
                 # pred_entropy = entropy(output_prob.cpu().numpy(), axis=-1)[0]
                 # print(pnum(pred_entropy))
                 # dynamic_k = min(BS, t+1)
-                dynamic_k = beam_sz
-                values, indices = torch.topk(output_prob, k=dynamic_k)
+
+                values, indices = torch.topk(output_prob, k=beam_size)
                 values = values[0].tolist()
                 indices = indices[0].tolist()
                 # trim
@@ -90,6 +89,13 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         print('-'*30)
 
     logging.info(f"#Whole Beam: {len(hypos)}, #finished: ")
+    logging.info('\n\n\n\n\n')
+    for hypo in hypos:
+        if not hypo.finished:
+            logging.info(f"Not finished: {hypo}")
+            continue
+        logging.info(f"\n\n {hypo}")
+        hypo.print_lattice()
     outputs = []
     """
     for unit in finished:

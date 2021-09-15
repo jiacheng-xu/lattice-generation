@@ -35,8 +35,8 @@ def process_arg():
     parser.add_argument('-min_len', type=int, default=10)
     parser.add_argument('-max_len', type=int, default=25)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
-    parser.add_argument('-ngram_suffix', type=int, default=5)
-    parser.add_argument('-len_diff', type=int, default=5)
+    parser.add_argument('-ngram_suffix', type=int, default=2)
+    parser.add_argument('-len_diff', type=int, default=15)
     
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
@@ -51,8 +51,9 @@ def run_recom(args, model, input_doc):
 
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
-    recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False)
-    output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size,ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
+    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=args.max_len, )
+    # output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size,ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
+
     return output
 
 
@@ -102,7 +103,7 @@ def run_baseline(args, model, inp):
     # output should be a list of str
 
 
-def main(args):
+def main(args, tokenizer, model, dataset):
 
     # logging.info(args)
     nexample = args.nexample
@@ -158,4 +159,5 @@ if __name__ == "__main__":
     args = process_arg()
     args.device = device
     setup_logger(name=f"{args.model}")
-    main(args)
+    tokenizer, model, dataset = setup_model()
+    main(args, tokenizer, model, dataset)

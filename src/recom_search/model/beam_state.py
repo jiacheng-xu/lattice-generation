@@ -60,7 +60,14 @@ class NewBeamState():
         self.finished = finished
         self.min_len = min_len
         self.len_reward = len_reward
-        # self.has_finished()
+        self.has_finished()
+    
+    def has_finished(self):
+        if self.token_str.strip() == '.' and self.length >= self.min_len:
+            self.finished = True
+        else:
+            self.finished = False
+
     def add_prev_node(self, node):
         """
         self: a b c d  a   f g
@@ -70,6 +77,37 @@ class NewBeamState():
         self.prev.append(node)
         # sort
 
+    def visualization(self):
+        nodes, edges = [], []
+        seen = {}
+        def dfs(node: NewBeamState, par_nodes):
+            if not node:
+                return
+            
+            if par_nodes:
+                edge_info = {
+                    'src':node.uid,
+                    'tgt':par_nodes[-1].uid,
+                    'seen':False
+                }
+                
+            if node.uid in seen:
+                edge_info['seen'] = True
+                edges.append(edge_info)
+                return
+            seen[node.uid] = True
+            nodes.append({
+                'uid':node.uid,
+                'text':node.token_str,
+                'score':node.score
+            })
+            if par_nodes:
+                edges.append(edge_info)
+            prevs = node.prev
+            for p in prevs:
+                dfs(p, par_nodes + [node])
+        dfs(self, [])
+        return nodes, edges
     def print_lattice(self):
         # DFS to discover nodes, if a node is seen and discovered again, it's the start of a span
         seen = {}   # key is a node, value is the latest path to this node from root. 
@@ -84,7 +122,11 @@ class NewBeamState():
                 cur_path_tokens = [ x.token_idx for x in cur_path]
                 # order of last_path_tokens and cur_path_tokens: [root, ->, ...]
                 shared_prefix_len, _ = find_prefix(last_path_tokens, cur_path_tokens)
-                recomb_units.append([  last_path_tokens[shared_prefix_len:], cur_path_tokens[shared_prefix_len:]] )
+                last = last_path_tokens[shared_prefix_len:][::-1]
+                newer =  cur_path_tokens[shared_prefix_len:][::-1]
+                shared_tokens = last_path_tokens[:shared_prefix_len][::-1]
+                logging.info(f"\n======{tokenizer.decode(last)} || {tokenizer.decode(shared_tokens)} \n-----{tokenizer.decode(newer)} || {tokenizer.decode(shared_tokens)} ")
+                recomb_units.append([  last,newer ]  )
                 seen[node.uid] = par_nodes
                 return
             seen[node.uid] = par_nodes
@@ -93,9 +135,8 @@ class NewBeamState():
                 dfs(p, par_nodes + [node])
         
         dfs(self, [])
-        if recomb_units:
-            print(recomb_units)
-        
+        logging.info(f"There are {len(recomb_units)} recomb units in this case.")
+
     def set_full(self):
         """
         Everytime a substructure is modified, we need to update the tokens and scores

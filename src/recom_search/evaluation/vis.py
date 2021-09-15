@@ -11,7 +11,7 @@ from pyvis.network import Network
 import networkx as nx
 
 from src.recom_search.model.beam_state import BeamState
-from src.recom_search.model.util import tokenizer
+from src.recom_search.model.util import pnum, tokenizer
 from typing import List
 
 MERGE_CNT = 0
@@ -70,16 +70,33 @@ def draw_one_summary(net, final_beam, group_num, seen_merge):
         seen_merge.add(uid_span_b)
 
 
+def draw_nodes(net, nodes, group_num):
+    for node in nodes:
+        form = "{:.1f}".format(node['score']) 
+        net.add_node(
+            node['uid'], label=f"{node['text']}\n{ form  }", shape='dot',group=group_num, size=8)
+
+
+def draw_edges(net, edges, group_num):
+    for edge in edges:
+        if edge['seen']:
+            net.add_edge(edge['src'], edge['tgt'],  arrowStrikethrough=False)
+        else:
+            net.add_edge(edge['src'], edge['tgt'], arrowStrikethrough=False)
+
+
 def viz_result(generated_outputs: List[BeamState]):
     for go in generated_outputs:
         print(go)
-    net = Network(height='1500px', width='100%', directed=False)
-    net.repulsion(central_gravity=0.2, spring_length=30)
-    seen_merge = set()
+    net = Network(height='1500px', width='100%', directed=True)
+    # net.repulsion(central_gravity=0.2, spring_length=30)
+
     # net.toggle_stabilization(False)
     # first set all nodes and edges
     for idx, go in enumerate(generated_outputs):
-        draw_one_summary(net, go, idx, seen_merge)
+        nodes, edges = go.visualization()
+        draw_nodes(net,nodes, idx)
+        draw_edges(net,edges,idx)
     return net
 
 

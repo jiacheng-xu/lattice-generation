@@ -31,7 +31,7 @@ def setup_logger(name):
     logger.setLevel(logging.DEBUG)
 
     handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     formatter = logging.Formatter('- %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -46,9 +46,24 @@ def setup_logger(name):
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
 
+def setup_model(device_name='cuda:2'):
+    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+    device = torch.device(device_name)
+    logging.info('Loading model')
+    model = BartForConditionalGeneration.from_pretrained(
+        model_name, cache_dir=MODEL_CACHE)
+    model = model.to(device)
 
-# debug = False    # fake model output
-debug = True    # fake model output
+    logging.info('Loading dataset')
+    dataset = load_dataset('xsum', split='validation')
+    return tokenizer, model, dataset
+
+def setup_model_debug():
+    tokenizer = None
+    device = torch.device('cpu')
+
+debug = False    # fake model output
+# debug = True    # fake model output
 if not debug:
     tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
@@ -64,7 +79,7 @@ else:
     device = torch.device('cpu')
 
 
-def pnum(num):
+def pnum(num, bit=4):
     return "{:.4f}".format(num)
 
 
