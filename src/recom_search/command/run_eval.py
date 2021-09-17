@@ -35,8 +35,8 @@ def process_arg():
     parser.add_argument('-min_len', type=int, default=10)
     parser.add_argument('-max_len', type=int, default=25)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
-    parser.add_argument('-ngram_suffix', type=int, default=2)
-    parser.add_argument('-len_diff', type=int, default=15)
+    parser.add_argument('-ngram_suffix', type=int, default=3)
+    parser.add_argument('-len_diff', type=int, default=5)
     
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
