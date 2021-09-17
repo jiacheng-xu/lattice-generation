@@ -1,4 +1,5 @@
 from collections import defaultdict
+from src.recom_search.model.new_best_first_search import new_best_first_search
 from src.recom_search.model.new_baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
@@ -31,7 +32,7 @@ def process_arg():
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=4)
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
-    parser.add_argument('-extra_steps', type=float, default=10)
+    parser.add_argument('-extra_steps', type=int, default=10)
     parser.add_argument('-min_len', type=int, default=10)
     parser.add_argument('-max_len', type=int, default=25)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
@@ -47,7 +48,7 @@ def run_recom(args, model, input_doc):
     param_sim_function = {
             'ngram_suffix':args.ngram_suffix,
             'len_diff':args.len_diff
-        }
+    }
 
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
@@ -58,12 +59,16 @@ def run_recom(args, model, input_doc):
 
 
 def run_best(args, model, inp):
+    param_sim_function = {
+            'ngram_suffix':args.ngram_suffix,
+            'len_diff':args.len_diff
+    }
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
-    output, stat = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,
-                                     eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, explore_cnt=args.beam_size, extra_steps=args.extra_steps)
+    output = new_best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id, explore_steps=args.extra_steps, max_len=args.max_len, k_best = 5)
+    # output, stat = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, explore_cnt=args.beam_size, extra_steps=args.extra_steps)
 
-    return output, stat
+    return output
 
 
 def run_baseline(args, model, inp):

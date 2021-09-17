@@ -186,6 +186,26 @@ class NewBeamState():
         return statistics.mean(self.all_score)
     def __repr__(self) -> str:
         return self.get_tokens_str()
+
+    def get_tokens_match_suffix(self, suffix_tokens:List[int]):
+        reversed_tokens = []
+
+        prev = [self]
+        while prev or suffix_tokens:
+            last_target_token_idx = suffix_tokens.pop(-1)
+            for p in prev:
+                token = p.token_idx
+                if token == last_target_token_idx:
+                    reversed_tokens.append(token)
+                    prev = p.prev
+                    continue
+            raise Exception("Not found!")
+        while prev:
+            prev = prev[0]
+            reversed_tokens.append(prev.token_idx)
+            prev = prev.prev
+        return reversed_tokens[::-1]
+
     
 class BeamState(object):
     def __init__(self, cur_idx_in_distb, prob_distrib, token_id_distb,  prev=[], min_len=10, finished=False, len_reward=0.0) -> None:
