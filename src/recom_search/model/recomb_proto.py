@@ -275,10 +275,10 @@ def async_recomb(candidates: List[BeamState], gen_hash: GenHash, ngram_suffix, l
     return output
 
 
-def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff):
+def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff, position_enc=0):
     first_few_tokens = doc_input_ids.tolist()[0][1:10]
     txt = tokenizer.decode(first_few_tokens)
-    params = [beam_sz, max_len, ngram_suffix, len_diff]
+    params = [beam_sz, max_len, ngram_suffix, len_diff, position_enc]
     params = "_".join([str(x) for x in params])
     return txt+params
 

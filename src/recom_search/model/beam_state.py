@@ -63,7 +63,7 @@ class NewBeamState():
         self.has_finished()
     
     def has_finished(self):
-        if self.token_str.strip() == '.' and self.length >= self.min_len:
+        if (self.token_str.strip() == '.' or self.token_str.strip() == '</s>') and self.length >= self.min_len:
             self.finished = True
         else:
             self.finished = False
@@ -191,15 +191,19 @@ class NewBeamState():
         reversed_tokens = []
 
         prev = [self]
-        while prev or suffix_tokens:
+        while prev and suffix_tokens:
             last_target_token_idx = suffix_tokens.pop(-1)
+            new_prev = []
             for p in prev:
                 token = p.token_idx
                 if token == last_target_token_idx:
-                    reversed_tokens.append(token)
-                    prev = p.prev
-                    continue
-            raise Exception("Not found!")
+                    
+                    new_prev += p.prev
+
+            reversed_tokens.append(last_target_token_idx)
+            prev = new_prev
+            if not prev:
+                raise Exception("Not found!")
         while prev:
             prev = prev[0]
             reversed_tokens.append(prev.token_idx)
