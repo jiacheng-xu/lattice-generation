@@ -1,7 +1,7 @@
 
 import unittest
 
-from src.recom_search.model.new_baseline import recomb_baseline
+from src.recom_search.model.recomb_baseline import recomb_baseline
 import random
 random.seed(2021)
 def fake_output_machine(t, beam_size):

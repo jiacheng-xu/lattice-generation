@@ -1,13 +1,13 @@
 
-from src.recom_search.model.beam_state import NewBeamState
+from src.recom_search.model.beam_state import BeamNode
 from src.recom_search.model.recomb_proto import GenHash, merge_compare, new_merge_core, render_name, similarity_heuristic
 from src.recom_search.model.util import run_inference_step
 from typing import List
 import logging
 import torch
 
-def baseline_iterative_recomb(candidates:List[NewBeamState], param_sim_function, gen_hash, beam_size):
-    next_candidate:List[NewBeamState] = []
+def baseline_iterative_recomb(candidates:List[BeamNode], param_sim_function, gen_hash, beam_size):
+    next_candidate:List[BeamNode] = []
 
     len_diff = param_sim_function['len_diff']
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -48,7 +48,7 @@ import pickle
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100,debug:bool=False):
     gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
 
-    hypos = [NewBeamState(prob=1.0, token_idx=eos_token_id, prev=[])]
+    hypos = [BeamNode(prob=1.0, token_idx=eos_token_id, prev=[])]
     
     for t in range(max_len):
         # TODO finished
@@ -79,7 +79,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
 
             for idx, v, i in zip(range(beam_size), values, indices):
 
-                tmp_state = NewBeamState(prob=v, token_idx = i, prev=[hypo])
+                tmp_state = BeamNode(prob=v, token_idx = i, prev=[hypo])
                 # gen_hash.add(beam_item.token_full + [indices[idx]],tmp_state)
                 candidates.append(tmp_state)
 

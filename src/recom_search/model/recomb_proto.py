@@ -33,56 +33,11 @@ def sublist(lst1, lst2):
     return set(lst1) <= set(lst2)
 
 
-class GenHash():
-    def __init__(self, ngram: int = 5, back_track_steps: int = 2) -> None:
-        self.data = defaultdict(list)
-        self.back_step = back_track_steps
-        self.ngram = ngram
-
-    def query(self, token_ids: List[int]):
-        return None
-        if len(token_ids) < self.ngram:
-            return []
-        l = len(token_ids)  # original len
-        token_ids = token_ids[-self.ngram:]
-        k = "_".join([str(x) for x in token_ids])
-        # l = len(token_ids)
-        if k in self.data:
-            outputs = []
-            vs = self.data[k]
-            for bt in range(self.back_step):
-                if l-bt in vs:
-                    outputs += vs[l-bt]
-            if not outputs:
-                return []
-            return outputs
-        return []
-
-    def add(self, tokens: List, beam_node):
-        l = len(tokens)
-        if l < self.ngram:
-            return
-        token_ids = tokens[-self.ngram:]
-        k = "_".join([str(x) for x in token_ids])
-        if l in self.data[k]:
-            self.data[k][l].append(beam_node)
-        else:
-            self.data[k] = {l: [beam_node]}
-
-    def delete_successor(self):
-        pass
-
 def fake_model_output(vocab_size=20, k=BS):
     output = torch.rand(vocab_size) * 20
     softmax_scores = torch.nn.functional.softmax(output)
     return torch.topk(softmax_scores, k=k)
 
-class NewSpan():
-    def __init__(self, left, right, score) -> None:
-        self.left = left    # the left end node
-        self.right = right  # the right end node
-        self.edges = []
-        self.score = score  # the best-scored path's score in this span
 
 class Span():
     def __init__(self, tokens, token_strs, score: float, prefix_node=None, suffix_node=None, prefix=[], suffix=[]) -> None:
@@ -114,7 +69,6 @@ def find_prefix(seq_a, seq_b):
     return [pointer_a, pointer_b]
 
 
-
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
     if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
@@ -143,6 +97,7 @@ def get_beam_from_past(end_beam, t):
     nodes = nodes[::-1]
     return nodes[t]
 
+
 def new_merge_core(beam_par, beam_drop):
     logging.debug(beam_par.all_token_idx)
     logging.debug(beam_drop.all_token_idx)
@@ -155,17 +110,17 @@ def new_merge_core(beam_par, beam_drop):
     prev_par_paths = par_paths
     prev_pointer_drop = beam_drop
     while pointer_drop and par_paths:
-        
+
         next_par_paths = []
         for par_path in par_paths:
             if pointer_drop.token_idx == par_path.token_idx:
-                next_par_paths += par_path.prev  
+                next_par_paths += par_path.prev
         if next_par_paths:
             prev_pointer_drop = pointer_drop
             pointer_drop = pointer_drop.prev[0]
             prev_par_paths = par_paths
             par_paths = next_par_paths
-            
+
         else:
             break    # suffix match end
     # pointer_drop is the first token that differs
@@ -177,7 +132,8 @@ def new_merge_core(beam_par, beam_drop):
     beam_par.print_lattice()
     return beam_par
     # go leftward to end of prev_par_paths, get all nodes
-    # go leftward to end of 
+    # go leftward to end of
+
 
 def merge_compare(beam_a, beam_b, merge_to_a: bool = False, ngram_suffix: int = 5, len_diff: int = 5):
     # we assume we are matching the suffix of a and b although their length can be different

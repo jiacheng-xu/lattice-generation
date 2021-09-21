@@ -10,19 +10,19 @@ from typing import List
 import logging
 from src.recom_search.model.recomb_proto import new_merge_core, render_name, similarity_heuristic
 from src.recom_search.model.util import run_inference_step
-from src.recom_search.model.beam_state import NewBeamState
+from src.recom_search.model.beam_state import BeamNode
 
 import heapq
 
 
 def construct_init_pad_sent(eos_token_id, max_len):
     cnt = 0
-    init_seed = NewBeamState(token_idx=eos_token_id, prev=[])
+    init_seed = BeamNode(token_idx=eos_token_id, prev=[])
     pointer = init_seed
     # we don't need this
 
 
-class NewHash():
+class HashedGen():
     def __init__(self, ngram: int = 5) -> None:
         self.data = defaultdict(list)
         self.ngram = ngram
@@ -53,7 +53,7 @@ class NewHash():
     def add_helper(self, par_node, new_node):
         # par_node : the parent node
 
-        def dfs(node:NewBeamState, depth):
+        def dfs(node:BeamNode, depth):
             if not node:
                 return []
             if depth == self.ngram:
@@ -79,7 +79,7 @@ class NewHash():
 
 
 import torch
-def generate_merge(start_seed, hash:NewHash,eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps,k_best,position_bias):
+def generate_merge(start_seed, hash:HashedGen,eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps,k_best,position_bias):
     # try to extend the start_seed for explore_steps steps. if there is a mergable match, do that match, else, finish the generation
     ncall = 0
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -105,7 +105,7 @@ def generate_merge(start_seed, hash:NewHash,eos_token_id, heap,  doc_input_ids, 
         values = values[0].tolist()
         indices = indices[0].tolist()
 
-        top1_state = NewBeamState(prob=values[0], token_idx = indices[0], prev=[pointer])
+        top1_state = BeamNode(prob=values[0], token_idx = indices[0], prev=[pointer])
         values = values[1:]
         indices = indices[1:]
         # is top1 in hash?
@@ -129,7 +129,7 @@ def generate_merge(start_seed, hash:NewHash,eos_token_id, heap,  doc_input_ids, 
         # add stuff to heap
         hash.add_helper(pointer, top1_state)
         for v,i in zip(values,indices):
-            tmp_state = NewBeamState(prob=v, token_idx = i, prev=[pointer])
+            tmp_state = BeamNode(prob=v, token_idx = i, prev=[pointer])
             if position_bias> 1:
                 score = v - math.log((cur_len+1)/max_len)/position_bias
             else:
@@ -149,8 +149,8 @@ def new_best_first_search(doc_input_ids, model, param_sim_function, eos_token_id
     total_calls = 0
     explored_cnt = 0
     hypos = []
-    init_seed = NewBeamState(prob=1.,token_idx=eos_token_id, prev=[])
-    gen_hash = NewHash(param_sim_function['ngram_suffix'])
+    init_seed = BeamNode(prob=1.,token_idx=eos_token_id, prev=[])
+    gen_hash = HashedGen(param_sim_function['ngram_suffix'])
     h = []
     heapq.heappush(h, (-init_seed.prob, init_seed))
     while h:
