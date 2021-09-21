@@ -7,7 +7,7 @@ from src.recom_search.model.util import run_inference_step, render_name
 from typing import List
 import logging
 import torch
-
+import math
 
 def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, beam_size):
     next_candidate: List[BeamNode] = []
@@ -52,7 +52,7 @@ def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, be
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100, debug: bool = False):
     # gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
 
-    hypos = [BeamNode(prob=1.0, token_idx=eos_token_id, prev=[])]
+    hypos = [BeamNode(prob=1.0, token_idx=eos_token_id, prev=[],prev_score=[])]
 
     for t in range(max_len):
         # TODO finished
@@ -84,7 +84,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
 
             for idx, v, i in zip(range(beam_size), values, indices):
 
-                tmp_state = BeamNode(prob=v, token_idx=i, prev=[hypo])
+                tmp_state = BeamNode(prob=v, token_idx=i, prev=[hypo], prev_score=[math.log(v)])
                 # gen_hash.add(beam_item.token_full + [indices[idx]],tmp_state)
                 candidates.append(tmp_state)
 

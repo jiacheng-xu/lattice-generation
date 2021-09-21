@@ -43,15 +43,17 @@ def core_merge(beam_par: BeamNode, beam_drop: BeamNode):
             pointer_drop = pointer_drop.prev[0]
             prev_par_paths = par_paths
             par_paths = next_par_paths
-
         else:
             break    # suffix match end
     # pointer_drop is the first token that differs
     # par_paths is the first threads differs
     # prev_par_paths is the last match
     # add pointer_drop to prev_par_paths 's prev
+
+    # the score of pointer_drop -> prev_pointer_drop
+    score = prev_pointer_drop.score
     for path in prev_par_paths:
-        path.add_prev_node(pointer_drop)
+        path.add_prev_node(pointer_drop, score)
     beam_par.print_lattice()
     return beam_par
     # go leftward to end of prev_par_paths, get all nodes

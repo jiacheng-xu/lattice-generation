@@ -97,7 +97,7 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
         indices = indices[0].tolist()
 
         top1_state = BeamNode(
-            prob=values[0], token_idx=indices[0], prev=[pointer])
+            prob=values[0], token_idx=indices[0], prev=[pointer], prev_score=[math.log(values[0])])
         values = values[1:]
         indices = indices[1:]
         # is top1 in hash?
@@ -124,7 +124,7 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
         # add stuff to heap
         hash.add_helper(pointer, top1_state)
         for v, i in zip(values, indices):
-            tmp_state = BeamNode(prob=v, token_idx=i, prev=[pointer])
+            tmp_state = BeamNode(prob=v, token_idx=i, prev=[pointer],prev_score=[math.log(v)])
             if position_bias > 1:
                 score = v - math.log((cur_len+1)/max_len)/position_bias
             else:
@@ -144,7 +144,7 @@ def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21,
     total_calls = 0
     explored_cnt = 0
     hypos = []
-    init_seed = BeamNode(prob=1., token_idx=eos_token_id, prev=[])
+    init_seed = BeamNode(prob=1., token_idx=eos_token_id, prev=[], prev_score=[0])
     gen_hash = HashedGen(param_sim_function['ngram_suffix'])
     h = []
     heapq.heappush(h, (-init_seed.prob, init_seed))

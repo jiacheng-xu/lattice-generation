@@ -24,7 +24,7 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='recom')
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='best')
     parser.add_argument('-beam_size', type=int, default=10)
     parser.add_argument('-nexample', type=int, default=20)
 
@@ -38,7 +38,7 @@ def process_arg():
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     parser.add_argument('-ngram_suffix', type=int, default=3)
     parser.add_argument('-len_diff', type=int, default=5)
-    parser.add_argument('-heuristic_position_bias', type=float, default=10.0,
+    parser.add_argument('-heuristic_position_bias', type=float, default=0.0,
                         help='Add more score to the begining of a sentence.')
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()

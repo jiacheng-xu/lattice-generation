@@ -46,11 +46,12 @@ def find_suffix(seq_a, seq_b):
 
 
 class BeamNode():
-    def __init__(self, prob: float, token_idx: int, prev: List, min_len=10, finished=False, len_reward=0.0) -> None:
+    def __init__(self, prob: float, token_idx: int, prev: List, prev_score:List,  min_len=10, finished=False, len_reward=0.0) -> None:
         self.uid = gen_rand_id()
         self.prob = prob
         self.score = math.log(prob)
         self.prev = prev      # prev is always sorted where top1 has highest score
+        self.prev_score = prev_score
         self.token_idx = token_idx
         self.token_str = tokenizer.decode(
             self.token_idx) if tokenizer else f"{token_idx}"
@@ -72,46 +73,49 @@ class BeamNode():
         else:
             self.finished = False
 
-    def add_prev_node(self, node):
+    def add_prev_node(self, node, score):
         """
         self: a b c d  a   f g
         node: a b c d  x y 
 
         """
         self.prev.append(node)
+        self.prev_score.append(score)
         # sort
 
     def visualization(self):
         nodes, edges = [], []
         seen = {}
 
-        def dfs(node: BeamNode, par_nodes):
+        def dfs(node: BeamNode):
             if not node:
                 return
 
-            if par_nodes:
-                edge_info = {
-                    'src': node.uid,
-                    'tgt': par_nodes[-1].uid,
-                    'seen': False
-                }
-
             if node.uid in seen:
-                edge_info['seen'] = True
-                edges.append(edge_info)
                 return
             seen[node.uid] = True
+
+            my_prev, my_prev_score = node.prev, node.prev_score
+            for p,ps in zip(my_prev,my_prev_score):
+
+                edge_info = {
+                    'src': p.uid,
+                    'tgt': node.uid,
+                    'score': ps
+                }
+                edges.append(edge_info)
+
+            
             nodes.append({
                 'uid': node.uid,
                 'text': node.token_str,
-                'score': node.score
+
             })
-            if par_nodes:
-                edges.append(edge_info)
+
             prevs = node.prev
             for p in prevs:
-                dfs(p, par_nodes + [node])
-        dfs(self, [])
+                dfs(p)
+        dfs(self)
         return nodes, edges
 
     def print_lattice(self):
