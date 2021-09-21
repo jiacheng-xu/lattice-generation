@@ -8,8 +8,9 @@ from typing import List
 
 
 import logging
-from src.recom_search.model.recomb_proto import new_merge_core, render_name, similarity_heuristic
-from src.recom_search.model.util import run_inference_step
+from src.recom_search.model.recomb_proto import new_merge_core, similarity_heuristic
+from src.recom_search.model.merge import new_merge_core,similarity_heuristic
+from src.recom_search.model.util import render_name, run_inference_step
 from src.recom_search.model.beam_state import BeamNode
 
 import heapq

@@ -80,8 +80,18 @@ else:
 
 
 def pnum(num, bit=4):
-    return "{:.4f}".format(num)
+    if bit == 4:
+        return "{:.4f}".format(num)
+    else:
+        return "{:.2f}".format(num)
 
+
+def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff, position_enc=0):
+    first_few_tokens = doc_input_ids.tolist()[0][1:10]
+    txt = tokenizer.decode(first_few_tokens)
+    params = [beam_sz, max_len, ngram_suffix, len_diff, position_enc]
+    params = "_".join([str(x) for x in params])
+    return txt+params
 
 def str2bool(v):
     if isinstance(v, bool):

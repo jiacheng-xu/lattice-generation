@@ -1,6 +1,6 @@
 from collections import defaultdict
 from src.recom_search.model.new_best_first_search import new_best_first_search
-from src.recom_search.model.new_baseline import recomb_baseline
+from src.recom_search.model.baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
 

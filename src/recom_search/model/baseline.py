@@ -1,12 +1,13 @@
 
 from src.recom_search.model.beam_state import BeamNode
-from src.recom_search.model.recomb_proto import GenHash, merge_compare, new_merge_core, render_name, similarity_heuristic
-from src.recom_search.model.util import run_inference_step
+
+from src.recom_search.model.merge import new_merge_core,similarity_heuristic
+from src.recom_search.model.util import run_inference_step,render_name
 from typing import List
 import logging
 import torch
 
-def baseline_iterative_recomb(candidates:List[BeamNode], param_sim_function, gen_hash, beam_size):
+def baseline_iterative_recomb(candidates:List[BeamNode], param_sim_function, beam_size):
     next_candidate:List[BeamNode] = []
 
     len_diff = param_sim_function['len_diff']
@@ -46,7 +47,7 @@ def baseline_iterative_recomb(candidates:List[BeamNode], param_sim_function, gen
 
 import pickle
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100,debug:bool=False):
-    gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
+    # gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
 
     hypos = [BeamNode(prob=1.0, token_idx=eos_token_id, prev=[])]
     
@@ -85,7 +86,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
 
         # sort candidates by scores; these are active candidates of the current step
         sorted_candidates = sorted(candidates, key=lambda x: x.get_score_avg(), reverse=True)
-        hypos = baseline_iterative_recomb(sorted_candidates, param_sim_function, gen_hash,beam_size=beam_size)
+        hypos = baseline_iterative_recomb(sorted_candidates, param_sim_function,beam_size=beam_size)
         print('-'*30)
 
     logging.info(f"#Whole Beam: {len(hypos)}, #finished: ")
