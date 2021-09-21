@@ -2,25 +2,14 @@
 from collections import defaultdict
 import math
 import pickle
-
 from typing import List
-
-
-
 import logging
-from src.recom_search.model.recomb_proto import new_merge_core, similarity_heuristic
-from src.recom_search.model.merge import new_merge_core,similarity_heuristic
+
+from src.recom_search.model.merge import core_merge,similarity_heuristic
 from src.recom_search.model.util import render_name, run_inference_step
 from src.recom_search.model.beam_state import BeamNode
 
 import heapq
-
-
-def construct_init_pad_sent(eos_token_id, max_len):
-    cnt = 0
-    init_seed = BeamNode(token_idx=eos_token_id, prev=[])
-    pointer = init_seed
-    # we don't need this
 
 
 class HashedGen():
@@ -124,7 +113,7 @@ def generate_merge(start_seed, hash:HashedGen,eos_token_id, heap,  doc_input_ids
                         flag_merge = True
                         break
                 if flag_merge:
-                    new_merge_core(span_end,top1_state)
+                    core_merge(span_end,top1_state)
                     break
 
         # add stuff to heap
@@ -146,7 +135,7 @@ def generate_merge(start_seed, hash:HashedGen,eos_token_id, heap,  doc_input_ids
         return pointer, ncall
 
 
-def new_best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21, explore_steps=10, max_len=20, k_best = 5, num_return_hypo=100, position_bias = 0.0,debug: bool = False):
+def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21, explore_steps=10, max_len=20, k_best = 5, num_return_hypo=100, position_bias = 0.0,debug: bool = False):
     total_calls = 0
     explored_cnt = 0
     hypos = []

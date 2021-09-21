@@ -1,5 +1,5 @@
 from collections import defaultdict
-from src.recom_search.model.new_best_first_search import new_best_first_search
+from src.recom_search.model.model_bfs import best_first_search
 from src.recom_search.model.baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
@@ -14,7 +14,6 @@ from transformers import (
     BeamSearchScorer,
 )
 
-from src.recom_search.model.recomb_proto import *
 from src.recom_search.model.util import *
 import argparse
 
@@ -66,8 +65,7 @@ def run_best(args, model, inp):
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     num_return_hypo = args.max_len * args.beam_size
-    output = new_best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id, explore_steps=args.extra_steps, max_len=args.max_len, k_best = 5, num_return_hypo=num_return_hypo, position_bias=args.heuristic_position_bias)
-    # output, stat = best_first_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, explore_cnt=args.beam_size, extra_steps=args.extra_steps)
+    output = best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id, explore_steps=args.extra_steps, max_len=args.max_len, k_best = 5, num_return_hypo=num_return_hypo, position_bias=args.heuristic_position_bias)
 
     return output
 

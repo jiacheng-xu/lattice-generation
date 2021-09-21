@@ -108,6 +108,7 @@ class BeamNode():
                 dfs(p, par_nodes + [node])
         dfs(self, [])
         return nodes, edges
+        
     def print_lattice(self):
         # DFS to discover nodes, if a node is seen and discovered again, it's the start of a span
         seen = {}   # key is a node, value is the latest path to this node from root. 

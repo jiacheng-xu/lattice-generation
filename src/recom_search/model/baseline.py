@@ -1,7 +1,7 @@
 
 from src.recom_search.model.beam_state import BeamNode
 
-from src.recom_search.model.merge import new_merge_core,similarity_heuristic
+from src.recom_search.model.merge import core_merge,similarity_heuristic
 from src.recom_search.model.util import run_inference_step,render_name
 from typing import List
 import logging
@@ -38,7 +38,7 @@ def baseline_iterative_recomb(candidates:List[BeamNode], param_sim_function, bea
             if flag_merge:
                 break
         if flag_merge:
-            new_merge_core(pointer, candidate)
+            core_merge(pointer, candidate)
         else:
             next_candidate.append(candidate)
         if len(next_candidate) >= beam_size:
