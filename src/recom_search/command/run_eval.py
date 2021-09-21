@@ -19,6 +19,7 @@ import argparse
 
 assert model
 
+
 def process_arg():
 
     parser = argparse.ArgumentParser()
@@ -37,7 +38,8 @@ def process_arg():
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     parser.add_argument('-ngram_suffix', type=int, default=3)
     parser.add_argument('-len_diff', type=int, default=5)
-    parser.add_argument('-heuristic_position_bias',type=float,default=10.0,help='Add more score to the begining of a sentence.')
+    parser.add_argument('-heuristic_position_bias', type=float, default=10.0,
+                        help='Add more score to the begining of a sentence.')
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
     return args
@@ -45,13 +47,14 @@ def process_arg():
 
 def run_recom(args, model, input_doc):
     param_sim_function = {
-            'ngram_suffix':args.ngram_suffix,
-            'len_diff':args.len_diff
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff
     }
 
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
-    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size)
+    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,
+                             model=model, debug=False, beam_size=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size)
     # output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size,ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
 
     return output
@@ -59,13 +62,14 @@ def run_recom(args, model, input_doc):
 
 def run_best(args, model, inp):
     param_sim_function = {
-            'ngram_suffix':args.ngram_suffix,
-            'len_diff':args.len_diff
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff
     }
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     num_return_hypo = args.max_len * args.beam_size
-    output = best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id, explore_steps=args.extra_steps, max_len=args.max_len, k_best = 5, num_return_hypo=num_return_hypo, position_bias=args.heuristic_position_bias)
+    output = best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,
+                               explore_steps=args.extra_steps, max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, position_bias=args.heuristic_position_bias)
 
     return output
 
@@ -83,9 +87,9 @@ def run_baseline(args, model, inp):
                            )
     elif args.model == 'dbs':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=args.beam_size, do_sample=False, 
-                           min_len=args.min_len, max_len=args.max_len,  
-                           num_beam_groups=args.beam_group, 
+                           device=device, beam_size=args.beam_size, do_sample=False,
+                           min_len=args.min_len, max_len=args.max_len,
+                           num_beam_groups=args.beam_group,
                            diversity_penalty=args.hamming_penalty,
                            num_beam_hyps_to_keep=args.beam_size
                            )

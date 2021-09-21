@@ -1,6 +1,7 @@
 import logging
 from src.recom_search.model.beam_state import BeamNode
 
+
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
     if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
@@ -20,7 +21,7 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     return True
 
 
-def core_merge(beam_par:BeamNode, beam_drop:BeamNode):
+def core_merge(beam_par: BeamNode, beam_drop: BeamNode):
     logging.debug(beam_par.all_token_idx)
     logging.debug(beam_drop.all_token_idx)
     # when does their suffix starts to differ?

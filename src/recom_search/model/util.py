@@ -85,6 +85,15 @@ def pnum(num, bit=4):
     else:
         return "{:.2f}".format(num)
 
+def beam_size_policy(beam_size, time_step, policy='regular'):
+    if policy == 'regular':
+        return beam_size
+    else:
+        if time_step == 0:
+            return beam_size
+        else:
+            return min(time_step, beam_size)
+
 
 def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff, position_enc=0):
     first_few_tokens = doc_input_ids.tolist()[0][1:10]

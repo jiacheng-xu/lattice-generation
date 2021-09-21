@@ -27,11 +27,11 @@ class GenericSearch(SearchStrategy):
 
     @timing
     def _timed_run(self, input_ids):
-        outputs = self.model.generate(input_ids=input_ids, top_p=self.top_p, max_length=self.max_len, min_length=self.min_len, num_beams=self.beam_size, 
-        num_beam_groups=self.num_beam_groups,
-                                      do_sample=self.do_sample, 
-                                      num_return_sequences=self.num_beam_hyps_to_keep, 
-                                      diversity_penalty = self.diversity_penalty)
+        outputs = self.model.generate(input_ids=input_ids, top_p=self.top_p, max_length=self.max_len, min_length=self.min_len, num_beams=self.beam_size,
+                                      num_beam_groups=self.num_beam_groups,
+                                      do_sample=self.do_sample,
+                                      num_return_sequences=self.num_beam_hyps_to_keep,
+                                      diversity_penalty=self.diversity_penalty)
         return {'output': outputs}
 
     @property
