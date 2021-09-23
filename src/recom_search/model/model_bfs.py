@@ -54,9 +54,7 @@ class HashedGen():
             for p in prevs:
                 many = dfs(p, depth+1)
                 for one in many:
-                    outputs.append(one
-                                   + [node.token_idx]
-                                   )
+                    outputs.append(one + [node.token_idx])
             return outputs
         all_probable_paths = dfs(par_node, 1)
         all_probable_paths = [x + [new_node.token_idx]
@@ -67,7 +65,7 @@ class HashedGen():
             key = self.const_key(p)
             self.data[key].append(new_node)
             cnt += 1
-        logging.debug(f"{cnt} added to Hash.")
+        # logging.debug(f"{cnt} added to Hash.")
 
 
 def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps, k_best, position_bias):
@@ -119,10 +117,13 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
                         break
                 if flag_merge:
                     core_merge(span_end, top1_state)
-                    break
+                    
 
         # add stuff to heap
-        hash.add_helper(pointer, top1_state)
+        if not flag_merge:
+            hash.add_helper(pointer, top1_state)
+        # else:
+        #     print()
         for v, i in zip(values, indices):
             tmp_state = BeamNode(prob=v, token_idx=i, prev=[pointer],prev_score=[math.log(v)])
             if position_bias > 1:
@@ -131,7 +132,7 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
                 score = v
             heapq.heappush(heap, (-score, tmp_state))
         pointer = top1_state
-        if pointer.finished:
+        if pointer.finished or flag_merge:
             break
         cur_len += 1
     if flag_merge:

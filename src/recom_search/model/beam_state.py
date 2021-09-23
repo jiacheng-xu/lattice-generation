@@ -9,9 +9,9 @@ import statistics
 import random
 import string
 from typing import List
+random.seed(2021)
 
-
-def gen_rand_id(N=5):
+def gen_rand_id(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 
@@ -46,7 +46,7 @@ def find_suffix(seq_a, seq_b):
 
 
 class BeamNode():
-    def __init__(self, prob: float, token_idx: int, prev: List, prev_score:List,  min_len=10, finished=False, len_reward=0.0) -> None:
+    def __init__(self, prob: float, token_idx: int, prev: List, prev_score: List,  min_len=10, finished=False, len_reward=0.0) -> None:
         self.uid = gen_rand_id()
         self.prob = prob
         self.score = math.log(prob)
@@ -73,12 +73,29 @@ class BeamNode():
         else:
             self.finished = False
 
+    def get_antecedent(self):
+        antecedents = []
+        
+        prev = self.prev    #prev is a list
+        while prev:
+            antecedents += prev
+            new_prev = []
+            for p in prev:
+                new_prev += p.prev
+            new_prev = list(set(new_prev))
+            new_prev = [x for x in new_prev if x not in antecedents]
+            prev = new_prev
+        return antecedents
     def add_prev_node(self, node, score):
         """
         self: a b c d  a   f g
         node: a b c d  x y 
 
         """
+        # check if self is the ancedant node of "node"
+        if self in node.get_antecedent() or self == node:
+            return
+
         self.prev.append(node)
         self.prev_score.append(score)
         # sort
@@ -96,7 +113,7 @@ class BeamNode():
             seen[node.uid] = True
 
             my_prev, my_prev_score = node.prev, node.prev_score
-            for p,ps in zip(my_prev,my_prev_score):
+            for p, ps in zip(my_prev, my_prev_score):
 
                 edge_info = {
                     'src': p.uid,
@@ -196,8 +213,8 @@ class BeamNode():
         all_score = self.all_score
         return sum(all_score) + self.len_reward * len(all_score)
 
-    def get_score_avg(self):
-        return statistics.mean(self.all_score)
+    # def get_score_avg(self):
+    #     return statistics.mean(self.all_score)
 
     def __repr__(self) -> str:
         return self.get_tokens_str()

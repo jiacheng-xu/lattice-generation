@@ -4,7 +4,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import os
-from platform import win32_edition
+
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
@@ -34,6 +34,7 @@ def cache_edges(edges):
     edge_score = defaultdict(list)
     for edge in edges.values():
         if edge['tgt'] == edge['src']:
+            print('self')
             continue
         edge_info[edge['tgt']].append(edge['src'])
         edge_score[edge['tgt']].append(edge['score'])
@@ -77,7 +78,7 @@ def derive_path(nodes: Dict, edges: Dict):
     paths[sos_key] = [[('<s>', 0)]]
 
     def dfs(node, score):
-
+        # print(node)
         if node in seen:
             return paths[node]
 
@@ -129,6 +130,8 @@ def save_dataframe(df, fname, path):
     with open(os.path.join(path, fname+'.pkl'), 'wb') as fd:
         pickle.dump(df, fd)
 
+def analyze_graph(nodes, edges):
+    pass
 
 def viz_result(generated_outputs: List[BeamNode], name):
     for go in generated_outputs:
@@ -142,7 +145,7 @@ def viz_result(generated_outputs: List[BeamNode], name):
         nodes, edges = go.visualization()
         all_nodes.update(nodes)
         all_edges.update(edges)
-
+        print(idx)
         paths, degree_mat = derive_path(nodes, edges)
         panda_df, stat = extract_graph_feat(nodes, edges, paths, degree_mat)
         save_dataframe(panda_df, f"{name}_{idx}", "df")
@@ -167,21 +170,24 @@ if __name__ == "__main__":
     
     for f in tqdm(files):
         name = f.split('.')[0]
-        try:
-            with open(f"vizs/{f}", 'rb') as fd:
-                finished = pickle.load(fd)
-            stat_single, stat_all = viz_result(finished, name)
-            for k in stat_single.keys():
-                print(f"Key:{k}")
-                print(statistics.quantiles(stat_single[k]))
-                print(f"Full {k}: {stat_all[k]}")
-                print('-'*10)
-            print('\n\n')
-            for k, v in stat_single.items():
-                d_stat[k] += v
-            for k, v in stat_all.items():
-                d_stat_all[k].append(v)
-        except RecursionError:
-            pass
+
+        with open(f"vizs/{f}", 'rb') as fd:
+            finished = pickle.load(fd)
+        print(f)
+        stat_single, stat_all = viz_result(finished, name)
+        
+        for k in stat_single.keys():
+            if len(stat_single[k]) <= 1:
+                continue
+            print(f"Key:{k}")
+            print(statistics.quantiles(stat_single[k]))
+            print(f"Full {k}: {stat_all[k]}")
+            print('-'*10)
+        print('\n\n')
+        for k, v in stat_single.items():
+            d_stat[k] += v
+        for k, v in stat_all.items():
+            d_stat_all[k].append(v)
+
 
     

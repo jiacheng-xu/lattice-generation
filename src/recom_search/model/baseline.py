@@ -31,7 +31,7 @@ def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, be
                         continue
                     else:
                         break
-                if pointer.get_score_avg() > candidate.get_score_avg():
+                if pointer.get_score_sum() > candidate.get_score_sum():
                     # merge happens
                     flag_merge = True
                     break
