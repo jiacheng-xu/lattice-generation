@@ -1,3 +1,4 @@
+import itertools
 from typing import Dict
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -8,10 +9,17 @@ import os
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
+from src.recom_search.evaluation.eval_bench import _get_ngrams
 from src.recom_search.model.beam_state import BeamNode
 from typing import Dict, List
 import pickle
 from collections import defaultdict
+import spacy
+
+# Load English tokenizer, tagger, parser and NER
+nlp = spacy.load("en_core_web_sm")
+
+all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
 
 
 def find_start_end(nodes, edges):
@@ -130,8 +138,25 @@ def save_dataframe(df, fname, path):
     with open(os.path.join(path, fname+'.pkl'), 'wb') as fd:
         pickle.dump(df, fd)
 
-def analyze_graph(nodes, edges):
-    pass
+def analyze_graph(paths, nodes):
+    # number of paths, number of unique nodes, number of novel ngram, POS tag distributions
+    # non-stop word
+    stat = {}
+    stat['num_path'] = len(paths)
+    stat['num_node'] = len(nodes)
+
+    # find non stop word nodes
+    nodes_text = [x['text'].strip() for x in nodes.values()]
+    trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
+    stat['num_non_stop_node'] = len(trim_nodes_text)
+    paths = [[x[0] for x in p] for p in paths]
+    all_ngrams = [_get_ngrams(3,x) for x in paths]
+
+    flat_list = list(itertools.chain(*all_ngrams))
+    uniq_ngrams = list(set(flat_list))
+    stat['novel_ngram'] = len(uniq_ngrams)
+    stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
+    return stat
 
 def viz_result(generated_outputs: List[BeamNode], name):
     for go in generated_outputs:
@@ -145,20 +170,23 @@ def viz_result(generated_outputs: List[BeamNode], name):
         nodes, edges = go.visualization()
         all_nodes.update(nodes)
         all_edges.update(edges)
+        """
         print(idx)
         paths, degree_mat = derive_path(nodes, edges)
         panda_df, stat = extract_graph_feat(nodes, edges, paths, degree_mat)
         save_dataframe(panda_df, f"{name}_{idx}", "df")
         for k, v in stat.items():
             d_stat[k].append(v)
+        """
 
     all_paths, all_degree_mat = derive_path(all_nodes, all_edges)
-    panda_df, all_stat = extract_graph_feat(
-        all_nodes, all_edges, all_paths, all_degree_mat)
-    save_dataframe(panda_df, f"{name}", "df")
-    return d_stat, all_stat
+    # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
+    stat = analyze_graph(all_paths, all_nodes)
+    print(stat)
+    # save_dataframe(panda_df, f"{name}", "df")
+    # return d_stat, all_stat
 
-
+    return stat
 if __name__ == "__main__":
     # execute only if run as a script
     files = os.listdir('vizs')
@@ -174,20 +202,18 @@ if __name__ == "__main__":
         with open(f"vizs/{f}", 'rb') as fd:
             finished = pickle.load(fd)
         print(f)
-        stat_single, stat_all = viz_result(finished, name)
+        stat = viz_result(finished, name)
         
-        for k in stat_single.keys():
-            if len(stat_single[k]) <= 1:
-                continue
-            print(f"Key:{k}")
-            print(statistics.quantiles(stat_single[k]))
-            print(f"Full {k}: {stat_all[k]}")
-            print('-'*10)
         print('\n\n')
-        for k, v in stat_single.items():
-            d_stat[k] += v
-        for k, v in stat_all.items():
-            d_stat_all[k].append(v)
+        for k, v in stat.items():
+            d_stat[k].append(v)
+    
+    for k in d_stat.keys():
+        if len(d_stat[k]) <= 1:
+            continue
+        print(f"Key:{k}")
+        print(statistics.quantiles(d_stat[k]))
+        # print('-'*10)
 
 
     

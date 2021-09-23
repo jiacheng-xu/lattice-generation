@@ -63,7 +63,7 @@ def setup_model_debug():
     device = torch.device('cpu')
 
 debug = False    # fake model output
-# debug = True    # fake model output
+debug = True    # fake model output
 if not debug:
     tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
