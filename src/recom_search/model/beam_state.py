@@ -84,7 +84,7 @@ class BeamNode():
         # sort
 
     def visualization(self):
-        nodes, edges = [], []
+        nodes, edges = {}, {}
         seen = {}
 
         def dfs(node: BeamNode):
@@ -103,14 +103,14 @@ class BeamNode():
                     'tgt': node.uid,
                     'score': ps
                 }
-                edges.append(edge_info)
+                edges[f"{p.uid}_{node.uid}"] = edge_info
+                # edges.append(edge_info)
 
-            
-            nodes.append({
+            nodes[node.uid] = {
                 'uid': node.uid,
                 'text': node.token_str,
-
-            })
+            }
+            # nodes.append({'uid': node.uid,'text': node.token_str})
 
             prevs = node.prev
             for p in prevs:

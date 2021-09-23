@@ -16,14 +16,14 @@ from typing import List
 
 
 def draw_nodes(net, nodes, group_num):
-    for node in nodes:
+    for node in nodes.values():
         # form = "{:.1f}".format(node['score']) 
         net.add_node(
             node['uid'], label=f"{node['text']}", shape='dot',group=group_num, size=8)
 
 
 def draw_edges(net, edges, group_num):
-    for edge in edges:
+    for edge in edges.values():
         form = "{:.1f}".format(edge['score']) 
         net.add_edge(edge['src'], edge['tgt'], title=form,  arrowStrikethrough=False)
 
