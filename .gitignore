@@ -131,7 +131,7 @@ dmypy.json
 # custom
 .html
 .txt
-.json
+*.json
 *.html
 *.txt
 *.log

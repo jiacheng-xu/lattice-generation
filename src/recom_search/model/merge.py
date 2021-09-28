@@ -6,7 +6,8 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
     if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
         if a_tokens[-ngram_suffix:] == b_tokens[-ngram_suffix:]:
-            logging.debug(f"Stage 1: Suffix match SUCCESS")
+            # logging.debug(f"Stage 1: Suffix match SUCCESS")
+            pass
         else:
             return False
     else:
@@ -22,10 +23,9 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
 
 def core_merge(beam_par: BeamNode, beam_drop: BeamNode):
-    logging.debug(beam_par.all_token_idx)
-    logging.debug(beam_drop.all_token_idx)
-    if beam_par.uid ==  'LAUTTMBZ7K' and beam_drop.uid == '3M4NXZ6FVO' :
-        print()
+    # logging.debug(beam_par.all_token_idx)
+    # logging.debug(beam_drop.all_token_idx)
+
     # when does their suffix starts to differ?
     pointer_par = beam_par
     pointer_drop = beam_drop

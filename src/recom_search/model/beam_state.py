@@ -9,7 +9,9 @@ import statistics
 import random
 import string
 from typing import List
+import numpy as np
 random.seed(2021)
+
 
 def gen_rand_id(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -67,6 +69,23 @@ class BeamNode():
         self.len_reward = len_reward
         self.has_finished()
 
+    def get_path_to_me(self):
+        # get the
+        pass
+
+    def get_path_sample(self):
+        prev = self.prev
+        prev_score = self.prev_score
+        scores = [self.score]
+        while prev:
+            # who has largest prev_score
+            index_max_score = list(np.argsort(prev_score))[-1]
+            p = prev[index_max_score]
+            scores.append(p.score)
+            prev = p.prev
+            prev_score = p.prev_score
+        return scores[::-1]
+
     def has_finished(self):
         if (self.token_str.strip() == '.' or self.token_str.strip() == '</s>') and self.length >= self.min_len:
             self.finished = True
@@ -75,8 +94,8 @@ class BeamNode():
 
     def get_antecedent(self):
         antecedents = []
-        
-        prev = self.prev    #prev is a list
+
+        prev = self.prev  # prev is a list
         while prev:
             antecedents += prev
             new_prev = []
@@ -86,6 +105,7 @@ class BeamNode():
             new_prev = [x for x in new_prev if x not in antecedents]
             prev = new_prev
         return antecedents
+
     def add_prev_node(self, node, score):
         """
         self: a b c d  a   f g

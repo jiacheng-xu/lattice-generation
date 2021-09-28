@@ -109,8 +109,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         logging.info(repr(unit))
         outputs.append(pprint(unit.token_full))
     """
-    fname = render_name(doc_input_ids, beam_size, max_len,
-                        param_sim_function['ngram_suffix'], param_sim_function['len_diff']) + '.pkl'
+    fname = render_name(doc_input_ids, beam_size, max_len,param_sim_function) + '.pkl'
     with open(f"vizs/{fname}", 'wb') as fd:
         pickle.dump(hypos, fd)
 

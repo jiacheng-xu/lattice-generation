@@ -7,12 +7,19 @@ from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
 from statistics import mode
 import sys
 from typing import List
-# from src.recom_search.model.beam_state import BeamState
+
+debug = False    # fake model output
+# debug = True    # fake model output
+
+
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
-def filter_by_score(group:List, top_k=20):
+
+
+def filter_by_score(group: List, top_k=20):
     sorts = sorted(group, key=lambda x: x.get_avg_score(), reverse=True)
     sorts = sorts[:top_k]
     return sorts
+
 
 def analyze_stat_dict(d):
     result = {}
@@ -20,8 +27,10 @@ def analyze_stat_dict(d):
         result[k] = statistics.mean(v)
     return result
 
+
 def return_str(tokens):
     return tokenizer.decode(tokens, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+
 
 def setup_logger(name):
     import datetime
@@ -46,8 +55,11 @@ def setup_logger(name):
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
 tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+
+
 def setup_model(device_name='cuda:2'):
-    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+    tokenizer = BartTokenizer.from_pretrained(
+        model_name, cache_dir=MODEL_CACHE)
     device = torch.device(device_name)
     logging.info('Loading model')
     model = BartForConditionalGeneration.from_pretrained(
@@ -58,14 +70,15 @@ def setup_model(device_name='cuda:2'):
     dataset = load_dataset('xsum', split='validation')
     return tokenizer, model, dataset
 
+
 def setup_model_debug():
     tokenizer = None
     device = torch.device('cpu')
 
-debug = False    # fake model output
-debug = True    # fake model output
+
 if not debug:
-    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+    tokenizer = BartTokenizer.from_pretrained(
+        model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
     logging.info('Loading model')
     model = BartForConditionalGeneration.from_pretrained(
@@ -85,6 +98,7 @@ def pnum(num, bit=4):
     else:
         return "{:.2f}".format(num)
 
+
 def beam_size_policy(beam_size, time_step, policy='regular'):
     if policy == 'regular':
         return beam_size
@@ -95,12 +109,19 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
             return min(time_step, beam_size)
 
 
-def render_name(doc_input_ids, beam_sz, max_len, ngram_suffix, len_diff, position_enc=0):
-    first_few_tokens = doc_input_ids.tolist()[0][1:10]
+def render_name(doc_input_ids, beam_sz, max_len, *argv):
+    first_few_tokens = doc_input_ids.tolist()[0][1:8]
     txt = tokenizer.decode(first_few_tokens)
-    params = [beam_sz, max_len, ngram_suffix, len_diff, position_enc]
+    params = [beam_sz, max_len]
+    keys = []
+    for arg in argv:
+        for k, v in arg.items():
+            params.append(v)
+            keys.append(k)
+    logging.info("File name: " + "_".join(keys))
     params = "_".join([str(x) for x in params])
     return txt+params
+
 
 def str2bool(v):
     if isinstance(v, bool):

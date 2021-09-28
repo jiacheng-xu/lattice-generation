@@ -1,3 +1,8 @@
+import multiprocessing
+from multiprocessing import Pool
+import json
+from platform import win32_edition
+import random
 import itertools
 from typing import Dict
 import matplotlib.pyplot as plt
@@ -5,7 +10,6 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import os
-
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
@@ -15,10 +19,7 @@ from typing import Dict, List
 import pickle
 from collections import defaultdict
 import spacy
-
-# Load English tokenizer, tagger, parser and NER
 nlp = spacy.load("en_core_web_sm")
-
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
 
 
@@ -138,6 +139,7 @@ def save_dataframe(df, fname, path):
     with open(os.path.join(path, fname+'.pkl'), 'wb') as fd:
         pickle.dump(df, fd)
 
+
 def analyze_graph(paths, nodes):
     # number of paths, number of unique nodes, number of novel ngram, POS tag distributions
     # non-stop word
@@ -150,7 +152,7 @@ def analyze_graph(paths, nodes):
     trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
     stat['num_non_stop_node'] = len(trim_nodes_text)
     paths = [[x[0] for x in p] for p in paths]
-    all_ngrams = [_get_ngrams(3,x) for x in paths]
+    all_ngrams = [_get_ngrams(3, x) for x in paths]
 
     flat_list = list(itertools.chain(*all_ngrams))
     uniq_ngrams = list(set(flat_list))
@@ -158,9 +160,12 @@ def analyze_graph(paths, nodes):
     stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
     return stat
 
+
 def viz_result(generated_outputs: List[BeamNode], name):
     for go in generated_outputs:
         print(go)
+    if len(generated_outputs) == 0:
+        return {}
     d_stat = defaultdict(list)
     # net.toggle_stabilization(False)
     # first set all nodes and edges
@@ -185,35 +190,64 @@ def viz_result(generated_outputs: List[BeamNode], name):
     print(stat)
     # save_dataframe(panda_df, f"{name}", "df")
     # return d_stat, all_stat
-
     return stat
+
+
+def test_one_file(f):
+    name = ".".join(f.split('.')[:-1])
+    config = name.split('_')[2:]
+    print(config)
+    with open(f"vizs/{f}", 'rb') as fd:
+        finished = pickle.load(fd)
+    print(f)
+    if not finished:
+        return 
+    stat = viz_result(finished, name)
+    fname = os.path.join('result', "_".join(config)+'.json')
+    if os.path.isfile(fname):
+        with open(fname, 'r') as read_file:
+            data = json.load(read_file)
+    else:
+        data = []
+    stat["file"] = name
+    if stat not in data:
+        data.append(stat)
+    with open(fname, 'w') as wfd:
+        json.dump(data, wfd)
+    print('\n')
+
+
 if __name__ == "__main__":
     # execute only if run as a script
     files = os.listdir('vizs')
     files = [f for f in files if f.endswith('.pkl') and f.startswith('best')]
+    # files = [f for f in files if f.endswith('.pkl') and f.startswith('best_No batsman from Bapchild250_25_3_5_0.5_0.0_0.0_0.0_0.0')]
+    
     d_stat = defaultdict(list)
     d_stat_all = defaultdict(list)
-    import random
-    # random.shuffle(files)
-    
-    for f in tqdm(files):
-        name = f.split('.')[0]
 
+    with Pool() as pool:
+        L = pool.map(test_one_file, files)
+    exit()
+    for f in tqdm(files):
+        name = ".".join(f.split('.')[:-1])
+        config = name.split('_')[2:]
+        print(config)
         with open(f"vizs/{f}", 'rb') as fd:
             finished = pickle.load(fd)
         print(f)
         stat = viz_result(finished, name)
-        
-        print('\n\n')
+        fname = os.path.join('result', "".join(config)+'.json')
+        if os.path.isfile(fname):
+            with open(fname, 'r') as read_file:
+                data = json.load(read_file)
+        else:
+            data = []
+        stat["file"] = name
+        if stat not in data:
+            data.append(stat)
+        with open(fname, 'w') as wfd:
+            json.dump(data, wfd)
+        print('\n')
         for k, v in stat.items():
             d_stat[k].append(v)
-    
-    for k in d_stat.keys():
-        if len(d_stat[k]) <= 1:
-            continue
-        print(f"Key:{k}")
-        print(statistics.quantiles(d_stat[k]))
-        # print('-'*10)
-
-
-    
