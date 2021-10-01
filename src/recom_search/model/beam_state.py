@@ -62,16 +62,19 @@ class BeamNode():
         assert self.all_token_idx
         assert self.all_score
         assert self.length
-        # self.all_token_idx =
+
+        if self.prev:
+            self.min_score = min([x.min_score for x in self.prev])
+        else:
+            self.min_score = float('inf')
+        self.min_score = min(self.min_score, self.score)
+
 
         self.finished = finished
         self.min_len = min_len
         self.len_reward = len_reward
         self.has_finished()
 
-    def get_path_to_me(self):
-        # get the
-        pass
 
     def get_path_sample(self):
         prev = self.prev
@@ -118,6 +121,7 @@ class BeamNode():
 
         self.prev.append(node)
         self.prev_score.append(score)
+        self.min_score = min(self.min_score ,score)
         # sort
 
     def visualization(self):

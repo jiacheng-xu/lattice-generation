@@ -16,37 +16,9 @@ import heapq
 
 from src.recom_search.model.bfs_util import HashedGen
 
-def explore_step(start_seed:BeamNode, heap, hash_set:HashedGen, doc_input_ids, model, k_best, heu_func):
-    pointer = start_seed
-    ncall = 0
-    if pointer.finished:
-        return 
-    if pointer.prev:
-        hash_set.add_helper(pointer.prev[0], pointer)   
-
-    dec_prefix = pointer.get_token_idx_as_input()
-    _, output_prob, _, _ = run_inference_step(
-        model, doc_input_ids, decoder_input_ids=dec_prefix, device=doc_input_ids.device, output_dec_hid=False)
-    ncall += 1
-    values, indices = torch.topk(output_prob, k=k_best)
-    values = values[0].tolist()
-    indices = indices[0].tolist()
-
-    for v, i in zip(values, indices):
-        tmp_state = BeamNode(prob=v, token_idx=i, prev=[
-                                pointer], prev_score=[math.log(v)])
-        heu_score = heu_func.run(
-            cur_node=tmp_state, prev_len=pointer.length, prob_distb=output_prob)
-        model_score = tmp_state.get_score_sum()
-        score = model_score + heu_score
-        if random.random() < 0.01:
-            logging.info(
-                f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
-        heapq.heappush(heap, (-score, tmp_state))
 
 
-
-def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps, k_best, heu_func: DeployHeu):
+def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps, k_best, heu_func: DeployHeu, min_path:float=0):
     # try to extend the start_seed for explore_steps steps. if there is a mergable match, do that match, else, finish the generation
     ncall = 0
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -106,11 +78,15 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
                                  pointer], prev_score=[math.log(v)])
             heu_score = heu_func.run(
                 cur_node=tmp_state, prev_len=cur_len, prob_distb=output_prob)
-            model_score = math.log(v)
+            if min_path >0 :
+                model_score = tmp_state.min_score + (random.random()-0.5)/1000
+            else:
+                model_score = math.log(v)
             score = model_score + heu_score
             if random.random() < 0.01:
                 logging.info(
                     f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
+            # print(score)
             heapq.heappush(heap, (-score, tmp_state))
         pointer = top1_state
         if pointer.finished or flag_merge:
@@ -122,7 +98,7 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
         return pointer, ncall
 
 
-def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21, explore_steps=10, max_len=20, k_best=5, num_return_hypo=100, heu_config={}, debug: bool = False):
+def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21, explore_steps=10, max_len=20, k_best=5, num_return_hypo=100, heu_config={}, min_path:int=0, debug: bool = False):
     total_calls = 0
     explored_cnt = 0
     heu_func = DeployHeu(heu_config)
@@ -137,7 +113,7 @@ def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21,
         explored_cnt += 1
         prob, seed = s
         output, ncall = generate_merge(start_seed=seed, hash=gen_hash, eos_token_id=eos_token_id, heap=h, doc_input_ids=doc_input_ids, model=model,
-                                       param_sim_function=param_sim_function, max_len=max_len, explore_steps=explore_steps, k_best=k_best, heu_func=heu_func)
+                                       param_sim_function=param_sim_function, max_len=max_len, explore_steps=explore_steps, k_best=k_best, heu_func=heu_func, min_path=min_path)
         total_calls += ncall
         if output:
             hypos.append(output)
@@ -154,7 +130,7 @@ def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21,
         hypo.print_lattice()
     hypos = [x for x in hypos if x.finished]
 
-    fname = render_name(doc_input_ids, num_return_hypo, max_len,
+    fname = render_name(doc_input_ids, num_return_hypo, max_len,min_path,
                         param_sim_function, heu_config) + '.pkl'
     with open(f"vizs/best_{fname}", 'wb') as fd:
         pickle.dump(hypos, fd)

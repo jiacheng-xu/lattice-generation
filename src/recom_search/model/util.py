@@ -109,10 +109,10 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
             return min(time_step, beam_size)
 
 
-def render_name(doc_input_ids, beam_sz, max_len, *argv):
+def render_name(doc_input_ids, beam_sz, max_len, min_path, *argv):
     first_few_tokens = doc_input_ids.tolist()[0][1:8]
     txt = tokenizer.decode(first_few_tokens)
-    params = [beam_sz, max_len]
+    params = [beam_sz, max_len, min_path]
     keys = []
     for arg in argv:
         for k, v in arg.items():

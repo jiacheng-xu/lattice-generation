@@ -48,6 +48,7 @@ def process_arg():
     parser.add_argument('-heu_ent', type=float, default=0.0,
                         help='Heuristic for entropy.')
     parser.add_argument('-heu_word', type=float, default=0.0, help='Heuristic for good token.')
+    parser.add_argument('-min_path', type=int, default=0, help='Bool indicator of if min_path or not')
                         
 
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
@@ -85,8 +86,7 @@ def run_explore_then_generate(args, model, inp):
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     num_return_hypo = args.max_len * args.beam_size
-    output = explore_then_gen(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,
-                               explore_steps=args.extra_steps, max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
+    output = explore_then_gen(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
 
     return output
 
@@ -106,7 +106,7 @@ def run_best(args, model, inp):
         inp, return_tensors="pt").input_ids.to(args.device)
     num_return_hypo = args.max_len * args.beam_size
     output = best_first_search(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,
-                               explore_steps=args.extra_steps, max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
+                               explore_steps=args.extra_steps, max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config, min_path=args.min_path)
 
     return output
 

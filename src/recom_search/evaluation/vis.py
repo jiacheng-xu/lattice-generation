@@ -45,8 +45,9 @@ def viz_result(generated_outputs: List[BeamNode]):
 
 if __name__ == "__main__":
     # execute only if run as a script
+    prefix = 'best'
     files = os.listdir('vizs')
-    files = [f for f in files if f.endswith('.pkl') and f.startswith('best')]
+    files = [f for f in files if f.endswith('.pkl') and f.startswith(prefix)]
     for f in tqdm(files):
         name = f.split('.')[0]
         with open(f"vizs/{f}", 'rb') as fd:
