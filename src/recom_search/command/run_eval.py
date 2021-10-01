@@ -1,4 +1,5 @@
 from collections import defaultdict
+from src.recom_search.model.model_explore_then_gen import explore_then_gen
 from src.recom_search.model.model_bfs import best_first_search
 from src.recom_search.model.baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
@@ -24,7 +25,7 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best'], default='best')
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best','exp_gen'], default='best')
     parser.add_argument('-beam_size', type=int, default=10)
     parser.add_argument('-nexample', type=int, default=20)
 
@@ -68,6 +69,26 @@ def run_recom(args, model, input_doc):
 
     return output
 
+
+def run_explore_then_generate(args, model, inp):
+    param_sim_function = {
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff
+    }
+    heu_config = {
+        'heu_seq_score': args.heu_seq_score,
+        'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
+        'heu_pos': args.heu_pos,
+        'heu_ent': args.heu_ent,
+        'heu_word':args.heu_word
+    }
+    input_ids = tokenizer(
+        inp, return_tensors="pt").input_ids.to(args.device)
+    num_return_hypo = args.max_len * args.beam_size
+    output = explore_then_gen(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,
+                               explore_steps=args.extra_steps, max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
+
+    return output
 
 def run_best(args, model, inp):
     param_sim_function = {
@@ -151,6 +172,8 @@ def main(args, tokenizer, model, dataset):
             output = run_recom(args, model, inp)
         elif args.model == 'best':
             output = run_best(args, model, inp)
+        elif args.model == 'exp_gen':
+            output = run_explore_then_generate(args=args,model=model,inp=inp)
             # for k, v in stat.items():
             #     d[k].append(v)
         all_outputs.append(output)

@@ -14,68 +14,44 @@ from src.recom_search.model.beam_state import BeamNode
 
 import heapq
 
+from src.recom_search.model.bfs_util import HashedGen
 
-class HashedGen():
-    def __init__(self, ngram: int = 5) -> None:
-        self.data = defaultdict(list)
-        self.ngram = ngram
+def explore_step(start_seed:BeamNode, heap, hash_set:HashedGen, doc_input_ids, model, k_best, heu_func):
+    pointer = start_seed
+    ncall = 0
+    if pointer.finished:
+        return 
+    if pointer.prev:
+        hash_set.add_helper(pointer.prev[0], pointer)   
 
-    def const_key(self, token_ids):
-        tokens = token_ids[-self.ngram:]
-        token_str = [str(x) for x in tokens]
-        k = "_".join(token_str)
-        return k
+    dec_prefix = pointer.get_token_idx_as_input()
+    _, output_prob, _, _ = run_inference_step(
+        model, doc_input_ids, decoder_input_ids=dec_prefix, device=doc_input_ids.device, output_dec_hid=False)
+    ncall += 1
+    values, indices = torch.topk(output_prob, k=k_best)
+    values = values[0].tolist()
+    indices = indices[0].tolist()
 
-    def query(self, token_ids: List[int]):
-        # get the last n tokens
-        if len(token_ids) < self.ngram:
-            return []
-        k = self.const_key(token_ids)
-        if k in self.data:
-            return self.data[k]
-        else:
-            return []
-
-    def add(self, node):
-        tokens = node.all_token_idx
-        if len(tokens) < self.ngram:
-            return
-        k = self.const_key(tokens)
-        self.data[k].append(node)
-
-    def add_helper(self, par_node, new_node):
-        # par_node : the parent node
-
-        def dfs(node: BeamNode, depth):
-            if not node:
-                return []
-            if depth == self.ngram:
-                return [[node.token_idx]]
-            prevs = node.prev
-            outputs = []
-            for p in prevs:
-                many = dfs(p, depth+1)
-                for one in many:
-                    outputs.append(one + [node.token_idx])
-            return outputs
-        all_probable_paths = dfs(par_node, 1)
-        all_probable_paths = [x + [new_node.token_idx]
-                              for x in all_probable_paths if len(x) == self.ngram]
-
-        cnt = 0
-        for p in all_probable_paths:
-            key = self.const_key(p)
-            self.data[key].append(new_node)
-            cnt += 1
-        # logging.debug(f"{cnt} added to Hash.")
+    for v, i in zip(values, indices):
+        tmp_state = BeamNode(prob=v, token_idx=i, prev=[
+                                pointer], prev_score=[math.log(v)])
+        heu_score = heu_func.run(
+            cur_node=tmp_state, prev_len=pointer.length, prob_distb=output_prob)
+        model_score = tmp_state.get_score_sum()
+        score = model_score + heu_score
+        if random.random() < 0.01:
+            logging.info(
+                f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
+        heapq.heappush(heap, (-score, tmp_state))
 
 
-def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps, k_best, heu_func:DeployHeu):
+
+def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_ids, model, param_sim_function, max_len, explore_steps, k_best, heu_func: DeployHeu):
     # try to extend the start_seed for explore_steps steps. if there is a mergable match, do that match, else, finish the generation
     ncall = 0
     ngram_suffix = param_sim_function['ngram_suffix']
     len_diff = param_sim_function['len_diff']
-    
+
     pointer = start_seed
 
     cur_len = pointer.length
@@ -128,11 +104,13 @@ def generate_merge(start_seed, hash: HashedGen, eos_token_id, heap,  doc_input_i
         for v, i in zip(values, indices):
             tmp_state = BeamNode(prob=v, token_idx=i, prev=[
                                  pointer], prev_score=[math.log(v)])
-            heu_score = heu_func.run(cur_node=tmp_state,prev_len=cur_len, prob_distb=output_prob)
+            heu_score = heu_func.run(
+                cur_node=tmp_state, prev_len=cur_len, prob_distb=output_prob)
             model_score = math.log(v)
             score = model_score + heu_score
             if random.random() < 0.01:
-                logging.info(f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
+                logging.info(
+                    f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
             heapq.heappush(heap, (-score, tmp_state))
         pointer = top1_state
         if pointer.finished or flag_merge:
@@ -175,7 +153,6 @@ def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21,
         logging.info(f"\n\n {hypo}")
         hypo.print_lattice()
     hypos = [x for x in hypos if x.finished]
-
 
     fname = render_name(doc_input_ids, num_return_hypo, max_len,
                         param_sim_function, heu_config) + '.pkl'
