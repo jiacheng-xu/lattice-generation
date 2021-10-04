@@ -1,3 +1,6 @@
+from pandas.core.dtypes import dtypes
+from src.recom_search.evaluation.eval_bench import rouge_single_pair
+import pandas as pd
 from collections import defaultdict
 from src.recom_search.model.model_explore_then_gen import explore_then_gen
 from src.recom_search.model.model_bfs import best_first_search
@@ -25,7 +28,7 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best','exp_gen'], default='best')
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best', 'exp_gen'], default='bs')
     parser.add_argument('-beam_size', type=int, default=10)
     parser.add_argument('-nexample', type=int, default=20)
 
@@ -47,9 +50,10 @@ def process_arg():
                         help='Heuristic for position bias')
     parser.add_argument('-heu_ent', type=float, default=0.0,
                         help='Heuristic for entropy.')
-    parser.add_argument('-heu_word', type=float, default=0.0, help='Heuristic for good token.')
-    parser.add_argument('-min_path', type=int, default=0, help='Bool indicator of if min_path or not')
-                        
+    parser.add_argument('-heu_word', type=float, default=0.0,
+                        help='Heuristic for good token.')
+    parser.add_argument('-min_path', type=int, default=0,
+                        help='Bool indicator of if min_path or not')
 
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
@@ -81,14 +85,16 @@ def run_explore_then_generate(args, model, inp):
         'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
         'heu_pos': args.heu_pos,
         'heu_ent': args.heu_ent,
-        'heu_word':args.heu_word
+        'heu_word': args.heu_word
     }
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     num_return_hypo = args.max_len * args.beam_size
-    output = explore_then_gen(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
+    output = explore_then_gen(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function,
+                              eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
 
     return output
+
 
 def run_best(args, model, inp):
     param_sim_function = {
@@ -100,7 +106,7 @@ def run_best(args, model, inp):
         'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
         'heu_pos': args.heu_pos,
         'heu_ent': args.heu_ent,
-        'heu_word':args.heu_word
+        'heu_word': args.heu_word
     }
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
@@ -142,10 +148,11 @@ def run_baseline(args, model, inp):
                            )
     else:
         raise NotImplementedError
-    output = gs.run(inp)
+    output, scores = gs.run(inp)
 
-    return output
+    return output, scores
     # output should be a list of str
+import numpy as np
 
 
 def main(args, tokenizer, model, dataset):
@@ -153,10 +160,14 @@ def main(args, tokenizer, model, dataset):
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
+    
     all_outputs = []
     all_summaries = []
-    d = defaultdict(list)
-
+    all_model_scores = []
+    all_rouge_scores = []
+    
+    all_top_model_scores = []
+    all_top_rouge_scores = []
     for example in dataset:
         cnt += 1
         document = example['document']
@@ -167,20 +178,49 @@ def main(args, tokenizer, model, dataset):
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
-            output = run_baseline(args, model, inp)
+            output, scores = run_baseline(args, model, inp)
         elif args.model == 'recom':
             output = run_recom(args, model, inp)
         elif args.model == 'best':
             output = run_best(args, model, inp)
         elif args.model == 'exp_gen':
-            output = run_explore_then_generate(args=args,model=model,inp=inp)
+            output = run_explore_then_generate(args=args, model=model, inp=inp)
             # for k, v in stat.items():
             #     d[k].append(v)
-        all_outputs.append(output)
-        all_summaries.append(ref_sum)
+        n_outputs = len(output)
+        if scores:
+            assert n_outputs == len(scores)
+        all_outputs += output
+        all_summaries += [ref_sum]*n_outputs
+        all_model_scores += scores
+        rouge_scores = [rouge_single_pair(
+            x, y) for x, y in zip(output, [ref_sum]*n_outputs)]
+        # extract ROUGE of highest score, and score of highest ROUGE
+        index_of_highest_score = np.argsort(scores)[-1]
+        highest_score = scores[index_of_highest_score]
+        all_top_model_scores += [highest_score] * n_outputs
+        index_of_highest_rouge = np.argsort(rouge_scores)[-1]
+        highest_rouge = rouge_scores[index_of_highest_rouge]
+        all_top_rouge_scores += [highest_rouge] * n_outputs
+        all_rouge_scores += rouge_scores
+        # break
         if cnt > nexample:
             break
-
+    
+    # construct panda data frame
+    d = {
+        "gen":all_outputs, 
+        "ref":all_summaries,
+        'score': pd.to_numeric(all_model_scores),
+        'rouge': pd.to_numeric(all_rouge_scores),
+        'top_score':pd.to_numeric(all_top_model_scores),
+        'top_rouge':pd.to_numeric(all_top_rouge_scores)
+    }
+    df = pd.DataFrame(d)
+    import pickle
+    with open('tmp_data.pkl','wb') as fd:
+        pickle.dump(df,fd)
+        
     # for summ, out in zip(all_summaries, all_outputs):
     #     output_d = eval_main(out, summ)
     #     for k, v in output_d.items():

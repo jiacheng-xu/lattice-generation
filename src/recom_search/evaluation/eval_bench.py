@@ -75,6 +75,9 @@ def repetition(inp_group: List[str], threshold=3):
     return matter / total_len
 
 
+def rouge_single_pair(cand:str, ref:str):
+    s = scorer.score(cand, ref)
+    return s['rouge1'].fmeasure
 
 def rouge(inp_group, reference: str) -> float:
     scores = []

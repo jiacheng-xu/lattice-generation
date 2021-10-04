@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "python.envFile": "${workspaceFolder}/.env",
-            "args": ["-model", "best","-min_path","1"],
+            "args": ["-model", "bs","-min_path","1"],
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"],
         }
     ]

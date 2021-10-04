@@ -21,9 +21,11 @@ class GenericSearch(SearchStrategy):
         run_output = self._timed_run(
             input_ids=input_ids)
 
+        # obtain sequence scores
+        scores = run_output['output']['sequences_scores'].cpu().tolist()
         decoded_outputs = self.tokenizer.batch_decode(
-            run_output['output'], skip_special_tokens=True)
-        return decoded_outputs
+            run_output['output']['sequences'], skip_special_tokens=True)
+        return decoded_outputs, scores
 
     @timing
     def _timed_run(self, input_ids):
@@ -31,7 +33,7 @@ class GenericSearch(SearchStrategy):
                                       num_beam_groups=self.num_beam_groups,
                                       do_sample=self.do_sample,
                                       num_return_sequences=self.num_beam_hyps_to_keep,
-                                      diversity_penalty=self.diversity_penalty)
+                                      diversity_penalty=self.diversity_penalty,output_scores=True,return_dict_in_generate=True)
         return {'output': outputs}
 
     @property
