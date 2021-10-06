@@ -1,4 +1,5 @@
 
+from src.recom_search.evaluation.construct_tree_bs import construct_trees, convert_seq_score, truncate_sequence
 from .model_base import SearchStrategy, timing
 import torch
 from collections import UserDict
@@ -22,10 +23,27 @@ class GenericSearch(SearchStrategy):
             input_ids=input_ids)
 
         # obtain sequence scores
-        scores = run_output['output']['sequences_scores'].cpu().tolist()
+        avg_scores = run_output['output']['sequences_scores'].cpu().tolist()
+        sequences = run_output['output']['sequences'].cpu().tolist()
+        # sequences_scores = run_output['output']['scores']   # seq_len, batch, vocab
+
+        # sequences_scores = [x.cpu().tolist() for x in sequences_scores]
+        # sequences_scores = convert_seq_score(sequences, sequences_scores)
+        seq = truncate_sequence(sequences)
+
+        # sum scores
+        sum_scores = [avg_s * len(seq[idx]) for idx, avg_s in enumerate(avg_scores)]
+        tree_ends_list, branching_factor_quant = construct_trees(seq)
         decoded_outputs = self.tokenizer.batch_decode(
             run_output['output']['sequences'], skip_special_tokens=True)
-        return decoded_outputs, scores
+        return_dict = {
+            'output':decoded_outputs,
+            'score_avg':avg_scores,
+            'score':sum_scores,
+            'end_states':tree_ends_list,
+            'branch':branching_factor_quant
+        }
+        return return_dict
 
     @timing
     def _timed_run(self, input_ids):

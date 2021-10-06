@@ -7,7 +7,7 @@ from src.recom_search.model.model_bfs import best_first_search
 from src.recom_search.model.baseline import recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
-
+import numpy as np
 
 from transformers import (
     AutoTokenizer,
@@ -30,14 +30,14 @@ def process_arg():
     parser.add_argument(
         "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best', 'exp_gen'], default='bs')
     parser.add_argument('-beam_size', type=int, default=10)
-    parser.add_argument('-nexample', type=int, default=20)
+    parser.add_argument('-nexample', type=int, default=50)
 
     parser.add_argument('-top_p', type=float, default=0.8)
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=4)
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
     parser.add_argument('-extra_steps', type=int, default=10)
-    parser.add_argument('-min_len', type=int, default=10)
+    parser.add_argument('-min_len', type=int, default=13)
     parser.add_argument('-max_len', type=int, default=25)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     parser.add_argument('-ngram_suffix', type=int, default=3)
@@ -148,11 +148,10 @@ def run_baseline(args, model, inp):
                            )
     else:
         raise NotImplementedError
-    output, scores = gs.run(inp)
+    output_dict = gs.run(inp)
 
-    return output, scores
+    return output_dict
     # output should be a list of str
-import numpy as np
 
 
 def main(args, tokenizer, model, dataset):
@@ -160,13 +159,15 @@ def main(args, tokenizer, model, dataset):
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
-    
+
     all_outputs = []
     all_summaries = []
+    all_branch = []
     all_model_scores = []
     all_rouge_scores = []
-    
+
     all_top_model_scores = []
+    all_low_model_scores = []
     all_top_rouge_scores = []
     for example in dataset:
         cnt += 1
@@ -178,7 +179,7 @@ def main(args, tokenizer, model, dataset):
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
-            output, scores = run_baseline(args, model, inp)
+            output_dict = run_baseline(args, model, inp)
         elif args.model == 'recom':
             output = run_recom(args, model, inp)
         elif args.model == 'best':
@@ -187,40 +188,55 @@ def main(args, tokenizer, model, dataset):
             output = run_explore_then_generate(args=args, model=model, inp=inp)
             # for k, v in stat.items():
             #     d[k].append(v)
+        
+
+        scores = output_dict['score']
+        output = output_dict['output']
+        branch = output_dict['branch']
         n_outputs = len(output)
         if scores:
             assert n_outputs == len(scores)
         all_outputs += output
         all_summaries += [ref_sum]*n_outputs
         all_model_scores += scores
+        all_branch += [branch] * n_outputs
         rouge_scores = [rouge_single_pair(
             x, y) for x, y in zip(output, [ref_sum]*n_outputs)]
+        all_rouge_scores += rouge_scores
+
         # extract ROUGE of highest score, and score of highest ROUGE
         index_of_highest_score = np.argsort(scores)[-1]
         highest_score = scores[index_of_highest_score]
         all_top_model_scores += [highest_score] * n_outputs
+
+        index_of_lowest_score = np.argsort(scores)[0]
+        lowest_score = scores[index_of_lowest_score]
+        all_low_model_scores += [lowest_score] * n_outputs
+
         index_of_highest_rouge = np.argsort(rouge_scores)[-1]
         highest_rouge = rouge_scores[index_of_highest_rouge]
         all_top_rouge_scores += [highest_rouge] * n_outputs
-        all_rouge_scores += rouge_scores
+
         # break
         if cnt > nexample:
             break
-    
+
     # construct panda data frame
     d = {
-        "gen":all_outputs, 
-        "ref":all_summaries,
+        "gen": all_outputs,
+        "ref": all_summaries,
+        "quant": all_branch,
         'score': pd.to_numeric(all_model_scores),
         'rouge': pd.to_numeric(all_rouge_scores),
-        'top_score':pd.to_numeric(all_top_model_scores),
-        'top_rouge':pd.to_numeric(all_top_rouge_scores)
+        'top_score': pd.to_numeric(all_top_model_scores),
+        'low_score': pd.to_numeric(all_low_model_scores),
+        'top_rouge': pd.to_numeric(all_top_rouge_scores)
     }
     df = pd.DataFrame(d)
     import pickle
-    with open('tmp_data.pkl','wb') as fd:
-        pickle.dump(df,fd)
-        
+    with open('tmp_data.pkl', 'wb') as fd:
+        pickle.dump(df, fd)
+
     # for summ, out in zip(all_summaries, all_outputs):
     #     output_d = eval_main(out, summ)
     #     for k, v in output_d.items():
