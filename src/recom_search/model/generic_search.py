@@ -22,7 +22,6 @@ class GenericSearch(SearchStrategy):
         run_output = self._timed_run(
             input_ids=input_ids)
 
-
         sequences = run_output['output']['sequences'].cpu().tolist()
         # sequences_scores = run_output['output']['scores']   # seq_len, batch, vocab
 
@@ -30,7 +29,7 @@ class GenericSearch(SearchStrategy):
         # sequences_scores = convert_seq_score(sequences, sequences_scores)
         seq = truncate_sequence(sequences)
 
-        tree_ends_list, branching_factor_quant = construct_trees(seq)
+        tree_ends_list = construct_trees(seq)
         decoded_outputs = self.tokenizer.batch_decode(
             run_output['output']['sequences'], skip_special_tokens=True)
         # obtain sequence scores
@@ -45,7 +44,7 @@ class GenericSearch(SearchStrategy):
             'score_avg':avg_scores,
             'score':sum_scores,
             'end_states':tree_ends_list,
-            'branch':branching_factor_quant
+            # 'branch':branching_factor_quant
         }
         return return_dict
 

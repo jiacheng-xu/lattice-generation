@@ -64,6 +64,7 @@ def truncate_sequence(seq, seq_score):
 
 
 def construct_trees(seq):
+    # construct the graph/tree from a group of outputs
     d = {}
     ends = []
     min_len = 1000
@@ -87,6 +88,7 @@ def construct_trees(seq):
         min_len = min(min_len, len(prev_tokens))
         ends.append(tmp)
     # branching factor
+    """
     nodes_in_len_bucket = [0 for _ in range(30)]
     for key, value in d.items():
         l = value.length
@@ -101,4 +103,6 @@ def construct_trees(seq):
         bucket.append(factor)
     quants = statistics.quantiles(bucket, n=10)
     print(quants)
+    """
+    return ends
     return ends, quants

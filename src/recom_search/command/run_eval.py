@@ -5,7 +5,7 @@ import pandas as pd
 from collections import defaultdict
 from src.recom_search.model.model_explore_then_gen import explore_then_gen
 from src.recom_search.model.model_bfs import best_first_search
-from src.recom_search.model.baseline import recomb_baseline
+from src.recom_search.model.baseline import baseline_recomb_sample, recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
 from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
 import numpy as np
@@ -29,8 +29,8 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best', 'exp_gen'], default='bs')
-    parser.add_argument('-beam_size', type=int, default=50)
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs','recom_sample', 'best', 'exp_gen'], default='bs')
+    parser.add_argument('-beam_size', type=int, default=25)
     parser.add_argument('-nexample', type=int, default=50)
 
     parser.add_argument('-top_p', type=float, default=0.8)
@@ -75,6 +75,17 @@ def run_recom(args, model, input_doc):
 
     return output
 
+
+def run_recom_sample(args, model, input_doc):
+    param_sim_function = {
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff
+    }
+
+    input_ids = tokenizer(input_doc, return_tensors="pt").input_ids.to(args.device)
+    output = baseline_recomb_sample(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,model=model, debug=False, max_len=args.max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+
+    return output
 
 def run_explore_then_generate(args, model, inp):
     param_sim_function = {
@@ -181,8 +192,10 @@ def main(args, tokenizer, model, dataset):
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
             output_dict = run_baseline(args, model, inp)
-        elif args.model == 'recom':
+        elif args.model == 'recom_bs':
             output = run_recom(args, model, inp)
+        elif args.model == 'recom_sample':
+            output = run_recom_sample(args, model, inp)
         elif args.model == 'best':
             output = run_best(args, model, inp)
         elif args.model == 'exp_gen':

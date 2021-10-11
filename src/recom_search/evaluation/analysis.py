@@ -22,6 +22,21 @@ import spacy
 nlp = spacy.load("en_core_web_sm")
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
 
+def branch_facotr(endings):
+    nodes_in_len_bucket = [0 for _ in range(30)]
+    for key, value in d.items():
+        l = value.length
+        nodes_in_len_bucket[l] += 1
+    nodes_in_len_bucket = [x for x in nodes_in_len_bucket if x != 0]
+    nodes_in_len_bucket = nodes_in_len_bucket[:min_len]
+    effective_len = len(nodes_in_len_bucket)
+    bucket = []
+    for i in range(effective_len-1):
+        prev, nxt = nodes_in_len_bucket[i], nodes_in_len_bucket[i+1]
+        factor = nxt/prev
+        bucket.append(factor)
+    quants = statistics.quantiles(bucket, n=10)
+    pass
 
 def find_start_end(nodes, edges):
     degree = {}
