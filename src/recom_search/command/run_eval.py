@@ -1,4 +1,5 @@
-from pandas.core.dtypes import dtypes
+import pickle
+
 from src.recom_search.evaluation.eval_bench import rouge_single_pair
 import pandas as pd
 from collections import defaultdict
@@ -29,12 +30,12 @@ def process_arg():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom', 'best', 'exp_gen'], default='bs')
-    parser.add_argument('-beam_size', type=int, default=10)
+    parser.add_argument('-beam_size', type=int, default=50)
     parser.add_argument('-nexample', type=int, default=50)
 
     parser.add_argument('-top_p', type=float, default=0.8)
     parser.add_argument('-temp', type=float, default=1.5)
-    parser.add_argument('-beam_group', type=int, default=4)
+    parser.add_argument('-beam_group', type=int, default=5)
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
     parser.add_argument('-extra_steps', type=int, default=10)
     parser.add_argument('-min_len', type=int, default=13)
@@ -233,8 +234,9 @@ def main(args, tokenizer, model, dataset):
         'top_rouge': pd.to_numeric(all_top_rouge_scores)
     }
     df = pd.DataFrame(d)
-    import pickle
-    with open('tmp_data.pkl', 'wb') as fd:
+    name_elements = [args.model , args.beam_size ,args.min_len , args.max_len, args.top_p, args.hamming_penalty]
+    name_elements = [str(x) for x in name_elements]
+    with open('output' +'_'.join(name_elements) +'.pkl', 'wb') as fd:
         pickle.dump(df, fd)
 
     # for summ, out in zip(all_summaries, all_outputs):

@@ -63,7 +63,7 @@ def truncate_sequence(seq, seq_score):
 """
 
 
-def construct_trees(seq, ):
+def construct_trees(seq):
     d = {}
     ends = []
     min_len = 1000

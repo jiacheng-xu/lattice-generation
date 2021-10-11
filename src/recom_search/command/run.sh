@@ -1,3 +1,7 @@
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model dbs -hamming_penalty 1.0 #dbs
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model bs
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model topp -top_p 0.7 #topp
+
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model dbs -hamming_penalty 2.0 #dbs
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model dbs -hamming_penalty 1.0 #dbs
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model dbs -hamming_penalty 0.2 #dbs
