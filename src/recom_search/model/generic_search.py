@@ -39,13 +39,19 @@ class GenericSearch(SearchStrategy):
             sum_scores = [avg_s * len(seq[idx]) for idx, avg_s in enumerate(avg_scores)]
         else:
             pass
-        return_dict = {
+        return_dict = UserDict({
             'output':decoded_outputs,
             'score_avg':avg_scores,
             'score':sum_scores,
-            'end_states':tree_ends_list,
-            # 'branch':branching_factor_quant
-        }
+            'end_states':tree_ends_list,}
+        )
+        # return_dict = {
+        #     'output':decoded_outputs,
+        #     'score_avg':avg_scores,
+        #     'score':sum_scores,
+        #     'end_states':tree_ends_list,
+        #     # 'branch':branching_factor_quant
+        # }
         return return_dict
 
     @timing

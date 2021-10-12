@@ -32,6 +32,9 @@ class HashedGen():
         self.data[k].append(node)
 
     def add_helper(self, par_node, new_node):
+        """
+        Add all the combination of par_node + new_node token to the hash
+        """
         # par_node : the parent node
 
         def dfs(node: BeamNode, depth):
@@ -55,5 +58,5 @@ class HashedGen():
             key = self.const_key(p)
             self.data[key].append(new_node)
             cnt += 1
-        # logging.debug(f"{cnt} added to Hash.")
+
 

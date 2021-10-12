@@ -129,6 +129,9 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
         hypo.print_lattice()
     return ends
 
+# for all kinds of model output, we need (1) Graph struct with end states, (2) sampled outputs with scores
+def prepare_output(ending_states):
+    pass
 
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100, debug: bool = False):
     # gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
@@ -168,7 +171,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
 
         # sort candidates by scores; these are active candidates of the current step
         sorted_candidates = sorted(
-            candidates, key=lambda x: x.get_score_avg(), reverse=True)
+            candidates, key=lambda x: x.get_score_sum(), reverse=True)
         hypos = baseline_iterative_recomb(
             sorted_candidates, param_sim_function, beam_size=beam_size)
         print('-'*30)
@@ -181,7 +184,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
             continue
         logging.info(f"\n\n {hypo}")
         hypo.print_lattice()
-    outputs = []
+
     """
     for unit in finished:
         logging.info(repr(unit))
@@ -193,4 +196,4 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         pickle.dump(hypos, fd)
 
     # score = eval_group_diversity(outputs)
-    return outputs
+    return hypos

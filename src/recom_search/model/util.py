@@ -71,26 +71,24 @@ def setup_model(device_name='cuda:2'):
     return tokenizer, model, dataset
 
 
-def setup_model_debug():
-    tokenizer = None
-    device = torch.device('cpu')
-
 
 if not debug:
-    tokenizer = BartTokenizer.from_pretrained(
-        model_name, cache_dir=MODEL_CACHE)
+    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
     logging.info('Loading model')
-    model = BartForConditionalGeneration.from_pretrained(
-        model_name, cache_dir=MODEL_CACHE)
+    model = BartForConditionalGeneration.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     model = model.to(device)
 
     logging.info('Loading dataset')
     dataset = load_dataset('xsum', split='validation')
 else:
-    tokenizer = None
+    model_name = 'sshleifer/distilbart-xsum-1-1'
+    tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+    logging.info('Loading model')
+    model = BartForConditionalGeneration.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cpu')
-
+    model=model.to(device)
+    logging.info(f"{model_name} loaded.")
 
 def pnum(num, bit=4):
     if bit == 4:

@@ -61,7 +61,7 @@ def process_arg():
     return args
 
 
-def run_recom(args, model, input_doc):
+def run_recom_bs(args, model, input_doc):
     param_sim_function = {
         'ngram_suffix': args.ngram_suffix,
         'len_diff': args.len_diff
@@ -72,7 +72,8 @@ def run_recom(args, model, input_doc):
     output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,
                              model=model, debug=False, beam_size=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size)
     # output = recomb_beam_search(input_ids, model, pad_token_id=tokenizer.pad_token_id,eos_token_id=tokenizer.eos_token_id,beam_sz=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size,ngram_suffix=args.ngram_suffix, len_diff=args.len_diff)
-
+    output_dict = {}
+    output_dict['output'] = output
     return output
 
 
@@ -106,6 +107,7 @@ def run_explore_then_generate(args, model, inp):
                               eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
 
     return output
+
 
 
 def run_best(args, model, inp):
@@ -193,7 +195,7 @@ def main(args, tokenizer, model, dataset):
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
             output_dict = run_baseline(args, model, inp)
         elif args.model == 'recom_bs':
-            output = run_recom(args, model, inp)
+            output = run_recom_bs(args, model, inp)
         elif args.model == 'recom_sample':
             output = run_recom_sample(args, model, inp)
         elif args.model == 'best':
@@ -202,8 +204,6 @@ def main(args, tokenizer, model, dataset):
             output = run_explore_then_generate(args=args, model=model, inp=inp)
             # for k, v in stat.items():
             #     d[k].append(v)
-        
-
         scores = output_dict['score']
         output = output_dict['output']
         branch = output_dict['branch']

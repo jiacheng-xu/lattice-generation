@@ -14,11 +14,12 @@ from src.recom_search.model.beam_state import BeamNode
 
 import heapq
 
+import statistics
+
 
 # first run vanilla best first search
 # then generate and wrap up
 
-import statistics
 
 
 def gen_step(start_seed, hash: HashedGen,  doc_input_ids, model, param_sim_function, max_len, explore_steps=0):
@@ -117,8 +118,7 @@ def explore_then_gen(doc_input_ids, model, param_sim_function, eos_token_id=21, 
     explored_cnt = 0
     heu_func = DeployHeu(heu_config)
     hypos = []
-    init_seed = BeamNode(prob=1., token_idx=eos_token_id,
-                         prev=[], prev_score=[0])
+    init_seed = BeamNode(prob=1., token_idx=eos_token_id,prev=[], prev_score=[0])
     gen_hash = HashedGen(param_sim_function['ngram_suffix'])
     h = []
 

@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode":false,
             "python.envFile": "${workspaceFolder}/.env",
-            "args": ["-model", "recom_sample","-min_path","1"],
+            "args": ["-model", "recom_bs","-min_path","1"],
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"],
         }
     ]
