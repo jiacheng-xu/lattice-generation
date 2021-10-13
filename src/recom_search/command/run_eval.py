@@ -1,4 +1,5 @@
 import pickle
+from src.recom_search.model.new_model_a_star import a_star
 
 from src.recom_search.evaluation.eval_bench import rouge_single_pair
 import pandas as pd
@@ -29,7 +30,7 @@ def process_arg():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs','recom_sample', 'best', 'exp_gen'], default='bs')
+        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs','recom_sample', 'best', 'exp_gen', 'astar'], default='bs')
     parser.add_argument('-beam_size', type=int, default=25)
     parser.add_argument('-nexample', type=int, default=50)
 
@@ -43,6 +44,18 @@ def process_arg():
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     parser.add_argument('-ngram_suffix', type=int, default=3)
     parser.add_argument('-len_diff', type=int, default=5)
+    
+
+
+
+    parser.add_argument('-use_heu', type=str2bool,nargs='?',
+                        const=True, default=False, help='our model: do we use heuristic')
+    parser.add_argument('-post', type=str2bool,nargs='?',
+                        const=True, default=False, help='our model: enforce the model to generate after exploration')
+    parser.add_argument('-adhoc', type=str2bool,nargs='?',
+                        const=True, default=False,help='our model: always generate till the end once touch a node')
+    parser.add_argument('-post_ratio', type=float,default=0.7,help='our model: ratio of resource allocation')
+    
     parser.add_argument('-heu_seq_score', type=float, default=0.0,
                         help='Heuristic: consider the score of previously generated sequence. this is the weight term for that')
     parser.add_argument('-heu_seq_score_len_rwd', type=float,
@@ -53,8 +66,9 @@ def process_arg():
                         help='Heuristic for entropy.')
     parser.add_argument('-heu_word', type=float, default=0.0,
                         help='Heuristic for good token.')
-    parser.add_argument('-min_path', type=int, default=0,
-                        help='Bool indicator of if min_path or not')
+
+
+    # parser.add_argument('-min_path', type=int, default=0,help='Bool indicator of if min_path or not')
 
     # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
     args = parser.parse_args()
@@ -88,6 +102,32 @@ def run_recom_sample(args, model, input_doc):
 
     return output
 
+def run_a_star(args, model, inp):
+    config_search = {
+        'post': args.post,
+        'post_ratio': args.post_ratio,  # ratio of model calls left for post finishing
+        'adhoc': args.adhoc,
+        'heu': args.use_heu
+    }
+    param_sim_function = {
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff
+    }
+    config_heu = {
+        'heu_seq_score': args.heu_seq_score,
+        'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
+        'heu_pos': args.heu_pos,
+        'heu_ent': args.heu_ent,
+        'heu_word': args.heu_word
+    }
+    input_ids = tokenizer(
+        inp, return_tensors="pt").input_ids.to(args.device)
+    comp_budget = args.max_len * args.beam_size
+    output = a_star(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
+
+    return output
+
+
 def run_explore_then_generate(args, model, inp):
     param_sim_function = {
         'ngram_suffix': args.ngram_suffix,
@@ -107,8 +147,6 @@ def run_explore_then_generate(args, model, inp):
                               eos_token_id=tokenizer.eos_token_id,  max_len=args.max_len, k_best=5, num_return_hypo=num_return_hypo, heu_config=heu_config)
 
     return output
-
-
 
 def run_best(args, model, inp):
     param_sim_function = {
@@ -198,6 +236,8 @@ def main(args, tokenizer, model, dataset):
             output = run_recom_bs(args, model, inp)
         elif args.model == 'recom_sample':
             output = run_recom_sample(args, model, inp)
+        elif args.model == 'astar':
+            output = run_a_star(args, model, inp)
         elif args.model == 'best':
             output = run_best(args, model, inp)
         elif args.model == 'exp_gen':

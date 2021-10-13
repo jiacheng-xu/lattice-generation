@@ -77,7 +77,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
         if not flag_merge:
             hash.add_helper(pointer, top1_state)
         
-        if flag_merge or (step < expl_steps and (not top1_state.finished)):
+        if flag_merge or top1_state.finished or (step < expl_steps and (not top1_state.finished)):
             values = values[1:]
             indices = indices[1:]
 
@@ -153,6 +153,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
         
         if output_node and output_node.finished:
             finished_hypos.append(output_node)
+
     ### check what's in heap, hash
     # print(heap)
     # print(gen_hash)
@@ -166,6 +167,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
         hypo.print_lattice()
     logging.info(f"Mid: {num_mid_point_hypo}\tEnd: {len(finished_hypos)}")
     return finished_hypos
+
 def main():
 
     config_search = {
@@ -177,7 +179,7 @@ def main():
     config_search = {
         'post': False,
         'post_ratio': 0.7,  # ratio of model calls left for post finishing
-        'adhoc': True,
+        'adhoc': False,
         'heu': True
     }
     param_sim_function = {
