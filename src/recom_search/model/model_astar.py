@@ -33,7 +33,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
     pointer = start_seed
     cur_len = pointer.length
     if not expl_steps:
-        expl_steps = max_len
+        expl_steps = max(1,max_len - cur_len)
     flag_merge = False
 
     while (not pointer.finished) and step < expl_steps:
@@ -90,7 +90,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
                     cur_node=tmp_state, prev_len=cur_len, prob_distb=output_prob)
             else:
                 heu_score = 0
-            model_score = math.log(v) + pointer.get_score_sum()
+            model_score = tmp_state.get_score_sum()
             score = model_score + heu_score
             if random.random() < 0.01:
                 logging.info(
@@ -111,7 +111,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
     r"""
 
     """
-    print('')
+
     ncalls = 0
     heu_func = DeployHeu(config_heu)
     gen_hash = HashedGen(param_sim_function['ngram_suffix'])
@@ -146,7 +146,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
     # if there is post generation (like explore-then-gen)
     while ncalls < comp_budget:
         _, seed  = heapq.heappop(heap)
-        expl_steps=max_len
+        expl_steps=max(1,max_len - seed.length)
         output_node, added_num_calls = astar_step(seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls

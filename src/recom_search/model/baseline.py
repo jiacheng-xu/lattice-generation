@@ -115,10 +115,11 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
                     merge_happen = True
                     break
         # if not finished, move on, else, reset
-        if merge_happen or tmp_node.finished:
+        if merge_happen or tmp_node.finished or tmp_node.length > max_len:
             hypo = init_seed
             merge_flag = False
-            if tmp_node.finished and not merge_happen:
+            # if tmp_node.finished and not merge_happen:
+            if  not merge_happen:   # max_len truncated
                 ends.append(tmp_node)
         else:
             hypo = tmp_node
@@ -176,7 +177,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
             sorted_candidates, param_sim_function, beam_size=beam_size)
         print('-'*30)
 
-    logging.info(f"#Whole Beam: {len(hypos)}, #finished: ")
+    logging.info(f"#Whole Beam: {len(hypos)}")
     logging.info('\n\n\n\n\n')
     for hypo in hypos:
         if not hypo.finished:
@@ -185,15 +186,6 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
         logging.info(f"\n\n {hypo}")
         hypo.print_lattice()
 
-    """
-    for unit in finished:
-        logging.info(repr(unit))
-        outputs.append(pprint(unit.token_full))
-    """
-    fname = render_name(doc_input_ids, beam_size, max_len,
-                        param_sim_function) + '.pkl'
-    with open(f"vizs/{fname}", 'wb') as fd:
-        pickle.dump(hypos, fd)
 
     # score = eval_group_diversity(outputs)
     return hypos

@@ -1,7 +1,9 @@
+import argparse
 import multiprocessing
 from multiprocessing import Pool
 import json
 from platform import win32_edition
+from posixpath import join
 import random
 import itertools
 from typing import Dict
@@ -13,7 +15,8 @@ import os
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
-from src.recom_search.evaluation.eval_bench import _get_ngrams
+from src.recom_search.model.model_output import SearchModelOutput
+from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main
 from src.recom_search.model.beam_state import BeamNode
 from typing import Dict, List
 import pickle
@@ -21,6 +24,7 @@ from collections import defaultdict
 import spacy
 nlp = spacy.load("en_core_web_sm")
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
+
 
 def branch_facotr(endings):
     nodes_in_len_bucket = [0 for _ in range(30)]
@@ -37,6 +41,7 @@ def branch_facotr(endings):
         bucket.append(factor)
     quants = statistics.quantiles(bucket, n=10)
     pass
+
 
 def find_start_end(nodes, edges):
     degree = {}
@@ -167,16 +172,21 @@ def analyze_graph(paths, nodes):
     trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
     stat['num_non_stop_node'] = len(trim_nodes_text)
     paths = [[x[0] for x in p] for p in paths]
-    all_ngrams = [_get_ngrams(3, x) for x in paths]
 
-    flat_list = list(itertools.chain(*all_ngrams))
-    uniq_ngrams = list(set(flat_list))
-    stat['novel_ngram'] = len(uniq_ngrams)
+    all_1grams = [_get_ngrams(1, x) for x in paths]
+    flat_1list = list(itertools.chain(*all_1grams))
+    uniq_1grams = list(set(flat_1list))
+    stat['novel_1gram'] = len(uniq_1grams)
+
+    all_3grams = [_get_ngrams(3, x) for x in paths]
+    flat_3list = list(itertools.chain(*all_3grams))
+    uniq_3grams = list(set(flat_3list))
+    stat['novel_3gram'] = len(uniq_3grams)
     stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
     return stat
 
 
-def viz_result(generated_outputs: List[BeamNode], name):
+def viz_result(generated_outputs: List[BeamNode], ref_sum):
     for go in generated_outputs:
         print(go)
     if len(generated_outputs) == 0:
@@ -202,9 +212,16 @@ def viz_result(generated_outputs: List[BeamNode], name):
     all_paths, all_degree_mat = derive_path(all_nodes, all_edges)
     # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
     stat = analyze_graph(all_paths, all_nodes)
-    print(stat)
+    
+    random.shuffle(all_paths)
+    sampled_paths = all_paths[:20]
+    sampled_paths = [ "".join([char[0] for char in x]) for x in sampled_paths]
+    print(sampled_paths)
     # save_dataframe(panda_df, f"{name}", "df")
     # return d_stat, all_stat
+    extrinsic_eval = eval_main(sampled_paths,ref_sum)
+    stat = {**stat, **extrinsic_eval}
+    print(stat)
     return stat
 
 
@@ -213,11 +230,13 @@ def test_one_file(f):
     config = name.split('_')[2:]
     print(config)
     with open(f"vizs/{f}", 'rb') as fd:
-        finished = pickle.load(fd)
+        finished: SearchModelOutput = pickle.load(fd)
     print(f)
-    if not finished:
-        return 
-    stat = viz_result(finished, name)
+    if not finished.ends:
+        return
+
+    stat = viz_result(finished.ends, finished.reference)
+
     fname = os.path.join('result', "_".join(config)+'.json')
     if os.path.isfile(fname):
         with open(fname, 'r') as read_file:
@@ -235,9 +254,16 @@ def test_one_file(f):
 if __name__ == "__main__":
     # execute only if run as a script
     files = os.listdir('vizs')
-    files = [f for f in files if f.endswith('.pkl') and f.startswith('best')]
+    suffix = 'astar_25_25_False_0.7_False_True_3_5_0.5.pkl' # len rwd 0.5
+    # suffix ='recom_sample_25_25_False_0.7_False_False_3_5_0.0.pkl'  # recomb sample
+    # suffix = 'recom_bs_25_25_False_0.7_False_False_3_5_0.0.pkl' # recom bs
+    suffix = 'astar_25_25_False_0.7_True_False_3_5_0.0.pkl' # adhoc
+    # suffix = 'astar_25_25_True_0.7_False_False_3_5_0.0.pkl' # post
+    # suffix = 'astar_25_25_False_0.7_False_True_3_5_1.0.pkl'# len rwd 1
+
+    files = [f for f in files if f.endswith('.pkl') and f.endswith(suffix)]
     # files = [f for f in files if f.endswith('.pkl') and f.startswith('best_No batsman from Bapchild250_25_3_5_0.5_0.0_0.0_0.0_0.0')]
-    
+
     d_stat = defaultdict(list)
     d_stat_all = defaultdict(list)
 

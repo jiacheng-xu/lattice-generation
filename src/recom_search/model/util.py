@@ -9,7 +9,7 @@ import sys
 from typing import List
 
 debug = False    # fake model output
-# debug = True    # fake model output
+debug = True    # fake model output
 
 
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
@@ -73,6 +73,7 @@ def setup_model(device_name='cuda:2'):
 
 
 if not debug:
+
     tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
     logging.info('Loading model')
@@ -107,12 +108,12 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
             return min(time_step, beam_size)
 
 
-def render_name(doc_input_ids, beam_sz, max_len, min_path, *argv):
-    first_few_tokens = doc_input_ids.tolist()[0][1:8]
-    txt = tokenizer.decode(first_few_tokens)
-    params = [beam_sz, max_len, min_path]
+def render_name(mname, doc_id, inp_doc_str:str, beam_sz:int, max_len, *args):
+    first_few_tokens = inp_doc_str[:20]
+    txt = f"{doc_id}_{first_few_tokens}_"
+    params = [mname, beam_sz, max_len]
     keys = []
-    for arg in argv:
+    for arg in args:
         for k, v in arg.items():
             params.append(v)
             keys.append(k)

@@ -5,6 +5,7 @@ import json
 import os
 import statistics
 from collections import defaultdict
+
 files  = os.listdir(fdir)
 for f in files:
     summary = defaultdict(list)

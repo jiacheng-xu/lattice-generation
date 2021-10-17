@@ -153,10 +153,6 @@ def explore_then_gen(doc_input_ids, model, param_sim_function, eos_token_id=21, 
         hypo.print_lattice()
     hypos = [x for x in hypos if x.finished]
 
-    fname = render_name(doc_input_ids, num_return_hypo, max_len,
-                        param_sim_function, heu_config) + '.pkl'
-    with open(f"vizs/exp_gen_{fname}", 'wb') as fd:
-        pickle.dump(hypos, fd)
     return hypos
 
 

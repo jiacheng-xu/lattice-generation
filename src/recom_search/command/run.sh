@@ -43,20 +43,16 @@ PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_siz
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom -beam_size 50 -ngram_suffix 5 # recom
 
 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0.1  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0.05  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0.5  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0.01  -heu_pos 0  -heu_ent 0  -heu_word 0 
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom_bs
 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0.05  -heu_pos 0  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0.1  -heu_pos 0  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0.1  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 1  -heu_ent 0  -heu_word 0 
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model recom_sample
 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 10  -heu_ent 0  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0.5  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 1  -heu_word 0 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 5  -heu_word 0 
 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0  -heu_word 0.5 
-PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best  -heu_seq_score 0  -heu_seq_score_len_rwd 0  -heu_pos 0  -heu_ent 0  -heu_word 1 
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -use_heu -heu_seq_score_len_rwd 1.   # automatic end
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -post -post_ratio 0.7   # post end
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc   # intermediate end
+

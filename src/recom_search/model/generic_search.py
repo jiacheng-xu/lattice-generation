@@ -1,4 +1,5 @@
 
+from src.recom_search.model.model_output import SearchModelOutput
 from src.recom_search.evaluation.construct_tree_bs import construct_trees, convert_seq_score, truncate_sequence
 from .model_base import SearchStrategy, timing
 import torch
@@ -39,20 +40,8 @@ class GenericSearch(SearchStrategy):
             sum_scores = [avg_s * len(seq[idx]) for idx, avg_s in enumerate(avg_scores)]
         else:
             pass
-        return_dict = UserDict({
-            'output':decoded_outputs,
-            'score_avg':avg_scores,
-            'score':sum_scores,
-            'end_states':tree_ends_list,}
-        )
-        # return_dict = {
-        #     'output':decoded_outputs,
-        #     'score_avg':avg_scores,
-        #     'score':sum_scores,
-        #     'end_states':tree_ends_list,
-        #     # 'branch':branching_factor_quant
-        # }
-        return return_dict
+        mo = SearchModelOutput(ends=tree_ends_list, output=decoded_outputs,score=sum_scores,score_avg=avg_scores,output_token=seq)
+        return mo
 
     @timing
     def _timed_run(self, input_ids):

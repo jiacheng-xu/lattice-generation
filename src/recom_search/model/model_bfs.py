@@ -130,8 +130,4 @@ def best_first_search(doc_input_ids, model, param_sim_function, eos_token_id=21,
         hypo.print_lattice()
     hypos = [x for x in hypos if x.finished]
 
-    fname = render_name(doc_input_ids, num_return_hypo, max_len,min_path,
-                        param_sim_function, heu_config) + '.pkl'
-    with open(f"vizs/best_{fname}", 'wb') as fd:
-        pickle.dump(hypos, fd)
     return hypos
