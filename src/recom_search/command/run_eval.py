@@ -24,27 +24,31 @@ from transformers import (
 from src.recom_search.model.util import *
 import argparse
 
-assert model
+# assert model
 
 
 def process_arg():
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-device', type=str, default='cuda:2')
     parser.add_argument(
         "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample',  'astar'], default='bs')
-    parser.add_argument('-beam_size', type=int, default=25)
+    parser.add_argument('-beam_size', type=int, default=15)
     parser.add_argument('-nexample', type=int, default=20)
 
-    parser.add_argument('-top_p', type=float, default=0.8)
+    parser.add_argument('-top_p', type=float, default=0.9)
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=5)
     parser.add_argument('-hamming_penalty', type=float, default=0.0)
     parser.add_argument('-extra_steps', type=int, default=10)
     parser.add_argument('-min_len', type=int, default=13)
-    parser.add_argument('-max_len', type=int, default=25)
+    parser.add_argument('-max_len', type=int, default=35)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
     parser.add_argument('-ngram_suffix', type=int, default=3)
     parser.add_argument('-len_diff', type=int, default=5)
+
+    parser.add_argument('-avg_score', type=str2bool, nargs='?',
+                        const=True, default=False, help='use average model score')
 
     parser.add_argument('-use_heu', type=str2bool, nargs='?',
                         const=True, default=False, help='our model: do we use heuristic')
@@ -52,7 +56,7 @@ def process_arg():
                         const=True, default=False, help='our model: enforce the model to generate after exploration')
     parser.add_argument('-adhoc', type=str2bool, nargs='?',
                         const=True, default=False, help='our model: always generate till the end once touch a node')
-    parser.add_argument('-post_ratio', type=float, default=0.7,
+    parser.add_argument('-post_ratio', type=float, default=0.4,
                         help='our model: ratio of resource allocation')
 
     parser.add_argument('-heu_seq_score', type=float, default=0.0,
@@ -61,7 +65,7 @@ def process_arg():
                         default=0.0, help='Length reward term in heu_seq_score.')
     parser.add_argument('-heu_pos', type=float, default=0.0,
                         help='Heuristic for position bias')
-    parser.add_argument('-heu_ent', type=float, default=0.0,
+    parser.add_argument('-heu_ent', type=float, default=0.5,
                         help='Heuristic for entropy.')
     parser.add_argument('-heu_word', type=float, default=0.0,
                         help='Heuristic for good token.')
@@ -106,7 +110,7 @@ def run_a_star(args, model, inp, param_sim_function, config_search) -> SearchMod
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     comp_budget = args.max_len * args.beam_size
-    output = a_star(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,
+    output = a_star(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,avg_score=args.avg_score,
                     max_len=args.max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
@@ -158,17 +162,17 @@ def run_best(args, model, inp):
 def run_baseline(args, model, inp):
     if args.model == 'greedy':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=1)
+                           device=args.device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=1)
     elif args.model == 'bs':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=args.beam_size, do_sample=False,
+                           device=args.device, beam_size=args.beam_size, do_sample=False,
                            min_len=args.min_len,
                            max_len=args.max_len,
                            num_beam_hyps_to_keep=args.beam_size
                            )
     elif args.model == 'dbs':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=args.beam_size, do_sample=False,
+                           device=args.device, beam_size=args.beam_size, do_sample=False,
                            min_len=args.min_len, max_len=args.max_len,
                            num_beam_groups=args.beam_group,
                            diversity_penalty=args.hamming_penalty,
@@ -176,11 +180,11 @@ def run_baseline(args, model, inp):
                            )
     elif args.model == 'topp':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
+                           device=args.device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
                            top_p=args.top_p)
     elif args.model == 'temp':
         gs = GenericSearch(model, tokenizer,
-                           device=device, beam_size=1, do_sample=True,
+                           device=args.device, beam_size=1, do_sample=True,
                            min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
                            temperature=args.temp
                            )
@@ -197,16 +201,6 @@ def main(args, tokenizer, model, dataset):
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
-
-    all_outputs = []
-    all_summaries = []
-    all_branch = []
-    all_model_scores = []
-    all_rouge_scores = []
-
-    all_top_model_scores = []
-    all_low_model_scores = []
-    all_top_rouge_scores = []
     for example in dataset:
         cnt += 1
         document = example['document']
@@ -234,52 +228,20 @@ def main(args, tokenizer, model, dataset):
         elif args.model == 'recom_sample':
             output = run_recom_sample(args, model, inp, param_sim_function)
         elif args.model == 'astar':
-            
             output = run_a_star(
                 args, model, inp, param_sim_function, config_search=config_search)
         output.reference = ref_sum
         output.doc_id = doc_id
         output.document = document
+        output.args = args
         combined_dict = {**config_search, **param_sim_function}
-        combined_dict['len_rwd'] = args.heu_seq_score_len_rwd
+        combined_dict['avgsco'] = args.avg_score
+        combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
+        combined_dict['topp'] = args.top_p
         fname = render_name(args.model, doc_id, document[:10], args.beam_size,args.max_len,combined_dict) + '.pkl'
         with open(f"vizs/{fname}", 'wb') as fd:
             pickle.dump(output, fd)
-        """
-        elif args.model == 'best':
-            output = run_best(args, model, inp)
 
-        elif args.model == 'exp_gen':
-            output = run_explore_then_generate(args=args, model=model, inp=inp)
-        """
-        """
-        scores = output_dict['score']
-        output = output_dict['output']
-        # branch = output_dict['branch']
-        n_outputs = len(output)
-        if scores:
-            assert n_outputs == len(scores)
-        all_outputs += output
-        all_summaries += [ref_sum]*n_outputs
-        all_model_scores += scores
-        all_branch += [branch] * n_outputs
-        rouge_scores = [rouge_single_pair(
-            x, y) for x, y in zip(output, [ref_sum]*n_outputs)]
-        all_rouge_scores += rouge_scores
-
-        # extract ROUGE of highest score, and score of highest ROUGE
-        index_of_highest_score = np.argsort(scores)[-1]
-        highest_score = scores[index_of_highest_score]
-        all_top_model_scores += [highest_score] * n_outputs
-
-        index_of_lowest_score = np.argsort(scores)[0]
-        lowest_score = scores[index_of_lowest_score]
-        all_low_model_scores += [lowest_score] * n_outputs
-
-        index_of_highest_rouge = np.argsort(rouge_scores)[-1]
-        highest_rouge = rouge_scores[index_of_highest_rouge]
-        all_top_rouge_scores += [highest_rouge] * n_outputs
-        """
         # break
         if cnt > nexample:
             break
@@ -302,30 +264,12 @@ def main(args, tokenizer, model, dataset):
     with open('output' + '_'.join(name_elements) + '.pkl', 'wb') as fd:
         pickle.dump(df, fd)
     """
-    # for summ, out in zip(all_summaries, all_outputs):
-    #     output_d = eval_main(out, summ)
-    #     for k, v in output_d.items():
-    #         d[k].append(v)
-    # nums_brief = []
-    # stat_result = analyze_stat_dict(d)
-    # logging.info(f"STAT: {stat_result}")
-    # for k, v in d.items():
-    #     avg = statistics.mean(v)
-    #     logging.info(f"{k}:{pnum(avg) }")
-    #     nums_brief.append(pnum(avg))
-
-    # logging.info(",".join(nums_brief))
-    # # viz in one line
-    # viz = [args.model, args.hamming_penalty, args.top_p, args.temp, args.extra_steps] + \
-    #     nums_brief + list(stat_result.values())
-    # viz = [str(x) for x in viz]
-    # logging.info(','.join(viz))
 
 
 if __name__ == "__main__":
     # execute only if run as a script
     args = process_arg()
-    args.device = device
+
     setup_logger(name=f"{args.model}")
-    tokenizer, model, dataset = setup_model()
+    tokenizer, model, dataset = setup_model(args.device)
     main(args, tokenizer, model, dataset)

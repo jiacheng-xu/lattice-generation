@@ -9,6 +9,7 @@ import textstat
 from collections import UserDict
 from pyvis.network import Network
 import networkx as nx
+# from src.recom_search.model.model_output import SearchModelOutput
 
 from src.recom_search.model.beam_state import BeamNode
 from src.recom_search.model.util import pnum, tokenizer
@@ -28,7 +29,8 @@ def draw_edges(net, edges, group_num):
         net.add_edge(edge['src'], edge['tgt'], title=form,  arrowStrikethrough=False)
 
 
-def viz_result(generated_outputs: List[BeamNode]):
+def viz_result(generated_outputs):
+    generated_outputs = generated_outputs.ends
     for go in generated_outputs:
         print(go)
     net = Network(height='1500px', width='100%', directed=True)
@@ -45,11 +47,12 @@ def viz_result(generated_outputs: List[BeamNode]):
 
 if __name__ == "__main__":
     # execute only if run as a script
-    prefix = 'best'
+    prefix = ''
+    suffix = 'astar_15_35_True_0.4_False_True_3_5_0.4_0.9.pkl'
     files = os.listdir('vizs')
-    files = [f for f in files if f.endswith('.pkl') and f.startswith(prefix)]
+    files = [f for f in files if f.endswith(suffix) and f.startswith(prefix)]
     for f in tqdm(files):
-        name = f.split('.')[0]
+        name = ".".join(f.split('.')[:-1])
         with open(f"vizs/{f}", 'rb') as fd:
             finished = pickle.load(fd)
         net = viz_result(finished)

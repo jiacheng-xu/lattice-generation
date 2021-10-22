@@ -56,11 +56,8 @@ def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, be
     return next_candidate
 
 
-# import jax
-
-
 def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100, debug: bool = False, top_p=0.8):
-    topp_logit_wrapper = TopPLogitsWarper(top_p=top_p, filter_value=0)
+    topp_logit_wrapper = TopPLogitsWarper(top_p=top_p)
     """Neucleus sampling with path recombination"""
     # budget = max_len * beam size
     total_budget = max_len * num_return_hypo
@@ -85,7 +82,9 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
             model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=doc_input_ids.device, output_dec_hid=False, T=1)
         usage += 1
         sample_output = topp_logit_wrapper(None, scores=output_score).squeeze()
-        m = Categorical(sample_output)
+        # print(sample_output)
+        m = Categorical(logits=sample_output)
+        # print(m)
         next_tok_idx = m.sample().cpu().item()
         next_tok_prob = output_prob[0][next_tok_idx]
         # has this token combination been pred before?
@@ -119,7 +118,7 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
             hypo = init_seed
             merge_flag = False
             # if tmp_node.finished and not merge_happen:
-            if  not merge_happen:   # max_len truncated
+            if not merge_happen:   # max_len truncated
                 ends.append(tmp_node)
         else:
             hypo = tmp_node
@@ -131,8 +130,11 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
     return ends
 
 # for all kinds of model output, we need (1) Graph struct with end states, (2) sampled outputs with scores
+
+
 def prepare_output(ending_states):
     pass
+
 
 def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100, debug: bool = False):
     # gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
@@ -185,7 +187,6 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
             continue
         logging.info(f"\n\n {hypo}")
         hypo.print_lattice()
-
 
     # score = eval_group_diversity(outputs)
     return hypos

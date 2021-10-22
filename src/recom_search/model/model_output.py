@@ -3,14 +3,15 @@
 from dataclasses import dataclass
 import torch
 from transformers.file_utils import ModelOutput
-from typing import Optional, Tuple,List,Text
+from typing import Any, Optional, Tuple, List, Text
 from src.recom_search.model.beam_state import BeamNode
+
 
 @dataclass
 class SearchModelOutput(ModelOutput):
     """
     """
-    ends: List[BeamNode]= None
+    ends: List[BeamNode] = None
     output: Optional[str] = None
     output_token: Optional[Tuple[int]] = None
     score: Optional[Tuple[Tuple[float]]] = None
@@ -18,3 +19,4 @@ class SearchModelOutput(ModelOutput):
     doc_id: Optional[str] = None
     reference: Optional[str] = None
     document: Optional[str] = None
+    args: Optional[Any] = None

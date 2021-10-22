@@ -1,9 +1,9 @@
 import argparse
+import logging
 import multiprocessing
 from multiprocessing import Pool
 import json
-from platform import win32_edition
-from posixpath import join
+
 import random
 import itertools
 from typing import Dict
@@ -15,6 +15,7 @@ import os
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
+from src.recom_search.model.util import setup_logger
 from src.recom_search.model.model_output import SearchModelOutput
 from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main
 from src.recom_search.model.beam_state import BeamNode
@@ -63,7 +64,7 @@ def cache_edges(edges):
     edge_score = defaultdict(list)
     for edge in edges.values():
         if edge['tgt'] == edge['src']:
-            print('self')
+            logger.warning('self')
             continue
         edge_info[edge['tgt']].append(edge['src'])
         edge_score[edge['tgt']].append(edge['score'])
@@ -92,8 +93,8 @@ def ext_text(path):
 def reward_len(path, alpha=0.01):
     return len(path) * alpha
 
-
-def derive_path(nodes: Dict, edges: Dict):
+import random
+def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
     # node_uids = [x['uid'] for x in nodes]
     node_text = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -118,6 +119,9 @@ def derive_path(nodes: Dict, edges: Dict):
             output += dfs(f, fs)
         seen.append(node)
         output = [x + [(node_text[node], score)] for x in output]
+        if len(output) > eps:
+            random.shuffle(output)
+            output = output[:eps]
         paths[node] = output
         return output
 
@@ -127,7 +131,7 @@ def derive_path(nodes: Dict, edges: Dict):
     total_path = []
     for end_key in list_of_eos_key:
         total_path += paths[end_key]
-    return total_path, degree_mat
+    return total_path, list_of_eos_key, degree_mat
 
 
 # things we care about: distribution of the path's score
@@ -198,6 +202,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
     all_edges = {}
     for idx, go in enumerate(generated_outputs):
         nodes, edges = go.visualization()
+        
         all_nodes.update(nodes)
         all_edges.update(edges)
         """
@@ -209,29 +214,32 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
             d_stat[k].append(v)
         """
 
-    all_paths, all_degree_mat = derive_path(all_nodes, all_edges)
+    all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges)
     # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
     stat = analyze_graph(all_paths, all_nodes)
-    
+
+    abs_degrees = list(all_degree_mat.values())
+    stat['degree'] = statistics.mean(abs_degrees)
     random.shuffle(all_paths)
-    sampled_paths = all_paths[:20]
-    sampled_paths = [ "".join([char[0] for char in x]) for x in sampled_paths]
-    print(sampled_paths)
+    sampled_paths = all_paths[:50]
+    sampled_paths = ["".join([char[0] for char in x]) for x in sampled_paths]
+    logger.info(sampled_paths)
     # save_dataframe(panda_df, f"{name}", "df")
     # return d_stat, all_stat
-    extrinsic_eval = eval_main(sampled_paths,ref_sum)
+    extrinsic_eval = eval_main(sampled_paths, ref_sum)
     stat = {**stat, **extrinsic_eval}
-    print(stat)
+    logger.info(stat)
     return stat
 
 
 def test_one_file(f):
     name = ".".join(f.split('.')[:-1])
     config = name.split('_')[2:]
-    print(config)
+    logger.info(config)
     with open(f"vizs/{f}", 'rb') as fd:
         finished: SearchModelOutput = pickle.load(fd)
-    print(f)
+    logger.info(f)
+    logger.info(finished.ends)
     if not finished.ends:
         return
 
@@ -248,47 +256,30 @@ def test_one_file(f):
         data.append(stat)
     with open(fname, 'w') as wfd:
         json.dump(data, wfd)
-    print('\n')
 
 
 if __name__ == "__main__":
     # execute only if run as a script
     files = os.listdir('vizs')
-    suffix = 'astar_25_25_False_0.7_False_True_3_5_0.5.pkl' # len rwd 0.5
-    # suffix ='recom_sample_25_25_False_0.7_False_False_3_5_0.0.pkl'  # recomb sample
-    # suffix = 'recom_bs_25_25_False_0.7_False_False_3_5_0.0.pkl' # recom bs
-    suffix = 'astar_25_25_False_0.7_True_False_3_5_0.0.pkl' # adhoc
-    # suffix = 'astar_25_25_True_0.7_False_False_3_5_0.0.pkl' # post
-    # suffix = 'astar_25_25_False_0.7_False_True_3_5_1.0.pkl'# len rwd 1
-
+    suffix = '.pkl'
+    # suffix = 'bs_10_25_False_0.7_False_False_3_5_0.0_0.9.pkl'
+    # suffix = 'dbs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
+    # suffix ='recom_sample_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
+    # suffix='recom_bs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
+    # suffix = 'astar_15_35_True_0.5_False_False_3_5_0.0_0.9.pkl'
+    # suffix = 'astar_15_35_False_0.7_False_True_3_5_0.5_0.9.pkl'
     files = [f for f in files if f.endswith('.pkl') and f.endswith(suffix)]
-    # files = [f for f in files if f.endswith('.pkl') and f.startswith('best_No batsman from Bapchild250_25_3_5_0.5_0.0_0.0_0.0_0.0')]
-
-    d_stat = defaultdict(list)
-    d_stat_all = defaultdict(list)
-
-    with Pool() as pool:
-        L = pool.map(test_one_file, files)
-    exit()
-    for f in tqdm(files):
-        name = ".".join(f.split('.')[:-1])
-        config = name.split('_')[2:]
-        print(config)
-        with open(f"vizs/{f}", 'rb') as fd:
-            finished = pickle.load(fd)
-        print(f)
-        stat = viz_result(finished, name)
-        fname = os.path.join('result', "".join(config)+'.json')
-        if os.path.isfile(fname):
-            with open(fname, 'r') as read_file:
-                data = json.load(read_file)
+    f_configs = set(['_'.join(name.split('_')[2:]) for name in files])
+    for confi in f_configs:
+        print(confi)
+        if 'astar_15_35_True_0.4_False_True_3_5_0.4_0.9' in confi :
+            pass
         else:
-            data = []
-        stat["file"] = name
-        if stat not in data:
-            data.append(stat)
-        with open(fname, 'w') as wfd:
-            json.dump(data, wfd)
-        print('\n')
-        for k, v in stat.items():
-            d_stat[k].append(v)
+            continue
+        logger = setup_logger(name=f"analysis-{confi}")
+        f_con = [f for f in files if f.endswith(confi)]
+        # test_one_file(files[0])
+        # exit()
+        # test_one_file(files[0])
+        with Pool(10) as pool:
+            L = pool.map(test_one_file, f_con)

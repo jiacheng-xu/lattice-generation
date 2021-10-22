@@ -237,8 +237,8 @@ class BeamNode():
         all_score = self.all_score
         return sum(all_score) + self.len_reward * len(all_score)
 
-    # def get_score_avg(self):
-    #     return statistics.mean(self.all_score)
+    def get_score_avg(self):
+        return statistics.mean(self.all_score)
 
     def __repr__(self) -> str:
         return self.get_tokens_str()

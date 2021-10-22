@@ -25,7 +25,7 @@ from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
-def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
+def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score,max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
     cnt_call = 0
     step = 0
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -71,7 +71,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
                     flag_merge = True
                     break
             if flag_merge:
-                core_merge(span_end, top1_state)
+                core_merge(span_end, top1_state, doc_input_ids)
         
         
         if not flag_merge:
@@ -90,7 +90,10 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
                     cur_node=tmp_state, prev_len=cur_len, prob_distb=output_prob)
             else:
                 heu_score = 0
-            model_score = tmp_state.get_score_sum()
+            if avg_score:
+                model_score= tmp_state.get_score_avg()
+            else:
+                model_score = tmp_state.get_score_sum()
             score = model_score + heu_score
             if random.random() < 0.01:
                 logging.info(
@@ -107,7 +110,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
         return pointer, cnt_call
 
 
-def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional[Dict], config_heu: Optional[Dict], config_search: Optional[Dict],  eos_token_id: Optional[int], max_len: Optional[int], k_best: Optional[int], comp_budget: Optional[int]):
+def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional[Dict], config_heu: Optional[Dict], config_search: Optional[Dict],  eos_token_id: Optional[int],avg_score, max_len: Optional[int], k_best: Optional[int], comp_budget: Optional[int]):
     r"""
 
     """
@@ -136,7 +139,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
             expl_steps=max_len
         else:
             expl_steps = 1
-        output_node, added_num_calls = astar_step(seed, gen_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(seed, gen_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         
@@ -147,7 +150,7 @@ def a_star(model, doc_input_ids: torch.LongTensor,  param_sim_function: Optional
     while ncalls < comp_budget:
         _, seed  = heapq.heappop(heap)
         expl_steps=max(1,max_len - seed.length)
-        output_node, added_num_calls = astar_step(seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         

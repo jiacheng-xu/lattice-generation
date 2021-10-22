@@ -9,7 +9,7 @@ import sys
 from typing import List
 
 debug = False    # fake model output
-debug = True    # fake model output
+# debug = True    # fake model output
 
 
 MODEL_CACHE = '/mnt/data1/jcxu/cache'
@@ -50,7 +50,7 @@ def setup_logger(name):
     file_handler.setFormatter(formatter)
 
     logger.addHandler(file_handler)
-
+    return logger
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
@@ -71,9 +71,9 @@ def setup_model(device_name='cuda:2'):
     return tokenizer, model, dataset
 
 
-
+"""
 if not debug:
-
+    pass
     tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     device = torch.device('cuda:2')
     logging.info('Loading model')
@@ -83,6 +83,7 @@ if not debug:
     logging.info('Loading dataset')
     dataset = load_dataset('xsum', split='validation')
 else:
+    pass
     model_name = 'sshleifer/distilbart-xsum-1-1'
     tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
     logging.info('Loading model')
@@ -90,7 +91,7 @@ else:
     device = torch.device('cpu')
     model=model.to(device)
     logging.info(f"{model_name} loaded.")
-
+"""
 def pnum(num, bit=4):
     if bit == 4:
         return "{:.4f}".format(num)

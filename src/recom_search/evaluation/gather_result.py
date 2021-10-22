@@ -7,6 +7,9 @@ import statistics
 from collections import defaultdict
 
 files  = os.listdir(fdir)
+os.chdir(fdir)
+files.sort(key=lambda x: os.path.getmtime(x))
+
 for f in files:
     summary = defaultdict(list)
     with open(os.path.join(fdir, f),'r') as fd:
@@ -14,9 +17,9 @@ for f in files:
     for d in data:
         for k,v in d.items():
             summary[k].append(v)
-    
+    summary['num'] = [len(data)]
     outputs = [f]
-    print(";".join(list(summary.keys() )))
+    
     for k, v in summary.items():
         if k == 'file':
             continue
@@ -24,3 +27,4 @@ for f in files:
         outputs.append(str(m))
     
     print(";".join(outputs))
+print(";".join(list(summary.keys() )))

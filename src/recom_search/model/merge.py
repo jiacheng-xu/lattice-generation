@@ -22,7 +22,7 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     return True
 
 
-def core_merge(beam_par: BeamNode, beam_drop: BeamNode):
+def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None):
     # logging.debug(beam_par.all_token_idx)
     # logging.debug(beam_drop.all_token_idx)
 
