@@ -93,7 +93,31 @@ def ext_text(path):
 def reward_len(path, alpha=0.01):
     return len(path) * alpha
 
-import random
+
+class Path:
+    def __init__(self, tokens=['<s>'], scores=0, ngram_cache=[]) -> None:
+        self.tokens = tokens
+        self.scores = scores
+        self.ngram_cache = ngram_cache
+        self.n = 4
+    def add(self, tok, score):
+        if len(self.tokens) >= self.n-1:
+            tmp_ngram = self.tokens[-(self.n-1):] + [tok]
+            tmp_ngram = [x.lower().strip() for x in tmp_ngram]
+            if tmp_ngram in self.ngram_cache:
+                return None
+            dup_ngram_cache = self.ngram_cache.copy()
+            dup_ngram_cache.append(tmp_ngram)
+            obj = Path(self.tokens + [tok], self.scores+score, dup_ngram_cache)
+            return obj
+        obj = Path(self.tokens + [tok], self.scores+score, [])
+        return obj
+    def __repr__(self) -> str:
+        return self.tokens
+    def score(self):
+        return self.scores / len(self.tokens) ** 0.8
+
+from heapq import heappop,heappush
 def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
     # node_uids = [x['uid'] for x in nodes]
     node_text = build_node_text_dict(nodes)
@@ -105,7 +129,7 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
     # dict_path_num[sos_key] = 1
 
     paths = defaultdict(list)   #
-    paths[sos_key] = [[('<s>', 0)]]
+    paths[sos_key] = [Path()]
 
     def dfs(node, score):
         # print(node)
@@ -118,18 +142,27 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
         for f, fs in zip(fathers, fathers_score,):
             output += dfs(f, fs)
         seen.append(node)
-        output = [x + [(node_text[node], score)] for x in output]
-        if len(output) > eps:
-            random.shuffle(output)
-            output = output[:eps]
-        paths[node] = output
-        return output
+        h = []
+        for x in output:
+            # print(x.tokens, x.scores)
+            tmp_node = x.add(node_text[node], score)
+            if tmp_node == None:
+                continue
+            heappush(h, (tmp_node.score(), tmp_node))
+            if len(h) > eps:
+                heappop(h)
+        h = [x[1] for x in h]
+        paths[node] = h
+        # print(node_text[node])
+        return h
 
     for node in list_of_eos_key:
         dfs(node, 0)
 
     total_path = []
     for end_key in list_of_eos_key:
+        path_before_dedup = paths[end_key]
+
         total_path += paths[end_key]
     return total_path, list_of_eos_key, degree_mat
 
@@ -202,7 +235,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
     all_edges = {}
     for idx, go in enumerate(generated_outputs):
         nodes, edges = go.visualization()
-        
+
         all_nodes.update(nodes)
         all_edges.update(edges)
         """
@@ -268,18 +301,20 @@ if __name__ == "__main__":
     # suffix='recom_bs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
     # suffix = 'astar_15_35_True_0.5_False_False_3_5_0.0_0.9.pkl'
     # suffix = 'astar_15_35_False_0.7_False_True_3_5_0.5_0.9.pkl'
+    suffix = 'astar_15_35_True_0.4_False_False_3_5_True_0.0_0.9.pkl'
+    suffix = 'astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
     files = [f for f in files if f.endswith('.pkl') and f.endswith(suffix)]
     f_configs = set(['_'.join(name.split('_')[2:]) for name in files])
     for confi in f_configs:
         print(confi)
-        if 'astar_15_35_True_0.4_False_True_3_5_0.4_0.9' in confi :
-            pass
-        else:
-            continue
+        # if 'astar_15_35_True_0.4_False_True_3_5_0.4_0.9' in confi :
+        #     pass
+        # else:
+        #     continue
         logger = setup_logger(name=f"analysis-{confi}")
         f_con = [f for f in files if f.endswith(confi)]
         # test_one_file(files[0])
         # exit()
-        # test_one_file(files[0])
+        test_one_file(files[0])
         with Pool(10) as pool:
             L = pool.map(test_one_file, f_con)

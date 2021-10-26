@@ -71,7 +71,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
                     flag_merge = True
                     break
             if flag_merge:
-                core_merge(span_end, top1_state, doc_input_ids)
+                core_merge(span_end, top1_state, doc_input_ids, ngram_suffix)
         
         
         if not flag_merge:
@@ -91,7 +91,7 @@ def astar_step(start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, mode
             else:
                 heu_score = 0
             if avg_score:
-                model_score= tmp_state.get_score_avg()
+                model_score= tmp_state.get_score_sum() /tmp_state.length ** 0.8
             else:
                 model_score = tmp_state.get_score_sum()
             score = model_score + heu_score

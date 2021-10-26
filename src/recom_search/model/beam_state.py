@@ -116,7 +116,7 @@ class BeamNode():
 
         """
         # check if self is the ancedant node of "node"
-        if self in node.get_antecedent() or self == node:
+        if self in node.get_antecedent() or self == node or (node in self.prev):
             return
 
         self.prev.append(node)

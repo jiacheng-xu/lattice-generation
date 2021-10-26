@@ -44,7 +44,7 @@ def process_arg():
     parser.add_argument('-min_len', type=int, default=13)
     parser.add_argument('-max_len', type=int, default=35)
     parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
-    parser.add_argument('-ngram_suffix', type=int, default=3)
+    parser.add_argument('-ngram_suffix', type=int, default=4)
     parser.add_argument('-len_diff', type=int, default=5)
 
     parser.add_argument('-avg_score', type=str2bool, nargs='?',
@@ -238,6 +238,7 @@ def main(args, tokenizer, model, dataset):
         combined_dict['avgsco'] = args.avg_score
         combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
         combined_dict['topp'] = args.top_p
+
         fname = render_name(args.model, doc_id, document[:10], args.beam_size,args.max_len,combined_dict) + '.pkl'
         with open(f"vizs/{fname}", 'wb') as fd:
             pickle.dump(output, fd)
