@@ -19,7 +19,7 @@ import statistics
 
 from src.recom_search.model.bfs_util import HashedGen
 from src.recom_search.model.heuristic import DeployHeu
-from src.recom_search.model.merge import core_merge, similarity_heuristic
+from src.recom_search.model.merge import new_core_merge, similarity_heuristic
 from src.recom_search.model.util import pnum, render_name, run_inference_step, setup_logger
 from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
@@ -40,10 +40,7 @@ def astar_step(tokenizer, start_seed: BeamNode, hash: HashedGen, heap,  doc_inpu
     while (not pointer.finished) and step < expl_steps:
         step += 1
         cnt_call += 1
-        if  'denied' in pointer.token_str:
-                
-            print(pointer.uid)
-            print(pointer.token_str)
+
         cur_dec_input_ids = pointer.all_token_idx
         dec_prefix = pointer.get_token_idx_as_input()
         _, output_prob, _, _ = run_inference_step(
@@ -76,8 +73,8 @@ def astar_step(tokenizer, start_seed: BeamNode, hash: HashedGen, heap,  doc_inpu
                     flag_merge = True
                     break
             if flag_merge:
-                core_merge(span_end, top1_state, doc_input_ids, ngram_suffix)
-        
+                # core_merge(span_end, top1_state, doc_input_ids, ngram_suffix)
+                new_core_merge(span_end, top1_state,hash, doc_input_ids, ngram_suffix)
         
         if not flag_merge:
             hash.add_helper(pointer, top1_state)

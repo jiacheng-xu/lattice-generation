@@ -1,5 +1,10 @@
 
+import random
 import logging
+from random import random
+
+from transformers.utils.dummy_pt_objects import BertForMaskedLM
+from src.recom_search.model.bfs_util import HashedGen
 from src.recom_search.model.beam_state import BeamNode
 
 
@@ -22,21 +27,95 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
         return False
     return True
 
-def write_recomb_records(match_suffix, seq_a, seq_b, doc_input,ngram_suffix, save_file = 'recomb_record.txt'):
+
+def write_recomb_records(match_suffix, seq_a, seq_b, doc_input, ngram_suffix, save_file='recomb_record.txt'):
     list_doc_input = doc_input.squeeze().cpu().tolist()
     prefix_a_token = seq_a.all_token_idx
     prefix_b_token = seq_b.all_token_idx
     a = prefix_a_token + match_suffix
     b = prefix_b_token + match_suffix
-    with open(str(ngram_suffix)+save_file,'a') as fd:
+    with open(str(ngram_suffix)+save_file, 'a') as fd:
         fd.write(f"{list_doc_input}\t{a}\t{b}\n")
 
 
-def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None,ngram_suffix=None):
+def get_prevs(node):
+    pass
+
+
+def new_core_merge(beam_par: BeamNode, beam_drop: BeamNode, hash: HashedGen = None, doc_input_ids=None, ngram_suffix=None):
+    pointer_par = beam_par
+    pointer_drop = beam_drop
+
+    group_par = [(None, 0, pointer_par)]
+    group_drop = [(None, 0, pointer_drop)]
+    """
+    # par: [prefix=4,3, cur=7], [prefix=4,3, cur=2]
+    # son: [prefix=4,3, cur=7], [prefix=4,3, cur=8], [prefix=4,3, cur=11]
+    # if son's node_i can't find a match in par's nodes, add it the prev list of last matched par node
+    # if son's node_i can find, update hash, move on.
+    """
+    while group_par and group_drop:
+        matched_drop = []
+        matched_par = []
+        unmatched_drop = []
+        for drop in group_drop:
+            drop_prefix, drop_score, drop_node = drop
+            # try to match my self to some in parent
+            match = None
+            for i in range(len(group_par)):
+                tmp_par = group_par[i]
+                if tmp_par == None:
+                    continue
+                par_prefix, par_score, par_node = tmp_par
+                if drop_prefix == par_prefix and drop_node.token_idx == par_node.token_idx:
+                    match = tmp_par
+                    group_par[i] = None
+                    break
+            if match:
+                matched_drop.append(drop)
+                matched_par.append(match)
+            else:
+                unmatched_drop.append(drop)
+
+        # some match, some unmatch
+        next_group_par = []
+        next_group_drop = []
+        for x, y in zip(matched_par, matched_drop):
+            prefix_x, prefix_score_x, node_x = x
+            prefix_y, prefix_score_y,  node_y = y
+            # everything in cache end and value = node_y will be renamed to node_x
+            hash.dead_id.append(node_y.uid)
+
+            new_prefix = node_x
+
+            next_node_par = node_x.prev    # List
+            next_node_par_score = node_x.prev_score    # List
+            for _node, _score in zip(next_node_par, next_node_par_score):
+                next_group_par.append((new_prefix, _score, _node))
+
+            next_node_drop = node_y.prev
+            next_node_drop_score = node_y.prev_score
+            for _node, _score in zip(next_node_drop, next_node_drop_score):
+                next_group_drop.append((new_prefix,  _score, _node))
+
+        for z in unmatched_drop:
+            prefix, score,  node = z
+            prefix.add_prev_node(node, score)
+        # all unmatch
+        #
+        group_par = next_group_par
+        group_drop = next_group_drop
+    return pointer_par
+
+
+def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None, ngram_suffix=None):
+    """
+    beam_par is the node to keep, beam_drop is to "discard"
+    our goal is to merge them into a larger lattice ending with beam_par.uid
+    """
     # logging.debug(beam_par.all_token_idx)
     # logging.debug(beam_drop.all_token_idx)
-    if beam_par.uid == 'VF0KJJHQ1E':
-        print()
+
     # when does their suffix starts to differ?
     pointer_par = beam_par
     pointer_drop = beam_drop
@@ -48,11 +127,11 @@ def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None,ngram
     matched_suffix = []
     while pointer_drop and par_paths:
         if pointer_drop in par_paths:
-            return # merge fail
+            return  # merge fail
         next_par_paths = []
         for par_path in par_paths:
             if pointer_drop.token_idx == par_path.token_idx:
-                
+
                 next_par_paths += par_path.prev
         if next_par_paths:
             matched_suffix.append(pointer_drop.token_idx)
@@ -72,13 +151,47 @@ def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None,ngram
 
     for path in par_paths:
         if doc_input_ids is not None:
-            write_recomb_records(matched_suffix[::-1], path, pointer_drop, doc_input=doc_input_ids,ngram_suffix=ngram_suffix)
+            write_recomb_records(
+                matched_suffix[::-1], path, pointer_drop, doc_input=doc_input_ids, ngram_suffix=ngram_suffix)
     for path in prev_par_paths:
-        if  'denied' in pointer_drop.token_str:
-            print()
-        print(pointer_drop)
+
+        # print(pointer_drop)
         path.add_prev_node(pointer_drop, score)
     # beam_par.print_lattice()
     return beam_par
+
+
     # go leftward to end of prev_par_paths, get all nodes
     # go leftward to end of
+if __name__ == '__main__':
+    hash = HashedGen(2)
+    n1 = BeamNode(1, 1, [], [random.random()])
+    n2 = BeamNode(1, 2, [n1], [random.random()])
+    n6 = BeamNode(1, 6, [n2], [random.random()])
+    n7 = BeamNode(1, 7, [n6], [random.random()])
+    n3 = BeamNode(1, 3, [n7, n2], [random.random(), random.random()])
+    n4 = BeamNode(1, 4, [n3], [random.random()])
+
+    n11 = BeamNode(1, 11, [n1], [random.random()])
+    n9 = BeamNode(1, 9, [n11], [random.random()])
+    m7 = BeamNode(1, 7, [n9], [random.random()])
+    n8 = BeamNode(1, 8, [n11], [random.random()])
+    m3 = BeamNode(1, 3, [m7, n11, n8], [random.random(),
+                                        random.random(), random.random()])
+    m4 = BeamNode(1, 4, [m3], [random.random()])
+    hash.add_helper(n1, n2)
+    hash.add_helper(n2, n6)
+    hash.add_helper(n6, n7)
+    hash.add_helper(n7, n3)
+    hash.add_helper(n3, n4)
+    hash.add_helper(n2, n3)
+
+    hash.add_helper(n1, n11)
+    hash.add_helper(n11, n9)
+    hash.add_helper(n9, m7)
+    hash.add_helper(m7, m3)
+    hash.add_helper(n11, m3)
+    hash.add_helper(m3, m4)
+
+    output_node = new_core_merge(n4, m4, hash)
+    print(hash.data)

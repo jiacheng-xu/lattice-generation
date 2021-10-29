@@ -55,7 +55,7 @@ def setup_logger(name):
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
 tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
-
+# tokenizer = None
 
 def setup_model(device_name='cuda:2'):
     tokenizer = BartTokenizer.from_pretrained(

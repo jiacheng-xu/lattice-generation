@@ -244,6 +244,11 @@ class BeamNode():
         return self.get_tokens_str()
 
     def get_tokens_match_suffix(self, suffix_tokens: List[int]):
+        """
+        suffix_tokens is the target suffix to match
+        greedily pick the prev[0] for rest of sequence
+        possible improvement, return all possible and do ANY for heuristic math
+        """
         reversed_tokens = []
 
         prev = [self]
