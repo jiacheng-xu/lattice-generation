@@ -98,7 +98,7 @@ def run_recom_sample(args, model, input_doc, param_sim_function) -> SearchModelO
     return mo
 
 
-def run_a_star(args, model, inp, param_sim_function, config_search) -> SearchModelOutput:
+def run_a_star(args, model,tokenizer, inp, param_sim_function, config_search) -> SearchModelOutput:
 
     config_heu = {
         'heu_seq_score': args.heu_seq_score,
@@ -110,7 +110,7 @@ def run_a_star(args, model, inp, param_sim_function, config_search) -> SearchMod
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     comp_budget = args.max_len * args.beam_size
-    output = a_star(doc_input_ids=input_ids, model=model, param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,avg_score=args.avg_score,
+    output = a_star(doc_input_ids=input_ids, model=model, tokenizer=tokenizer,param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,avg_score=args.avg_score,
                     max_len=args.max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
@@ -206,7 +206,8 @@ def main(args, tokenizer, model, dataset):
         document = example['document']
         sents = document.split('\n')
         inp = "\n".join(sents[:10])[:5000]
-
+        if 'Apple' not in document:
+            continue
         doc_id = example['id']
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
@@ -229,7 +230,7 @@ def main(args, tokenizer, model, dataset):
             output = run_recom_sample(args, model, inp, param_sim_function)
         elif args.model == 'astar':
             output = run_a_star(
-                args, model, inp, param_sim_function, config_search=config_search)
+                args, model,tokenizer, inp, param_sim_function, config_search=config_search)
         output.reference = ref_sum
         output.doc_id = doc_id
         output.document = document
@@ -246,25 +247,7 @@ def main(args, tokenizer, model, dataset):
         # break
         if cnt > nexample:
             break
-    """
-    # construct panda data frame
-    d = {
-        "gen": all_outputs,
-        "ref": all_summaries,
-        "quant": all_branch,
-        'score': pd.to_numeric(all_model_scores),
-        'rouge': pd.to_numeric(all_rouge_scores),
-        'top_score': pd.to_numeric(all_top_model_scores),
-        'low_score': pd.to_numeric(all_low_model_scores),
-        'top_rouge': pd.to_numeric(all_top_rouge_scores)
-    }
-    df = pd.DataFrame(d)
-    name_elements = [args.model, args.beam_size, args.min_len,
-                     args.max_len, args.top_p, args.hamming_penalty]
-    name_elements = [str(x) for x in name_elements]
-    with open('output' + '_'.join(name_elements) + '.pkl', 'wb') as fd:
-        pickle.dump(df, fd)
-    """
+
 
 
 if __name__ == "__main__":

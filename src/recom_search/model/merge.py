@@ -35,7 +35,8 @@ def write_recomb_records(match_suffix, seq_a, seq_b, doc_input,ngram_suffix, sav
 def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None,ngram_suffix=None):
     # logging.debug(beam_par.all_token_idx)
     # logging.debug(beam_drop.all_token_idx)
-
+    if beam_par.uid == 'VF0KJJHQ1E':
+        print()
     # when does their suffix starts to differ?
     pointer_par = beam_par
     pointer_drop = beam_drop
@@ -73,8 +74,11 @@ def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None,ngram
         if doc_input_ids is not None:
             write_recomb_records(matched_suffix[::-1], path, pointer_drop, doc_input=doc_input_ids,ngram_suffix=ngram_suffix)
     for path in prev_par_paths:
+        if  'denied' in pointer_drop.token_str:
+            print()
+        print(pointer_drop)
         path.add_prev_node(pointer_drop, score)
-    beam_par.print_lattice()
+    # beam_par.print_lattice()
     return beam_par
     # go leftward to end of prev_par_paths, get all nodes
     # go leftward to end of

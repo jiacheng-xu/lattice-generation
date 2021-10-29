@@ -68,6 +68,7 @@ def cache_edges(edges):
             continue
         edge_info[edge['tgt']].append(edge['src'])
         edge_score[edge['tgt']].append(edge['score'])
+    
     return edge_info, edge_score
 
 
@@ -139,29 +140,35 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
         fathers = edges_tgt_to_src[node]
         fathers_score = edges_tgt_to_src_score[node]
         output = []
-        for f, fs in zip(fathers, fathers_score,):
+        for f, fs in zip(fathers, fathers_score):
             output += dfs(f, fs)
         seen.append(node)
-        h = []
-        for x in output:
-            # print(x.tokens, x.scores)
-            tmp_node = x.add(node_text[node], score)
-            if tmp_node == None:
-                continue
-            heappush(h, (tmp_node.score(), tmp_node))
-            if len(h) > eps:
-                heappop(h)
-        h = [x[1] for x in h]
-        paths[node] = h
+
+        # filter_output = [x.add(node_text[node], score) for x in output]
+        filter_output = list(map(lambda x: x.add(node_text[node], score), output))
+        filter_output = list(filter(lambda x: x != None, filter_output))
+        random.shuffle(filter_output)
+        filter_output = filter_output[:eps]
+        # for x in output:
+        #     # print(x.tokens, x.scores)
+        #     tmp_node = x.add(node_text[node], score)
+        #     if tmp_node == None:
+        #         continue
+        #     heappush(h, (tmp_node.score(), tmp_node))
+        #     if len(h) > eps:
+        #         heappop(h)
+        # h = [x[1] for x in h]
+        paths[node] = filter_output
         # print(node_text[node])
-        return h
+        return filter_output
 
     for node in list_of_eos_key:
         dfs(node, 0)
 
     total_path = []
     for end_key in list_of_eos_key:
-        path_before_dedup = paths[end_key]
+        # path_before_dedup = paths[end_key]
+        # deduplication already happens in Path class
 
         total_path += paths[end_key]
     return total_path, list_of_eos_key, degree_mat
@@ -197,7 +204,7 @@ def save_dataframe(df, fname, path):
         pickle.dump(df, fd)
 
 
-def analyze_graph(paths, nodes):
+def analyze_graph(paths:List[Path], nodes):
     # number of paths, number of unique nodes, number of novel ngram, POS tag distributions
     # non-stop word
     stat = {}
@@ -208,7 +215,7 @@ def analyze_graph(paths, nodes):
     nodes_text = [x['text'].strip() for x in nodes.values()]
     trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
     stat['num_non_stop_node'] = len(trim_nodes_text)
-    paths = [[x[0] for x in p] for p in paths]
+    paths = [p.tokens for p in paths]
 
     all_1grams = [_get_ngrams(1, x) for x in paths]
     flat_1list = list(itertools.chain(*all_1grams))
@@ -255,7 +262,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
     stat['degree'] = statistics.mean(abs_degrees)
     random.shuffle(all_paths)
     sampled_paths = all_paths[:50]
-    sampled_paths = ["".join([char[0] for char in x]) for x in sampled_paths]
+    sampled_paths = ["".join(x.tokens) for x in sampled_paths]
     logger.info(sampled_paths)
     # save_dataframe(panda_df, f"{name}", "df")
     # return d_stat, all_stat
@@ -301,20 +308,19 @@ if __name__ == "__main__":
     # suffix='recom_bs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
     # suffix = 'astar_15_35_True_0.5_False_False_3_5_0.0_0.9.pkl'
     # suffix = 'astar_15_35_False_0.7_False_True_3_5_0.5_0.9.pkl'
-    suffix = 'astar_15_35_True_0.4_False_False_3_5_True_0.0_0.9.pkl'
-    suffix = 'astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
+    # suffix = 'astar_15_35_True_0.4_False_False_3_5_True_0.0_0.9.pkl'
+    # suffix = '17532613_The countr_astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
     files = [f for f in files if f.endswith('.pkl') and f.endswith(suffix)]
     f_configs = set(['_'.join(name.split('_')[2:]) for name in files])
     for confi in f_configs:
         print(confi)
-        # if 'astar_15_35_True_0.4_False_True_3_5_0.4_0.9' in confi :
-        #     pass
+        # if 'astar_15_35_False_0.4_True_False_4_5' not in confi :
+            # continue
         # else:
         #     continue
         logger = setup_logger(name=f"analysis-{confi}")
         f_con = [f for f in files if f.endswith(confi)]
-        # test_one_file(files[0])
-        # exit()
-        test_one_file(files[0])
+
+        test_one_file(f_con[0])
         with Pool(10) as pool:
             L = pool.map(test_one_file, f_con)

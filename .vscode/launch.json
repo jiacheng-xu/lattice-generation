@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode":false,
             "python.envFile": "${workspaceFolder}/.env",
-            "args": ["-model", "astar","-post", "-avg_score", "-ngram_suffix", "3"],
+            "args": ["-model", "astar","-post", "-avg_score", "-ngram_suffix", "4"],
             // "-use_heu", "-heu_seq_score_len_rwd","0.4","-heu_ent","1"
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"], ,"-heu_seq_score_len_rwd","0.5", -model astar -use_heu -heu_seq_score_len_rwd 0.5
         }
