@@ -84,7 +84,8 @@ def new_core_merge(beam_par: BeamNode, beam_drop: BeamNode, hash: HashedGen = No
             prefix_x, prefix_score_x, node_x = x
             prefix_y, prefix_score_y,  node_y = y
             # everything in cache end and value = node_y will be renamed to node_x
-            hash.dead_id.append(node_y.uid)
+            if hash is not None:
+                hash.dead_id.append(node_y.uid)
 
             new_prefix = node_x
 

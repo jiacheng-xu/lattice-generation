@@ -206,8 +206,8 @@ def main(args, tokenizer, model, dataset):
         document = example['document']
         sents = document.split('\n')
         inp = "\n".join(sents[:10])[:5000]
-        if 'Apple' not in document:
-            continue
+        # if 'Apple' not in document:
+        #     continue
         doc_id = example['id']
         ref_sum = example['summary']
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
