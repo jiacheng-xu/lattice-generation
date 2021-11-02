@@ -35,7 +35,8 @@ def process_arg():
         "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample',  'astar'], default='bs')
     parser.add_argument('-beam_size', type=int, default=15)
     parser.add_argument('-nexample', type=int, default=20)
-
+    parser.add_argument('-task', type=str,default='sum',choices=['sum','mt1n','mtn1'])
+    parser.add_argument('-dataset',default='xsum',type=str)
     parser.add_argument('-top_p', type=float, default=0.9)
     parser.add_argument('-temp', type=float, default=1.5)
     parser.add_argument('-beam_group', type=int, default=5)
@@ -98,7 +99,7 @@ def run_recom_sample(args, model, input_doc, param_sim_function) -> SearchModelO
     return mo
 
 
-def run_a_star(args, model,tokenizer, inp, param_sim_function, config_search) -> SearchModelOutput:
+def run_a_star(args, model,tokenizer, inp,dec_prefix, param_sim_function, config_search) -> SearchModelOutput:
 
     config_heu = {
         'heu_seq_score': args.heu_seq_score,
@@ -110,7 +111,7 @@ def run_a_star(args, model,tokenizer, inp, param_sim_function, config_search) ->
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
     comp_budget = args.max_len * args.beam_size
-    output = a_star(doc_input_ids=input_ids, model=model, tokenizer=tokenizer,param_sim_function=param_sim_function, eos_token_id=tokenizer.eos_token_id,avg_score=args.avg_score,
+    output = a_star(doc_input_ids=input_ids, model=model, tokenizer=tokenizer,param_sim_function=param_sim_function, dec_prefix=dec_prefix,avg_score=args.avg_score,
                     max_len=args.max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
@@ -195,21 +196,35 @@ def run_baseline(args, model, inp):
     return output_dict
     # output should be a list of str
 
+def config_dec_inp(tokenizer, task, lang):
+    if task == 'sum':
+        dec_prefix = [tokenizer.eos_token_id]
+    elif task.startswith('mt'):
+        pass
+    pass
 
-def main(args, tokenizer, model, dataset):
+def main(args, tokenizer, model, dataset,dec_prefix):
 
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
-    for example in dataset:
+    for idx,example in enumerate(dataset):
         cnt += 1
-        document = example['document']
-        sents = document.split('\n')
-        inp = "\n".join(sents[:10])[:5000]
+        if args.task.startswith('mt'):
+            document = example[0]
+            ref_sum = example[1]
+            inp = document
+            doc_id = idx
+        else:
+            document = example['document']
+            sents = document.split('\n')
+            inp = "\n".join(sents[:10])[:5000]
+            ref_sum = example['summary']
+            doc_id = example['id']
         # if 'Apple' not in document:
         #     continue
-        doc_id = example['id']
-        ref_sum = example['summary']
+        
+        
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         param_sim_function = {
             'ngram_suffix': args.ngram_suffix,
@@ -230,7 +245,7 @@ def main(args, tokenizer, model, dataset):
             output = run_recom_sample(args, model, inp, param_sim_function)
         elif args.model == 'astar':
             output = run_a_star(
-                args, model,tokenizer, inp, param_sim_function, config_search=config_search)
+                args, model,tokenizer, inp,dec_prefix, param_sim_function, config_search=config_search)
         output.reference = ref_sum
         output.doc_id = doc_id
         output.document = document
@@ -255,5 +270,5 @@ if __name__ == "__main__":
     args = process_arg()
 
     setup_logger(name=f"{args.model}")
-    tokenizer, model, dataset = setup_model(args.device)
-    main(args, tokenizer, model, dataset)
+    tokenizer, model, dataset, dec_prefix = setup_model(args.task, args.dataset, args.device)
+    main(args, tokenizer, model, dataset,dec_prefix)

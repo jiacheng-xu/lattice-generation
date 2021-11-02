@@ -1,4 +1,5 @@
 import argparse
+from pathlib import WindowsPath
 from datasets import load_dataset
 import statistics
 import torch
@@ -56,21 +57,64 @@ model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
 tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
 # tokenizer = None
+import os
+def read_mt_data(path='/mnt/data1/jcxu/mt-data/wmt19',name='zh-en'):
+    src = name[:2]
+    tgt = name[3:]
+    with open(os.path.join(path,f"{name}.{src}"), 'r') as fd:
+        slines = fd.read().splitlines()
+    with open(os.path.join(path,f"{name}.{tgt}"), 'r') as fd:
+        tlines = fd.read().splitlines()
+    print(slines[:5])
+    print(tlines[:5])
+    assert len(slines) == len(tlines)
+    return zip(slines,tlines)
 
-def setup_model(device_name='cuda:2'):
-    tokenizer = BartTokenizer.from_pretrained(
-        model_name, cache_dir=MODEL_CACHE)
+def setup_model(task='sum',dataset='xsum', device_name='cuda:2'):
     device = torch.device(device_name)
-    logging.info('Loading model')
-    model = BartForConditionalGeneration.from_pretrained(
-        model_name, cache_dir=MODEL_CACHE)
+    if task == 'sum':
+        tokenizer = BartTokenizer.from_pretrained(
+            model_name, cache_dir=MODEL_CACHE)
+        
+        logging.info('Loading model')
+        model = BartForConditionalGeneration.from_pretrained(
+            model_name, cache_dir=MODEL_CACHE)
+
+        logging.info('Loading dataset')
+        dataset = load_dataset(dataset, split='validation')
+        dec_prefix = [tokenizer.eos_token_id]
+
+    elif task == 'mt1n':
+        from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+        model = MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-50-one-to-many-mmt",cache_dir=MODEL_CACHE)
+        tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-one-to-many-mmt", src_lang="en_XX",cache_dir=MODEL_CACHE)
+        dataset = read_mt_data(name=dataset)
+
+        assert dataset.startswith('en')
+        tgt_lang = dataset[3:]
+        from transformers.models.mbart.tokenization_mbart import FAIRSEQ_LANGUAGE_CODES
+        match = [x for x in FAIRSEQ_LANGUAGE_CODES if x.startswith(tgt_lang)]
+        assert len(match) == 1
+        lang=match[0]
+        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id(lang)]
+
+    elif task == 'mtn1':        
+        from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+        model = MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-50-many-to-one-mmt",cache_dir=MODEL_CACHE)
+        tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-many-to-one-mmt",cache_dir=MODEL_CACHE)
+        # dataset should be like "xx-en"
+        assert dataset.endswith('-en')
+        src_lang = dataset[:2]
+        from transformers.models.mbart.tokenization_mbart import FAIRSEQ_LANGUAGE_CODES
+        match = [x for x in FAIRSEQ_LANGUAGE_CODES if x.startswith(src_lang)]
+        assert len(match) == 1
+        lang = match[0]
+        tokenizer.src_lang =lang
+        dataset = read_mt_data(name=dataset)
+        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id("en_XX")]
+
     model = model.to(device)
-
-    logging.info('Loading dataset')
-    dataset = load_dataset('xsum', split='validation')
-    return tokenizer, model, dataset
-
-
+    return tokenizer, model, dataset, dec_prefix
 """
 if not debug:
     pass

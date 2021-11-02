@@ -25,7 +25,7 @@ from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
-def astar_step(tokenizer, start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score,max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
+def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score,max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
     
     cnt_call = 0
     step = 0
@@ -125,7 +125,7 @@ def astar_step(tokenizer, start_seed: BeamNode, hash: HashedGen, heap,  doc_inpu
         return pointer, cnt_call
 
 
-def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function: Optional[Dict], config_heu: Optional[Dict], config_search: Optional[Dict],  eos_token_id: Optional[int],avg_score, max_len: Optional[int], k_best: Optional[int], comp_budget: Optional[int]):
+def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function: Optional[Dict], config_heu: Optional[Dict], config_search: Optional[Dict],  dec_prefix: Optional[List],avg_score, max_len: Optional[int], k_best: Optional[int], comp_budget: Optional[int]):
     r"""
 
     """
@@ -144,8 +144,16 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
                 comp_budget)
     else:
         budget_expl = comp_budget
-    init_seed = BeamNode(prob=1., token_idx=eos_token_id,
+    
+    last = None
+    for prefix in dec_prefix:
+        if last:
+            init_seed = BeamNode(prob=1., token_idx=prefix,
+                         prev=[last], prev_score=[0])
+        else:
+            init_seed = BeamNode(prob=1., token_idx=prefix,
                          prev=[], prev_score=[])
+            last = init_seed
     heapq.heappush(heap, (-init_seed.prob, init_seed))
 
     while ncalls < budget_expl:
@@ -154,7 +162,7 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
             expl_steps = max_len
         else:
             expl_steps = 1
-        output_node, added_num_calls = astar_step(tokenizer,seed, gen_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, gen_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         
@@ -165,7 +173,7 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
     while ncalls < comp_budget:
         _, seed  = heapq.heappop(heap)
         expl_steps=max(1,max_len - seed.length)
-        output_node, added_num_calls = astar_step(tokenizer,seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         
@@ -185,30 +193,6 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
         hypo.print_lattice()
     logging.info(f"Mid: {num_mid_point_hypo}\tEnd: {len(finished_hypos)}")
     return finished_hypos
-
-def main():
-
-    config_search = {
-        'post': True,
-        'post_ratio': 0.7,  # ratio of model calls left for post finishing
-        'adhoc': False,
-        'heu': False
-    }
-    config_search = {
-        'post': False,
-        'post_ratio': 0.7,  # ratio of model calls left for post finishing
-        'adhoc': False,
-        'heu': True
-    }
-    param_sim_function = {
-        'ngram_suffix': 3,
-        'len_diff': 5
-    }
-    config_heu = {}
-    input_doc = "Southwest Airlines and American Airlines, both based in Texas, said Tuesday that they will continue plans to require employees to get vaccinated, despite an edict issued by Texas Gov. Greg Abbott that would ban vaccine mandates for private businesses in the state."
-    doc_input_ids = tokenizer(input_doc, return_tensors="pt").input_ids.to(device)
-    a_star(model=model, doc_input_ids=doc_input_ids, k_best=5, comp_budget=200, config_search=config_search,
-           max_len=23, eos_token_id=tokenizer.eos_token_id, param_sim_function=param_sim_function, config_heu=config_heu)
 
 
 if __name__ == "__main__":

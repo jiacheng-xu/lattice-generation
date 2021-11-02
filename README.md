@@ -44,3 +44,11 @@ With beam search, we should be able to get a few **different** path and each of 
 Macro-BS will mostly focus on these path; micro-BS will focus on small option chunks.
 a good man with a good mind => a (good) man (with a (good) mind)
 a (55-year-old) man (, 55,) went to ...   competing/colliding
+
+
+Machine Translation
+Metrics:
+https://huggingface.co/metrics/bleu
+https://github.com/huggingface/datasets/blob/67574a8d74796bc065a8b9b49ec02f7b1200c172/metrics/bleu/bleu.py
+https://github.com/huggingface/datasets/blob/8107844ec0e7add005db0585c772ee20adc01a5e/metrics/google_bleu/google_bleu.py
+evaluate functino in NMT https://github.com/tensorflow/nmt/blob/0be864257a76c151eef20ea689755f08bc1faf4e/nmt/utils/evaluation_utils.py#L31 and test case https://github.com/tensorflow/nmt/blob/0be864257a76c151eef20ea689755f08bc1faf4e/nmt/utils/evaluation_utils_test.py

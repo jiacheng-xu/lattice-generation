@@ -1,7 +1,7 @@
 
 import random
 import logging
-from random import random
+import random
 
 from transformers.utils.dummy_pt_objects import BertForMaskedLM
 from src.recom_search.model.bfs_util import HashedGen
@@ -195,4 +195,5 @@ if __name__ == '__main__':
     hash.add_helper(m3, m4)
 
     output_node = new_core_merge(n4, m4, hash)
+    output_node.print_lattice()
     print(hash.data)
