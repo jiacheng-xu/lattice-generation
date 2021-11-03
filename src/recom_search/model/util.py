@@ -9,6 +9,8 @@ from statistics import mode
 import sys
 from typing import List
 
+from src.recom_search.model.token import tokenizer
+
 debug = False    # fake model output
 # debug = True    # fake model output
 
@@ -55,7 +57,10 @@ def setup_logger(name):
 
 model_name = 'sshleifer/distilbart-xsum-12-6'
 model_name = 'facebook/bart-large-xsum'
-tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+from transformers import MBart50TokenizerFast
+
+# tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
+# tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-many-to-one-mmt")
 # tokenizer = None
 import os
 def read_mt_data(path='/mnt/data1/jcxu/mt-data/wmt19',name='zh-en'):
@@ -71,6 +76,7 @@ def read_mt_data(path='/mnt/data1/jcxu/mt-data/wmt19',name='zh-en'):
     return zip(slines,tlines)
 
 def setup_model(task='sum',dataset='xsum', device_name='cuda:2'):
+    
     device = torch.device(device_name)
     if task == 'sum':
         tokenizer = BartTokenizer.from_pretrained(
@@ -96,7 +102,7 @@ def setup_model(task='sum',dataset='xsum', device_name='cuda:2'):
         match = [x for x in FAIRSEQ_LANGUAGE_CODES if x.startswith(tgt_lang)]
         assert len(match) == 1
         lang=match[0]
-        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id(lang)]
+        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id[lang]]
 
     elif task == 'mtn1':        
         from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
@@ -111,7 +117,7 @@ def setup_model(task='sum',dataset='xsum', device_name='cuda:2'):
         lang = match[0]
         tokenizer.src_lang =lang
         dataset = read_mt_data(name=dataset)
-        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id("en_XX")]
+        dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id["en_XX"]]
 
     model = model.to(device)
     return tokenizer, model, dataset, dec_prefix
@@ -153,9 +159,9 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
             return min(time_step, beam_size)
 
 
-def render_name(mname, doc_id, inp_doc_str:str, beam_sz:int, max_len, *args):
+def render_name(task, data,mname, doc_id, inp_doc_str:str, beam_sz:int, max_len, *args):
     first_few_tokens = inp_doc_str[:20]
-    txt = f"{doc_id}_{first_few_tokens}_"
+    txt = f"{task}_{data}_{doc_id}_{first_few_tokens}_"
     params = [mname, beam_sz, max_len]
     keys = []
     for arg in args:

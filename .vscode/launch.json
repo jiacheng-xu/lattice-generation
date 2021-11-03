@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "translation many-to-eng",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/src/recom_search/command/run_eval.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "python.envFile": "${workspaceFolder}/.env",
@@ -18,7 +18,12 @@
                 "-task",
                 "mtn1",
                 "-dataset",
-                "zh-en"
+                "zh-en",
+                "-adhoc",
+                "-beam_size",
+                "5",
+                "-max_len",
+                "50"
             ],
         },
         {

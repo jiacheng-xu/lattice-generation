@@ -255,7 +255,7 @@ def main(args, tokenizer, model, dataset,dec_prefix):
         combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
         combined_dict['topp'] = args.top_p
 
-        fname = render_name(args.model, doc_id, document[:10], args.beam_size,args.max_len,combined_dict) + '.pkl'
+        fname = render_name(args.task, args.dataset,args.model, doc_id, document[:10], args.beam_size,args.max_len,combined_dict) + '.pkl'
         with open(f"vizs/{fname}", 'wb') as fd:
             pickle.dump(output, fd)
 
@@ -264,11 +264,13 @@ def main(args, tokenizer, model, dataset,dec_prefix):
             break
 
 
-
+# from src.recom_search.model.util import tokenizer
+from src.recom_search.model.token import tokenizer
 if __name__ == "__main__":
     # execute only if run as a script
     args = process_arg()
 
     setup_logger(name=f"{args.model}")
     tokenizer, model, dataset, dec_prefix = setup_model(args.task, args.dataset, args.device)
+    
     main(args, tokenizer, model, dataset,dec_prefix)

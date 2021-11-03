@@ -3,7 +3,7 @@ import torch
 import math
 import logging
 # from .util import pnum, tokenizer
-from src.recom_search.model.util import pnum, tokenizer
+
 import statistics
 
 import random
@@ -11,7 +11,7 @@ import string
 from typing import List
 import numpy as np
 random.seed(2021)
-
+from src.recom_search.model.token import tokenizer
 
 def gen_rand_id(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -55,8 +55,9 @@ class BeamNode():
         self.prev = prev      # prev is always sorted where top1 has highest score
         self.prev_score = prev_score
         self.token_idx = token_idx
+        # print(self.token_idx)
         self.token_str = tokenizer.decode(
-            self.token_idx) if tokenizer else f"{token_idx}"
+            self.token_idx,skip_special_tokens=False) if tokenizer else f"{token_idx}"
 
         self.set_full()
         assert self.all_token_idx
@@ -150,6 +151,7 @@ class BeamNode():
             nodes[node.uid] = {
                 'uid': node.uid,
                 'text': node.token_str,
+                'tok_idx':node.token_idx
             }
             # nodes.append({'uid': node.uid,'text': node.token_str})
 

@@ -23,7 +23,7 @@ rouges_l = defaultdict(list)
 
 
 bucket = [1, 5, 10, 15]
-tokenizer, model, dataset = setup_model('cuda:0')
+tokenizer, model, dataset,_ = setup_model('cuda:0')
 for l in lines:
     inp, seq_a, seq_b = l.split('\t')
     inp = eval(inp)
