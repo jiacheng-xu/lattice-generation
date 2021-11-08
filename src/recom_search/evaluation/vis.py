@@ -12,7 +12,7 @@ import networkx as nx
 # from src.recom_search.model.model_output import SearchModelOutput
 
 from src.recom_search.model.beam_state import BeamNode
-from src.recom_search.model.util import pnum, tokenizer
+from src.recom_search.model.setup import tokenizer
 from typing import List
 
 
@@ -47,7 +47,7 @@ def viz_result(generated_outputs):
 
 if __name__ == "__main__":
     # execute only if run as a script
-    prefix = ''
+    prefix = 'sum'
     suffix = '.pkl'
     # suffix = '17532613_The countr_astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
     files = os.listdir('vizs')

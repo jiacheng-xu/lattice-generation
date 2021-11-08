@@ -1,6 +1,78 @@
 from collections import defaultdict
 from typing import List
 
+"""
+class DSU:
+    def __init__(self):
+        self.par = range(1001)
+    
+    def find(self, x):
+        if self.par[x] != x:
+            self.par[x] = self.find(self.par[x])
+        return self.par[x]
+    def union(self, x, y):
+        self.par[self.find(x)] = self.find(y)
+"""
+class NewHash():
+    def __init__(self, ngram: int = 5) -> None:
+        self.data = defaultdict(list)   # key: a_b_c: val: [uid_a, uid_b, uid_c]
+        self.ngram = ngram
+        self.uid_map = {}   # if the value is a string, do while; else it is the node
+    
+    def set_node(self, uid, node):
+        self.uid_map[uid] = node
+
+    def const_key(self, token_ids:List[int]):
+        tokens = token_ids[-self.ngram:]
+        token_str = [str(x) for x in tokens]
+        k = "_".join(token_str)
+        return k
+    
+    def retrieve_node(self, q_uid ):
+        key = q_uid
+        while isinstance(key,str):
+            key = self.uid_map[key]
+        return key  # key is actually a node
+
+    def find_root_node_uid(self, q_uid ):
+        key = q_uid
+        while True:
+            tmp_key = self.uid_map[key]
+            if isinstance(tmp_key, str):
+                key = tmp_key
+                continue
+            else:
+                return key
+
+    def retrieve_group_nodes(self, keys):
+        # keys contain some UIDs
+        # return updated keys and retrieved nodes
+        candidates = [self.find_root_node_uid(k) for k in keys ]
+        candidates = list(set(candidates))
+        cand_nodes = [ self.uid_map[x] for x in candidates]
+        return candidates, cand_nodes
+
+    def retrieve_ngram_nodes(self, key_ngram):
+        if key_ngram in self.data:
+            candidates = self.data[key_ngram]
+            
+            updated_cands, nodes = self.retrieve_group_nodes(candidates)
+            self.data[key_ngram] = updated_cands
+            return nodes
+
+        else:
+            return []
+
+    def query(self, token_ids: List[int]):
+        # get the last n tokens
+        if len(token_ids) < self.ngram:
+            return []
+        k = self.const_key(token_ids)
+        return self.retrieve_ngram_nodes(k)
+    
+    def replace_node(self, master_node_uid, del_node_uid):
+        self.uid_map[del_node_uid] = master_node_uid
+        
 class HashedGen():
     def __init__(self, ngram: int = 5) -> None:
         self.data = defaultdict(list)
@@ -17,6 +89,7 @@ class HashedGen():
             else:
                 real_output.append(out)
         return real_output
+
     def const_key(self, token_ids):
         tokens = token_ids[-self.ngram:]
         token_str = [str(x) for x in tokens]

@@ -5,6 +5,44 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "summarization xsum",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python.envFile": "${workspaceFolder}/.env",
+            "args": [
+                "-model",
+                "astar",
+                "-adhoc",
+                "-ngram_suffix",
+                "4"
+            ],
+        },
+        {
+            "name": "translation eng-to-many",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/recom_search/command/run_eval.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python.envFile": "${workspaceFolder}/.env",
+            "args": [
+                "-model",
+                "astar",
+                "-task",
+                "mt1n",
+                "-dataset",
+                "en-zh",
+                "-adhoc",
+                "-beam_size",
+                "5",
+                "-max_len",
+                "50"
+            ],
+        },
+        {
             "name": "translation many-to-eng",
             "type": "python",
             "request": "launch",

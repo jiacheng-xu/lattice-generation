@@ -25,8 +25,8 @@ from collections import defaultdict
 import spacy
 nlp = spacy.load("en_core_web_sm")
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
+from src.recom_search.model.setup import tokenizer
 
-from src.recom_search.model.token import tokenizer
 
 def branch_facotr(endings):
     nodes_in_len_bucket = [0 for _ in range(30)]

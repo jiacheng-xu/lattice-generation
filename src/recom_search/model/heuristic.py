@@ -35,10 +35,10 @@ class DeployHeu():
     def heuristic_seq_score(self, cur_node: BeamNode) -> float:
         """
         """
-        scores = cur_node.get_path_sample()
-        s = sum(scores)
-        assert s <= 0
-        return s
+        # scores = cur_node.get_path_sample()
+        # s = sum(scores)
+        # assert s <= 0
+        return 0
 
     def heuristic_seq_score_len_rwd(self, prev_len):
         return prev_len

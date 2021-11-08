@@ -15,22 +15,24 @@ from typing import Dict, List, Optional
 import logging
 import heapq
 import statistics
+from src.recom_search.model.new_merge import merge_zip,merge_imp
 
 
-from src.recom_search.model.bfs_util import HashedGen
+from src.recom_search.model.bfs_util import HashedGen, NewHash
 from src.recom_search.model.heuristic import DeployHeu
 from src.recom_search.model.merge import new_core_merge, similarity_heuristic
-from src.recom_search.model.util import pnum, render_name, run_inference_step, setup_logger
+from src.recom_search.model.util import pnum, render_name, run_inference_step
 from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
-def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score,max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
+def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: NewHash, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score,max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu)->Tuple[Any,int]:
     
     cnt_call = 0
     step = 0
     ngram_suffix = param_sim_function['ngram_suffix']
     len_diff = param_sim_function['len_diff']
+    merge_method = param_sim_function['merge']
     pointer = start_seed
     cur_len = pointer.length
     if not expl_steps:
@@ -51,13 +53,11 @@ def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen
         indices = indices[0].tolist()
         token_txt = tokenizer.decode(indices[0]).strip().lower()
         
+        top1_state = BeamNode(hash=hash, 
+            prob=values[0], token_idx=indices[0], prev=[pointer.uid], prev_score=[math.log(values[0])])
+        hash.set_node(top1_state.uid, top1_state)
 
-            # print('misleading')
-        top1_state = BeamNode(
-            prob=values[0], token_idx=indices[0], prev=[pointer], prev_score=[math.log(values[0])])
 
-
-        # is top1 in hash?
         if cur_len >= hash.ngram:
             retrieved = hash.query(cur_dec_input_ids + [top1_state.token_idx])
             ngram = (cur_dec_input_ids +
@@ -73,8 +73,13 @@ def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen
                     flag_merge = True
                     break
             if flag_merge:
-                # core_merge(span_end, top1_state, doc_input_ids, ngram_suffix)
-                new_core_merge(span_end, top1_state,hash, doc_input_ids, ngram_suffix)
+                if merge_method == 'zip':
+                    merge_zip(hash, span_end, top1_state)
+                elif merge_method == 'imp':
+                    merge_imp(hash, span_end, top1_state)
+                else:
+                    raise NotImplementedError
+
         
         if not flag_merge:
             hash.add_helper(pointer, top1_state)
@@ -98,7 +103,7 @@ def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen
                 continue
             else:
                 seen_tokens.append(tok_txt)
-            tmp_state = BeamNode(prob=v, token_idx=i, prev=[
+            tmp_state = BeamNode(hash=hash,prob=v, token_idx=i, prev=[
                 pointer], prev_score=[math.log(v)])
             if use_heuristic:
                 heu_score = heu_func.run(
@@ -125,14 +130,24 @@ def astar_step(tokenizer,force_dec_prefix, start_seed: BeamNode, hash: HashedGen
         return pointer, cnt_call
 
 
-def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function: Optional[Dict], config_heu: Optional[Dict], config_search: Optional[Dict],  dec_prefix: Optional[List],avg_score, max_len: Optional[int], k_best: Optional[int], comp_budget: Optional[int]):
+def a_star(model, tokenizer,
+doc_input_ids: torch.LongTensor,  
+param_sim_function: Optional[Dict], 
+config_heu: Optional[Dict], 
+config_search: Optional[Dict],  
+dec_prefix: Optional[List],
+avg_score:bool, 
+max_len: Optional[int], 
+k_best: Optional[int], 
+comp_budget: Optional[int]):
     r"""
 
     """
     
     ncalls = 0
     heu_func = DeployHeu(config_heu)
-    gen_hash = HashedGen(param_sim_function['ngram_suffix'])
+    # gen_hash = HashedGen(param_sim_function['ngram_suffix'])
+    new_hash = NewHash(param_sim_function['ngram_suffix'])
     heap = []  # nodes at the frontier of search
     finished_hypos = []
     # config_search.in: each time we expand a node, we always extend to end
@@ -148,21 +163,25 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
     last = None
     for prefix in dec_prefix:
         if last:
-            init_seed = BeamNode(prob=1., token_idx=prefix,
-                         prev=[last], prev_score=[0])
+            init_seed = BeamNode(hash=new_hash,prob=1., token_idx=prefix,
+                         prev=[last.uid], prev_score=[0])
         else:
-            init_seed = BeamNode(prob=1., token_idx=prefix,
+            init_seed = BeamNode(hash=new_hash,prob=1., token_idx=prefix,
                          prev=[], prev_score=[])
+            
             last = init_seed
-    heapq.heappush(heap, (-init_seed.prob, init_seed))
+        new_hash.set_node(init_seed.uid, init_seed)
+
+    heapq.heappush(heap, (-init_seed.prob, init_seed.uid))
 
     while ncalls < budget_expl:
-        _, seed  = heapq.heappop(heap)
+        _, seed_uid  = heapq.heappop(heap)
+        seed = new_hash.retrieve_node(seed_uid)
         if config_search['adhoc']:
             expl_steps = max_len
         else:
             expl_steps = 1
-        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, gen_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, new_hash,heap,doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         print(output_node)
@@ -173,7 +192,7 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
     while ncalls < comp_budget:
         _, seed  = heapq.heappop(heap)
         expl_steps=max(1,max_len - seed.length)
-        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, gen_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(tokenizer,dec_prefix,seed, new_hash,[],doc_input_ids,model,param_sim_function,config_search['heu'],avg_score,max_len=max_len,k_best=k_best,heu_func=heu_func,expl_steps=expl_steps)
 
         ncalls += added_num_calls
         
@@ -193,9 +212,3 @@ def a_star(model, tokenizer,doc_input_ids: torch.LongTensor,  param_sim_function
         hypo.print_lattice()
     logging.info(f"Mid: {num_mid_point_hypo}\tEnd: {len(finished_hypos)}")
     return finished_hypos
-
-
-if __name__ == "__main__":
-    setup_logger('test')
-    from src.recom_search.model.util import model, tokenizer,device
-    main()

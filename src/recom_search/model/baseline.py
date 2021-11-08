@@ -187,7 +187,7 @@ def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, b
             logging.info(f"Not finished: {hypo}")
             continue
         logging.info(f"\n\n {hypo}")
-        hypo.print_lattice()
+        # hypo.print_lattice()
 
     # score = eval_group_diversity(outputs)
     return hypos

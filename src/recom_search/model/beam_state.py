@@ -10,8 +10,9 @@ import random
 import string
 from typing import List
 import numpy as np
+from src.recom_search.model.bfs_util import NewHash
 random.seed(2021)
-from src.recom_search.model.token import tokenizer
+from src.recom_search.model.setup import tokenizer
 
 def gen_rand_id(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -48,7 +49,8 @@ def find_suffix(seq_a, seq_b):
 
 
 class BeamNode():
-    def __init__(self, prob: float, token_idx: int, prev: List, prev_score: List,  min_len=10, finished=False, len_reward=0.0) -> None:
+    def __init__(self, hash:NewHash, prob: float, token_idx: int, prev: List[str], prev_score: List,  min_len=10, finished=False, len_reward=0.0) -> None:
+        self.hash = hash
         self.uid = gen_rand_id()
         self.prob = prob
         self.score = math.log(prob)
@@ -64,31 +66,11 @@ class BeamNode():
         assert self.all_score
         assert self.length
 
-        if self.prev:
-            self.min_score = min([x.min_score for x in self.prev])
-        else:
-            self.min_score = float('inf')
-        self.min_score = min(self.min_score, self.score)
-
-
         self.finished = finished
         self.min_len = min_len
         self.len_reward = len_reward
         self.has_finished()
 
-
-    def get_path_sample(self):
-        prev = self.prev
-        prev_score = self.prev_score
-        scores = [self.score]
-        while prev:
-            # who has largest prev_score
-            index_max_score = list(np.argsort(prev_score))[-1]
-            p = prev[index_max_score]
-            scores.append(p.score)
-            prev = p.prev
-            prev_score = p.prev_score
-        return scores[::-1]
 
     def has_finished(self):
         if (self.token_str.strip() == '.' or self.token_str.strip() == '</s>') and self.length >= self.min_len:
@@ -96,34 +78,41 @@ class BeamNode():
         else:
             self.finished = False
 
-    def get_antecedent(self):
+    def get_antecedent(self,step = 5):
         antecedents = []
 
         prev = self.prev  # prev is a list
+        _,prev= self.hash.retrieve_group_nodes(prev)
+        cnt = 0
         while prev:
+            
             antecedents += prev
             new_prev = []
             for p in prev:
                 new_prev += p.prev
-            new_prev = list(set(new_prev))
+            _,new_prev = self.hash.retrieve_group_nodes(new_prev)
+            # new_prev = list(set(new_prev))
             new_prev = [x for x in new_prev if x not in antecedents]
             prev = new_prev
+            cnt +=1
+            if step is not None and cnt >= step:
+                break
         return antecedents
 
-    def add_prev_node(self, node, score):
+    def add_prev_node(self, node_id, score):
         """
         self: a b c d  a   f g
         node: a b c d  x y 
 
         """
         # check if self is the ancedant node of "node"
-        if self in node.get_antecedent() or self == node or (node in self.prev):
+        if self in self.hash.retrieve_node(node_id).get_antecedent() or self.uid == node_id or (node_id in self.prev):
             return
 
-        self.prev.append(node)
+        self.prev.append(node_id)
         self.prev_score.append(score)
-        self.min_score = min(self.min_score ,score)
-        # sort
+
+
 
     def visualization(self):
         nodes, edges = {}, {}
@@ -132,36 +121,38 @@ class BeamNode():
         def dfs(node: BeamNode):
             if not node:
                 return
-
-            if node.uid in seen:
+            node_uid = self.hash.find_root_node_uid(node.uid)
+            if node_uid in seen:
                 return
-            seen[node.uid] = True
-
+            seen[node_uid] = True
+            node = self.hash.retrieve_node(node_uid)
             my_prev, my_prev_score = node.prev, node.prev_score
             for p, ps in zip(my_prev, my_prev_score):
-
+                p_uid = self.hash.find_root_node_uid(p)
+                p_node = self.hash.retrieve_node(p_uid)
                 edge_info = {
-                    'src': p.uid,
-                    'tgt': node.uid,
+                    'src': p_uid,
+                    'tgt': node_uid,
                     'score': ps
                 }
-                edges[f"{p.uid}_{node.uid}"] = edge_info
+                edges[f"{p_uid}_{node_uid}"] = edge_info
                 # edges.append(edge_info)
 
             nodes[node.uid] = {
-                'uid': node.uid,
+                'uid': node_uid,
                 'text': node.token_str,
                 'tok_idx':node.token_idx
             }
-            # nodes.append({'uid': node.uid,'text': node.token_str})
 
             prevs = node.prev
+            _, prevs = self.hash.retrieve_group_nodes(prevs)
             for p in prevs:
                 dfs(p)
         dfs(self)
         return nodes, edges
 
     def print_lattice(self):
+        raise NotImplementedError
         # DFS to discover nodes, if a node is seen and discovered again, it's the start of a span
         # key is a node, value is the latest path to this node from root.
         seen = {}
@@ -194,7 +185,7 @@ class BeamNode():
         dfs(self, [])
         logging.info(
             f"There are {len(recomb_units)} recomb units in this case.")
-
+    
     def set_full(self):
         """
         Everytime a substructure is modified, we need to update the tokens and scores
@@ -204,6 +195,7 @@ class BeamNode():
         prev = self.prev
         while prev:
             prev = prev[0]
+            prev = self.hash.retrieve_node(prev)
             tokens.append(prev.token_idx)
             scores.append(prev.score)
             prev = prev.prev
@@ -216,6 +208,7 @@ class BeamNode():
         prev = self.prev
         while prev:
             prev = prev[0]
+            prev = self.hash.retrieve_node(prev)
             out.append(prev.token_str)
             prev = prev.prev
         out = out[::-1]
@@ -226,14 +219,6 @@ class BeamNode():
         dec_prefix = torch.tensor([tokens], dtype=torch.long)
         return dec_prefix
 
-    def _get_length(self):
-        l = 1
-        prev = self.prev
-        while prev:
-            prev = prev[0]
-            l += 1
-            prev = prev.prev
-        return l
 
     def get_score_sum(self):
         all_score = self.all_score
@@ -257,7 +242,9 @@ class BeamNode():
         while prev and suffix_tokens:
             last_target_token_idx = suffix_tokens.pop(-1)
             new_prev = []
+            _, prev = self.hash.retrieve_group_nodes(prev)
             for p in prev:
+                
                 token = p.token_idx
                 if token == last_target_token_idx:
 
@@ -269,6 +256,7 @@ class BeamNode():
                 raise Exception("Not found!")
         while prev:
             prev = prev[0]
+            prev = self.hash.retrieve_node(prev)
             reversed_tokens.append(prev.token_idx)
             prev = prev.prev
         return reversed_tokens[::-1]

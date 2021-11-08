@@ -22,64 +22,9 @@ from transformers import (
 )
 
 from src.recom_search.model.util import *
-import argparse
-
-# assert model
-
-
-def process_arg():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-device', type=str, default='cuda:2')
-    parser.add_argument(
-        "-model", type=str, choices=['dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample',  'astar'], default='bs')
-    parser.add_argument('-beam_size', type=int, default=15)
-    parser.add_argument('-nexample', type=int, default=20)
-    parser.add_argument('-task', type=str,default='sum',choices=['sum','mt1n','mtn1'])
-    parser.add_argument('-dataset',default='xsum',type=str)
-    parser.add_argument('-top_p', type=float, default=0.9)
-    parser.add_argument('-temp', type=float, default=1.5)
-    parser.add_argument('-beam_group', type=int, default=5)
-    parser.add_argument('-hamming_penalty', type=float, default=0.0)
-    parser.add_argument('-extra_steps', type=int, default=10)
-    parser.add_argument('-min_len', type=int, default=13)
-    parser.add_argument('-max_len', type=int, default=35)
-    parser.add_argument('-num_beam_hyps_to_keep', type=int, default=100)
-    parser.add_argument('-ngram_suffix', type=int, default=4)
-    parser.add_argument('-len_diff', type=int, default=5)
-
-    parser.add_argument('-avg_score', type=str2bool, nargs='?',
-                        const=True, default=False, help='use average model score')
-
-    parser.add_argument('-use_heu', type=str2bool, nargs='?',
-                        const=True, default=False, help='our model: do we use heuristic')
-    parser.add_argument('-post', type=str2bool, nargs='?',
-                        const=True, default=False, help='our model: enforce the model to generate after exploration')
-    parser.add_argument('-adhoc', type=str2bool, nargs='?',
-                        const=True, default=False, help='our model: always generate till the end once touch a node')
-    parser.add_argument('-post_ratio', type=float, default=0.4,
-                        help='our model: ratio of resource allocation')
-
-    parser.add_argument('-heu_seq_score', type=float, default=0.0,
-                        help='Heuristic: consider the score of previously generated sequence. this is the weight term for that')
-    parser.add_argument('-heu_seq_score_len_rwd', type=float,
-                        default=0.0, help='Length reward term in heu_seq_score.')
-    parser.add_argument('-heu_pos', type=float, default=0.0,
-                        help='Heuristic for position bias')
-    parser.add_argument('-heu_ent', type=float, default=0.5,
-                        help='Heuristic for entropy.')
-    parser.add_argument('-heu_word', type=float, default=0.0,
-                        help='Heuristic for good token.')
-
-    # parser.add_argument('-min_path', type=int, default=0,help='Bool indicator of if min_path or not')
-
-    # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
-    args = parser.parse_args()
-    return args
 
 
 def run_recom_bs(args, model, input_doc, param_sim_function):
-
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
     output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,
@@ -196,12 +141,6 @@ def run_baseline(args, model, inp):
     return output_dict
     # output should be a list of str
 
-def config_dec_inp(tokenizer, task, lang):
-    if task == 'sum':
-        dec_prefix = [tokenizer.eos_token_id]
-    elif task.startswith('mt'):
-        pass
-    pass
 
 def main(args, tokenizer, model, dataset,dec_prefix):
 
@@ -228,7 +167,8 @@ def main(args, tokenizer, model, dataset,dec_prefix):
         logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
         param_sim_function = {
             'ngram_suffix': args.ngram_suffix,
-            'len_diff': args.len_diff
+            'len_diff': args.len_diff,
+            'merge':args.merge
         }
         config_search = {
                 'post': args.post,
@@ -265,12 +205,8 @@ def main(args, tokenizer, model, dataset,dec_prefix):
 
 
 # from src.recom_search.model.util import tokenizer
-from src.recom_search.model.token import tokenizer
+from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix,args
+
 if __name__ == "__main__":
     # execute only if run as a script
-    args = process_arg()
-
-    setup_logger(name=f"{args.model}")
-    tokenizer, model, dataset, dec_prefix = setup_model(args.task, args.dataset, args.device)
-    
     main(args, tokenizer, model, dataset,dec_prefix)
