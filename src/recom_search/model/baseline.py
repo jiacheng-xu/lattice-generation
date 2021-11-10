@@ -66,7 +66,7 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
 
     len_diff = param_sim_function['len_diff']
     ngram_suffix = param_sim_function['ngram_suffix']
-    # gen_hash = HashedGen(param_sim_function['ngram_suffix'])
+
     gen_nodes = {}
     init_seed = BeamNode(prob=1.0, token_idx=eos_token_id,
                          prev=[], prev_score=[])

@@ -4,7 +4,7 @@ import logging
 import random
 
 from transformers.utils.dummy_pt_objects import BertForMaskedLM
-from src.recom_search.model.bfs_util import HashedGen
+
 from src.recom_search.model.beam_state import BeamNode
 
 
@@ -38,7 +38,7 @@ def write_recomb_records(match_suffix, seq_a, seq_b, doc_input, ngram_suffix, sa
         fd.write(f"{list_doc_input}\t{a}\t{b}\n")
 
 
-def new_core_merge(beam_par: BeamNode, beam_drop: BeamNode, hash: HashedGen = None, doc_input_ids=None, ngram_suffix=None):
+def new_core_merge(beam_par: BeamNode, beam_drop: BeamNode, hash= None, doc_input_ids=None, ngram_suffix=None):
     pointer_par = beam_par
     pointer_drop = beam_drop
 

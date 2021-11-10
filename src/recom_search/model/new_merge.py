@@ -5,7 +5,7 @@ from re import A
 from typing import List
 
 from transformers.utils.dummy_pt_objects import BertForMaskedLM
-from src.recom_search.model.bfs_util import HashedGen
+
 from src.recom_search.model.beam_state import BeamNode
 
 
