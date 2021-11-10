@@ -17,7 +17,9 @@
                 "astar",
                 "-adhoc",
                 "-ngram_suffix",
-                "4"
+                "4",
+                "-merge",
+                "imp"
             ],
         },
         {
@@ -77,7 +79,9 @@
                 "astar",
                 "-adhoc",
                 "-ngram_suffix",
-                "4"
+                "4",
+                "-merge",
+                "imp"
             ],
             // "-use_heu", "-heu_seq_score_len_rwd","0.4","-heu_ent","1", "-avg_score"
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"], ,"-heu_seq_score_len_rwd","0.5", -model astar -use_heu -heu_seq_score_len_rwd 0.5

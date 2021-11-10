@@ -1,4 +1,5 @@
 
+from src.recom_search.model.setup import tokenizer
 import torch
 import math
 import logging
@@ -12,7 +13,7 @@ from typing import List
 import numpy as np
 from src.recom_search.model.bfs_util import NewHash
 random.seed(2021)
-from src.recom_search.model.setup import tokenizer
+
 
 def gen_rand_id(N=10):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
@@ -49,7 +50,7 @@ def find_suffix(seq_a, seq_b):
 
 
 class BeamNode():
-    def __init__(self, hash:NewHash, prob: float, token_idx: int, prev: List[str], prev_score: List,  min_len=10, finished=False, len_reward=0.0) -> None:
+    def __init__(self, hash: NewHash, prob: float, token_idx: int, prev: List[str], prev_score: List,  min_len=10, finished=False, len_reward=0.0, master_node_uid=None) -> None:
         self.hash = hash
         self.uid = gen_rand_id()
         self.prob = prob
@@ -59,8 +60,8 @@ class BeamNode():
         self.token_idx = token_idx
         # print(self.token_idx)
         self.token_str = tokenizer.decode(
-            self.token_idx,skip_special_tokens=False) if tokenizer else f"{token_idx}"
-
+            self.token_idx, skip_special_tokens=False) if tokenizer else f"{token_idx}"
+        self.master_node_uid =master_node_uid or self.uid
         self.set_full()
         assert self.all_token_idx
         assert self.all_score
@@ -70,7 +71,7 @@ class BeamNode():
         self.min_len = min_len
         self.len_reward = len_reward
         self.has_finished()
-
+        self.hash.set_node(self.uid, self)
 
     def has_finished(self):
         if (self.token_str.strip() == '.' or self.token_str.strip() == '</s>') and self.length >= self.min_len:
@@ -78,23 +79,23 @@ class BeamNode():
         else:
             self.finished = False
 
-    def get_antecedent(self,step = 5):
+    def get_antecedent(self, step=None):
         antecedents = []
 
         prev = self.prev  # prev is a list
-        _,prev= self.hash.retrieve_group_nodes(prev)
+        _, prev = self.hash.retrieve_group_nodes(prev)
         cnt = 0
         while prev:
-            
+
             antecedents += prev
             new_prev = []
             for p in prev:
                 new_prev += p.prev
-            _,new_prev = self.hash.retrieve_group_nodes(new_prev)
+            _, new_prev = self.hash.retrieve_group_nodes(new_prev)
             # new_prev = list(set(new_prev))
             new_prev = [x for x in new_prev if x not in antecedents]
             prev = new_prev
-            cnt +=1
+            cnt += 1
             if step is not None and cnt >= step:
                 break
         return antecedents
@@ -106,13 +107,11 @@ class BeamNode():
 
         """
         # check if self is the ancedant node of "node"
-        if self in self.hash.retrieve_node(node_id).get_antecedent() or self.uid == node_id or (node_id in self.prev):
+        if self in self.hash.retrieve_node(node_id).get_antecedent() or self.hash.find_root_node_uid(self.uid)  == self.hash.find_root_node_uid(node_id) or (node_id in self.prev):
             return
 
         self.prev.append(node_id)
         self.prev_score.append(score)
-
-
 
     def visualization(self):
         nodes, edges = {}, {}
@@ -141,7 +140,7 @@ class BeamNode():
             nodes[node.uid] = {
                 'uid': node_uid,
                 'text': node.token_str,
-                'tok_idx':node.token_idx
+                'tok_idx': node.token_idx
             }
 
             prevs = node.prev
@@ -185,7 +184,7 @@ class BeamNode():
         dfs(self, [])
         logging.info(
             f"There are {len(recomb_units)} recomb units in this case.")
-    
+
     def set_full(self):
         """
         Everytime a substructure is modified, we need to update the tokens and scores
@@ -212,13 +211,12 @@ class BeamNode():
             out.append(prev.token_str)
             prev = prev.prev
         out = out[::-1]
-        return '<-'.join(out)
+        return '-'.join(out)
 
     def get_token_idx_as_input(self):
         tokens = self.all_token_idx
         dec_prefix = torch.tensor([tokens], dtype=torch.long)
         return dec_prefix
-
 
     def get_score_sum(self):
         all_score = self.all_score
@@ -230,33 +228,41 @@ class BeamNode():
     def __repr__(self) -> str:
         return self.get_tokens_str()
 
-    def get_tokens_match_suffix(self, suffix_tokens: List[int]):
+    def get_tokens_match_suffix(self, inp_suffix_tokens: List[int]):
         """
         suffix_tokens is the target suffix to match
         greedily pick the prev[0] for rest of sequence
         possible improvement, return all possible and do ANY for heuristic math
         """
         reversed_tokens = []
-
-        prev = [self]
+        suffix_tokens = inp_suffix_tokens.copy()
+        
+        prev = [[self.uid]]
         while prev and suffix_tokens:
             last_target_token_idx = suffix_tokens.pop(-1)
+            # print('-----')
+            # print(tokenizer.decode(last_target_token_idx))
             new_prev = []
-            _, prev = self.hash.retrieve_group_nodes(prev)
-            for p in prev:
-                
-                token = p.token_idx
+            for list_p in prev:
+                # p is a list of UIDs, the last one is the latest one
+                p = list_p[-1]
+                node = self.hash.retrieve_node(p)
+                # print(node.token_str)
+                token = node.token_idx
                 if token == last_target_token_idx:
-
-                    new_prev += p.prev
+                    # _, tmp_prev = self.hash.retrieve_group_nodes(node.prev)
+                    new_prev += [list_p + [x] for x in node.prev] 
 
             reversed_tokens.append(last_target_token_idx)
             prev = new_prev
             if not prev:
                 raise Exception("Not found!")
+        matched_suffix_node_ids = prev[0][:-1]
+        prev = prev[0]
         while prev:
-            prev = prev[0]
-            prev = self.hash.retrieve_node(prev)
-            reversed_tokens.append(prev.token_idx)
-            prev = prev.prev
-        return reversed_tokens[::-1]
+            node_uid = prev[0]
+            node = self.hash.retrieve_node(node_uid)
+            reversed_tokens.append(node.token_idx)
+            prev = node.prev
+
+        return reversed_tokens[::-1], matched_suffix_node_ids

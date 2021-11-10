@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # execute only if run as a script
     prefix = 'sum'
     suffix = '.pkl'
-    # suffix = '17532613_The countr_astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
+    suffix = 'astar_15_35_False_0.4_True_False_4_5_imp_False_0.0_0.9.pkl'
     files = os.listdir('vizs')
     files = [f for f in files if f.endswith(suffix) and f.startswith(prefix)]
     for f in tqdm(files):
