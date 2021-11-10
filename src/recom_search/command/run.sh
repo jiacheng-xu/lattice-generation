@@ -17,3 +17,11 @@ PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -post -po
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -post -post_ratio 0.5  -device cuda:3 # post end
 
 PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc -device cuda:2  # intermediate end
+
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc -dataset xsum -ngram_suffix 4 -merge imp
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc -dataset xsum -ngram_suffix 4 -merge zip -device cuda:3
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc -dataset xsum -ngram_suffix 4 -merge imp -avg_score 0.6
+
+PYTHONPATH=./ python src/recom_search/command/run_eval.py -model astar -adhoc -dataset xsum -ngram_suffix 4 -merge zip -device cuda:3 -avg_score 0.6

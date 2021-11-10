@@ -1,9 +1,11 @@
+from heapq import heappop, heappush
+from src.recom_search.model.setup import tokenizer
 import argparse
 import logging
 import multiprocessing
 from multiprocessing import Pool
 import json
-
+from filelock import FileLock
 import random
 import itertools
 from typing import Dict
@@ -15,7 +17,7 @@ import os
 import statistics
 from collections import defaultdict
 from tqdm import tqdm
-from src.recom_search.model.util import setup_logger
+from src.recom_search.model.setup import setup_logger
 from src.recom_search.model.model_output import SearchModelOutput
 from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main
 from src.recom_search.model.beam_state import BeamNode
@@ -23,26 +25,10 @@ from typing import Dict, List
 import pickle
 from collections import defaultdict
 import spacy
+
 nlp = spacy.load("en_core_web_sm")
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
-from src.recom_search.model.setup import tokenizer
 
-
-def branch_facotr(endings):
-    nodes_in_len_bucket = [0 for _ in range(30)]
-    for key, value in d.items():
-        l = value.length
-        nodes_in_len_bucket[l] += 1
-    nodes_in_len_bucket = [x for x in nodes_in_len_bucket if x != 0]
-    nodes_in_len_bucket = nodes_in_len_bucket[:min_len]
-    effective_len = len(nodes_in_len_bucket)
-    bucket = []
-    for i in range(effective_len-1):
-        prev, nxt = nodes_in_len_bucket[i], nodes_in_len_bucket[i+1]
-        factor = nxt/prev
-        bucket.append(factor)
-    quants = statistics.quantiles(bucket, n=10)
-    pass
 
 
 def find_start_end(nodes, edges):
@@ -69,7 +55,7 @@ def cache_edges(edges):
             continue
         edge_info[edge['tgt']].append(edge['src'])
         edge_score[edge['tgt']].append(edge['score'])
-    
+
     return edge_info, edge_score
 
 
@@ -99,12 +85,13 @@ def reward_len(path, alpha=0.01):
 
 
 class Path:
-    def __init__(self, tokens=['<s>'],token_ids=[2], scores=0, ngram_cache=[]) -> None:
+    def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[]) -> None:
         self.tokens = tokens
         self.token_ids = token_ids
         self.scores = scores
         self.ngram_cache = ngram_cache
         self.n = 4
+
     def add(self, tok, tok_id, score):
         if len(self.tokens) >= self.n-1:
             tmp_ngram = self.tokens[-(self.n-1):] + [tok]
@@ -113,17 +100,22 @@ class Path:
                 return None
             dup_ngram_cache = self.ngram_cache.copy()
             dup_ngram_cache.append(tmp_ngram)
-            obj = Path(self.tokens + [tok],self.token_ids+[tok_id] , self.scores+score, dup_ngram_cache)
+            obj = Path(self.tokens + [tok], self.token_ids +
+                       [tok_id], self.scores+score, dup_ngram_cache)
             return obj
-        obj = Path(self.tokens + [tok], self.token_ids+[tok_id], self.scores+score, [])
+        obj = Path(self.tokens + [tok], self.token_ids +
+                   [tok_id], self.scores+score, [])
         return obj
+    def __len__(self)->int:
+        return len(self.tokens)
     def __repr__(self) -> str:
         return self.tokens
+
     def score(self):
         return self.scores / len(self.tokens) ** 0.8
 
-from heapq import heappop,heappush
-def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
+
+def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=50):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -149,7 +141,8 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
         seen.append(node)
 
         # filter_output = [x.add(node_text[node], score) for x in output]
-        filter_output = list(map(lambda x: x.add(node_text[node], node_tok_idx[node], score), output))
+        filter_output = list(
+            map(lambda x: x.add(node_text[node], node_tok_idx[node], score), output))
         filter_output = list(filter(lambda x: x != None, filter_output))
         random.shuffle(filter_output)
         filter_output = filter_output[:eps]
@@ -165,8 +158,9 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4)):
     for end_key in list_of_eos_key:
         # path_before_dedup = paths[end_key]
         # deduplication already happens in Path class
-
-        total_path += paths[end_key]
+        available_paths = paths[end_key]
+        available_paths= [x for x in available_paths if len(x)>=min_len and len(x) <=max_len]
+        total_path += available_paths
     return total_path, list_of_eos_key, degree_mat
 
 
@@ -200,7 +194,7 @@ def save_dataframe(df, fname, path):
         pickle.dump(df, fd)
 
 
-def analyze_graph(paths:List[Path], nodes):
+def analyze_graph(paths: List[Path], nodes):
     # number of paths, number of unique nodes, number of novel ngram, POS tag distributions
     # non-stop word
     stat = {}
@@ -258,7 +252,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
     stat['degree'] = statistics.mean(abs_degrees)
     random.shuffle(all_paths)
     sampled_paths = all_paths[:50]
-    sampled_paths = [ tokenizer.decode(x.token_ids) for x in sampled_paths]
+    sampled_paths = [tokenizer.decode(x.token_ids) for x in sampled_paths]
     logger.info(sampled_paths)
     # save_dataframe(panda_df, f"{name}", "df")
     # return d_stat, all_stat
@@ -270,7 +264,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
 
 def test_one_file(f):
     name = ".".join(f.split('.')[:-1])
-    config = name.split('_')[2:]
+    config = name.split('_')[:-2]
     logger.info(config)
     with open(f"vizs/{f}", 'rb') as fd:
         finished: SearchModelOutput = pickle.load(fd)
@@ -282,23 +276,27 @@ def test_one_file(f):
     stat = viz_result(finished.ends, finished.reference)
 
     fname = os.path.join('result', "_".join(config)+'.json')
-    if os.path.isfile(fname):
-        with open(fname, 'r') as read_file:
-            data = json.load(read_file)
-    else:
-        data = []
-    stat["file"] = name
-    if stat not in data:
-        data.append(stat)
-    with open(fname, 'w') as wfd:
-        json.dump(data, wfd)
+
+
+    with FileLock(f"{fname}.lock"):
+        print("Lock acquired.")
+        if os.path.isfile(fname):
+            with open(fname, 'r') as read_file:
+                data = json.load(read_file)
+        else:
+            data = []
+        stat["file"] = name
+        if stat not in data:
+            data.append(stat)
+        with open(fname, 'w') as wfd:
+            json.dump(data, wfd)
 
 
 if __name__ == "__main__":
     # execute only if run as a script
     files = os.listdir('vizs')
     suffix = '.pkl'
-    prefix = 'mtn1'
+    prefix = 'sum'
     # suffix = 'bs_10_25_False_0.7_False_False_3_5_0.0_0.9.pkl'
     # suffix = 'dbs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
     # suffix ='recom_sample_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
@@ -307,17 +305,18 @@ if __name__ == "__main__":
     # suffix = 'astar_15_35_False_0.7_False_True_3_5_0.5_0.9.pkl'
     # suffix = 'astar_15_35_True_0.4_False_False_3_5_True_0.0_0.9.pkl'
     # suffix = '17532613_The countr_astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
-    files = [f for f in files if f.endswith('.pkl') and f.endswith(suffix) and f.startswith(prefix)]
-    f_configs = set(['_'.join(name.split('_')[2:]) for name in files])
+    files = [f for f in files if f.endswith(
+        '.pkl') and f.endswith(suffix) and f.startswith(prefix)]
+    f_configs = set(['_'.join(name.split('_')[:-2]) for name in files])
     for confi in f_configs:
         print(confi)
         # if 'astar_15_35_False_0.4_True_False_4_5' not in confi :
-            # continue
+        # continue
         # else:
         #     continue
         logger = setup_logger(name=f"analysis-{confi}")
-        f_con = [f for f in files if f.endswith(confi)]
+        f_con = [f for f in files if f.startswith(confi)]
 
-        test_one_file(f_con[0])
+        # test_one_file(f_con[0])
         with Pool(10) as pool:
             L = pool.map(test_one_file, f_con)

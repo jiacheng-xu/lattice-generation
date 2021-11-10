@@ -59,7 +59,9 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
 
 def render_name(task, data,mname, doc_id, inp_doc_str:str, beam_sz:int, max_len, *args):
     first_few_tokens = inp_doc_str[:20]
-    txt = f"{task}_{data}_{doc_id}_{first_few_tokens}_"
+    first_few_toks = first_few_tokens.split(' ')
+    first_few_toks = "-".join(first_few_toks)
+    txt = f"{task}_{data}_"
     params = [mname, beam_sz, max_len]
     keys = []
     for arg in args:
@@ -68,7 +70,8 @@ def render_name(task, data,mname, doc_id, inp_doc_str:str, beam_sz:int, max_len,
             keys.append(k)
     logging.info("File name: " + "_".join(keys))
     params = "_".join([str(x) for x in params])
-    return txt+params
+    suffix = f"_{doc_id}_{first_few_toks}"
+    return txt+params+suffix
 
 
 

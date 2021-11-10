@@ -111,8 +111,8 @@ def astar_step(tokenizer, force_dec_prefix, start_seed: BeamNode, hash: NewHash,
                     cur_node=tmp_state, prev_len=cur_len, prob_distb=output_prob)
             else:
                 heu_score = 0
-            if avg_score:
-                model_score = tmp_state.get_score_sum() / tmp_state.length ** 0.6
+            if avg_score > 0:
+                model_score = tmp_state.get_score_sum() / tmp_state.length ** avg_score
             else:
                 model_score = tmp_state.get_score_sum()
             score = model_score + heu_score
@@ -138,7 +138,7 @@ def a_star(model, tokenizer,
            config_heu: Optional[Dict],
            config_search: Optional[Dict],
            dec_prefix: Optional[List],
-           avg_score: bool,
+           avg_score,
            max_len: Optional[int],
            k_best: Optional[int],
            comp_budget: Optional[int]):
