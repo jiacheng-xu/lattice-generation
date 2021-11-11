@@ -154,6 +154,10 @@ def main(args, tokenizer, model, dataset,dec_prefix):
             ref_sum = example[1]
             inp = document
             doc_id = idx
+        elif args.dataset == 'cnndm':
+            document = example['article']
+            doc_id = example['id']
+            ref_sum = example['highlights']
         else:
             document = example['document']
             sents = document.split('\n')

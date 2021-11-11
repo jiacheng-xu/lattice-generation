@@ -36,7 +36,11 @@ def setup_model(task='sum', dataset='xsum', device_name='cuda:2'):
             model_name, cache_dir=MODEL_CACHE)
 
         logging.info('Loading dataset')
-        dataset = load_dataset(dataset, split='validation')
+        if dataset == 'xsum':
+            dataset = load_dataset("xsum", split='validation')
+        elif dataset == 'cnndm':
+            dataset = load_dataset("cnn_dailymail", split='validation')
+            print("CNNDM mean token in ref 56")
         dec_prefix = [tokenizer.eos_token_id]
 
     elif task == 'mt1n':

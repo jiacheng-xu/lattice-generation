@@ -11,7 +11,8 @@ import spacy
 
 nlp = spacy.load("en_core_web_sm")
 
-scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
+scorer = rouge_scorer.RougeScorer(
+    ['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
 
 
 def _get_ngrams(n, text):
@@ -75,31 +76,41 @@ def repetition(inp_group: List[str], threshold=3):
     return matter / total_len
 
 
-def rouge_single_pair(cand:str, ref:str, metric='rouge1'):
+def rouge_single_pair(cand: str, ref: str, metric='rouge1'):
     s = scorer.score(cand, ref)
     return s[metric].fmeasure
 
-def rouge(inp_group, reference: str) -> float:
-    scores = []
+
+def rouge(inp_group, reference: str) -> dict:
+    scores = defaultdict(list)
     for inp in inp_group:
         s = scorer.score(inp, reference)
-        f1, fl = s['rouge1'].fmeasure, s['rougeL'].fmeasure
-        scores.append(f1)
-    return statistics.mean(scores)
+        f1,f2, fl = s['rouge1'].fmeasure, s['rouge2'].fmeasure, s['rougeL'].fmeasure
+        scores['r1'].append(f1)
+        scores['r2'].append(f2)
+        scores['rl'].append(fl)
+    d = {}
+    for k, v in scores.items():
+        avg = statistics.mean(v)
+        d[k] = avg
+    return d
+
 
 def eval_main(inp_group, reference):
+    dict_rouge = rouge(inp_group, reference)
     if len(inp_group) == 1:
         d = {
-        'ROUGE': rouge(inp_group, reference),
-        'REP': 0,
-        'SELF_BLEU': 0,
-        'NP_OVERLAP': 0,
-    }
+            
+            'REP': 0,
+            'SELF_BLEU': 0,
+            'NP_OVERLAP': 0,
+        }
     else:
         d = {
-        'ROUGE': rouge(inp_group, reference),
-        'REP':repetition(inp_group),
-        'SELF_BLEU':self_bleu(inp_group),
-        'NP_OVERLAP':np_overlap(inp_group),
-    }
+           
+            'REP': repetition(inp_group),
+            'SELF_BLEU': self_bleu(inp_group),
+            'NP_OVERLAP': np_overlap(inp_group),
+        }
+    d = {**d, **dict_rouge}
     return d

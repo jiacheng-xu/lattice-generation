@@ -115,7 +115,7 @@ class Path:
         return self.scores / len(self.tokens) ** 0.8
 
 
-def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=50):
+def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=25):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -235,14 +235,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
 
         all_nodes.update(nodes)
         all_edges.update(edges)
-        """
-        print(idx)
-        paths, degree_mat = derive_path(nodes, edges)
-        panda_df, stat = extract_graph_feat(nodes, edges, paths, degree_mat)
-        save_dataframe(panda_df, f"{name}_{idx}", "df")
-        for k, v in stat.items():
-            d_stat[k].append(v)
-        """
+
 
     all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges)
     # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
@@ -251,11 +244,10 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
     abs_degrees = list(all_degree_mat.values())
     stat['degree'] = statistics.mean(abs_degrees)
     random.shuffle(all_paths)
-    sampled_paths = all_paths[:50]
+    sampled_paths = all_paths[:100]
     sampled_paths = [tokenizer.decode(x.token_ids) for x in sampled_paths]
     logger.info(sampled_paths)
-    # save_dataframe(panda_df, f"{name}", "df")
-    # return d_stat, all_stat
+
     extrinsic_eval = eval_main(sampled_paths, ref_sum)
     stat = {**stat, **extrinsic_eval}
     logger.info(stat)

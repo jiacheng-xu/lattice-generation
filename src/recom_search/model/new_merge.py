@@ -1,14 +1,9 @@
 import random
 import logging
 import random
-from re import A
 from typing import List
 
-from transformers.utils.dummy_pt_objects import BertForMaskedLM
-
 from src.recom_search.model.beam_state import BeamNode
-
-
 
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 
