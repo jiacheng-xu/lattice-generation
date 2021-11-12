@@ -11,9 +11,12 @@ import spacy
 
 nlp = spacy.load("en_core_web_sm")
 
-scorer = rouge_scorer.RougeScorer(
+full_rouge_scorer = rouge_scorer.RougeScorer(
     ['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
 
+
+from sacrebleu.metrics import BLEU
+bleu_scorer = BLEU(effective_order=True)
 
 def _get_ngrams(n, text):
     ngram_set = set()
@@ -54,12 +57,12 @@ def np_overlap(inp_group: List[str]):
 
 
 def self_bleu(inp_group: List[str]):
-    tok_inputs = tokenize_sentences(inp_group)
+    # tok_inputs = tokenize_sentences(inp_group)
     bleu_scores = []
-    for idx, inp in enumerate(tok_inputs):
-        bleu_score = nltk.translate.bleu_score.sentence_bleu(
-            [x for jdx, x in enumerate(tok_inputs) if jdx != idx], inp)
-        bleu_scores.append(bleu_score)
+    for idx, inp in enumerate(inp_group):
+        # bleu_score = nltk.translate.bleu_score.sentence_bleu([x for jdx, x in enumerate(tok_inputs) if jdx != idx], inp)
+        bleu_score = bleu_scorer.sentence_score(inp, [x for jdx, x in enumerate(inp_group) if jdx != idx])
+        bleu_scores.append(bleu_score.score)
     return statistics.mean(bleu_scores)
 
 
@@ -77,14 +80,14 @@ def repetition(inp_group: List[str], threshold=3):
 
 
 def rouge_single_pair(cand: str, ref: str, metric='rouge1'):
-    s = scorer.score(cand, ref)
+    s = full_rouge_scorer.score(cand, ref)
     return s[metric].fmeasure
 
 
 def rouge(inp_group, reference: str) -> dict:
     scores = defaultdict(list)
     for inp in inp_group:
-        s = scorer.score(inp, reference)
+        s = full_rouge_scorer.score(inp, reference)
         f1,f2, fl = s['rouge1'].fmeasure, s['rouge2'].fmeasure, s['rougeL'].fmeasure
         scores['r1'].append(f1)
         scores['r2'].append(f2)
@@ -96,21 +99,24 @@ def rouge(inp_group, reference: str) -> dict:
     return d
 
 
-def eval_main(inp_group, reference):
+def eval_main(inp_group, reference, prefix=""):
     dict_rouge = rouge(inp_group, reference)
     if len(inp_group) == 1:
         d = {
-            
             'REP': 0,
             'SELF_BLEU': 0,
-            'NP_OVERLAP': 0,
+            # 'NP_OVERLAP': 0,
         }
     else:
         d = {
            
             'REP': repetition(inp_group),
             'SELF_BLEU': self_bleu(inp_group),
-            'NP_OVERLAP': np_overlap(inp_group),
+            # 'NP_OVERLAP': np_overlap(inp_group),
         }
     d = {**d, **dict_rouge}
-    return d
+    #update d with key prefix
+    new_d = {}
+    for k,v in d.items():
+        new_d[f"{prefix}_{k}"] = v
+    return new_d

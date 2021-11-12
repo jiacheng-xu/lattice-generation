@@ -3,9 +3,19 @@ import logging
 from datasets import load_dataset
 import argparse
 import torch
-from transformers import BartTokenizer, BartForConditionalGeneration, BartConfig
+from transformers import BartTokenizer, BartForConditionalGeneration
 import os
+import random
+random.seed(2021)
 
+def render_address(root = 'output'):
+    d = {
+        'data':os.path.join(root, 'data'),
+        'html':os.path.join(root, 'html'),
+        'stat':os.path.join(root, 'stat'),
+        'text':os.path.join(root, 'text'),
+    }
+    return d
 
 def read_mt_data(path='/mnt/data1/jcxu/mt-data/wmt19', name='zh-en'):
     src = name[:2]
@@ -118,7 +128,7 @@ def process_arg():
     parser = argparse.ArgumentParser()
     parser.add_argument('-device', type=str, default='cuda:2')
     parser.add_argument("-model", type=str, choices=[
-                        'dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample',  'astar'], default='bs')
+                        'dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample', 'astar'], default='bs')
     parser.add_argument('-beam_size', type=int, default=15)
     parser.add_argument('-nexample', type=int, default=100)
     parser.add_argument('-task', type=str, default='sum',
@@ -135,7 +145,8 @@ def process_arg():
     parser.add_argument('-ngram_suffix', type=int, default=4)
     parser.add_argument('-len_diff', type=int, default=5)
 
-    parser.add_argument('-avg_score', type=float, default=-1, help='average model score coefficient. typical numbers like 0.6 or 0.8 or 0.9')
+    parser.add_argument('-avg_score', type=float, default=-1,
+                        help='average model score coefficient. typical numbers like 0.6 or 0.8 or 0.9')
 
     parser.add_argument('-use_heu', type=str2bool, nargs='?',
                         const=True, default=False, help='our model: do we use heuristic')
@@ -158,14 +169,14 @@ def process_arg():
                         help='Heuristic for good token.')
     parser.add_argument('-merge', type=str, default='zip',
                         choices=['zip', 'imp'])
-    # parser.add_argument('-min_path', type=int, default=0,help='Bool indicator of if min_path or not')
 
-    # parser.add_argument("-beam_ent", type=str2bool, nargs='?', const=True,default=False, help="Use entropy to dynamically operate beam.")
+
     args = parser.parse_args()
     return args
 
 
 args = process_arg()
-setup_logger(name=f"{args.model}")
+dict_io = render_address()
+setup_logger(name=f"{args.task}_{args.model}_{args.dataset}")
 tokenizer, model, dataset, dec_prefix = setup_model(
     args.task, args.dataset, args.device)

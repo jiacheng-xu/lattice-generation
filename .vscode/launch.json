@@ -8,7 +8,7 @@
             "name": "summarization xsum",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/src/recom_search/command/run_pipeline.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "python.envFile": "${workspaceFolder}/.env",

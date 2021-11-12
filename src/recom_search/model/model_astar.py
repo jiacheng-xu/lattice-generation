@@ -182,7 +182,7 @@ def a_star(model, tokenizer,
 
         master_uid = seed.master_node_uid
         if master_uid != new_hash.find_root_node_uid(master_uid):
-            print("Skipping unexpanded children!")
+            # print("Skipping unexpanded children!")
             continue
         
         if config_search['adhoc']:
@@ -199,11 +199,12 @@ def a_star(model, tokenizer,
     # if there is post generation (like explore-then-gen)
     while ncalls < comp_budget:
         _, seed_uid = heapq.heappop(heap)
-        if seed_uid != new_hash.find_root_node_uid(seed_uid):
-            print("Skipping unexpanded children!")
+        seed = new_hash.retrieve_node(seed_uid)
+
+        master_uid = seed.master_node_uid
+        if master_uid != new_hash.find_root_node_uid(master_uid):
+            # print("Skipping unexpanded children!")
             continue
-        # seed = new_hash.retrieve_node(seed_uid)
-        _, seed = heapq.heappop(heap)
         expl_steps = max(1, max_len - seed.length)
         output_node, added_num_calls = astar_step(tokenizer, dec_prefix, seed, new_hash, [], doc_input_ids, model, param_sim_function,
                                                   config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)

@@ -1,3 +1,4 @@
+from transformers import MBart50TokenizerFast
 import statistics
 import torch
 import logging
@@ -32,9 +33,6 @@ def return_str(tokens):
     return tokenizer.decode(tokens, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
 
-
-from transformers import MBart50TokenizerFast
-
 # tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=MODEL_CACHE)
 # tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-many-to-one-mmt")
 # tokenizer = None
@@ -56,11 +54,7 @@ def beam_size_policy(beam_size, time_step, policy='regular'):
         else:
             return min(time_step, beam_size)
 
-
-def render_name(task, data,mname, doc_id, inp_doc_str:str, beam_sz:int, max_len, *args):
-    first_few_tokens = inp_doc_str[:20]
-    first_few_toks = first_few_tokens.split(' ')
-    first_few_toks = "-".join(first_few_toks)
+def render_config_name(task, data, mname, beam_sz: int, max_len, *args):
     txt = f"{task}_{data}_"
     params = [mname, beam_sz, max_len]
     keys = []
@@ -70,9 +64,15 @@ def render_name(task, data,mname, doc_id, inp_doc_str:str, beam_sz:int, max_len,
             keys.append(k)
     logging.info("File name: " + "_".join(keys))
     params = "_".join([str(x) for x in params])
-    suffix = f"_{doc_id}_{first_few_toks}"
-    return txt+params+suffix
+    return txt + params
 
+def render_name(task, data, mname, doc_id, inp_doc_str: str, beam_sz: int, max_len, *args):
+    first_few_tokens = inp_doc_str[:20]
+    first_few_toks = first_few_tokens.split(' ')
+    first_few_toks = "-".join(first_few_toks)
+    config_name = render_config_name(task, data, mname, beam_sz, max_len, *args)
+    suffix = f"_{doc_id}_{first_few_toks}"
+    return config_name, config_name+suffix
 
 
 @torch.no_grad()

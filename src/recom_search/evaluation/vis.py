@@ -58,3 +58,4 @@ if __name__ == "__main__":
             finished = pickle.load(fd)
         net = viz_result(finished)
         net.show(f"vizs/html/{name}.html")
+        

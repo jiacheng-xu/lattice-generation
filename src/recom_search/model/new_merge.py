@@ -52,12 +52,12 @@ def merge_zip(hash, beam_par, beam_drop, par_match_uids:List[BeamNode]):
         par_node_uid = par_match_uids.pop(0)
         par_node = hash.retrieve_node(par_node_uid)
         assert par_node.token_idx == zp.token_idx
-        print(f"Replacing {zp.token_str} with {par_node.token_str}")
+        logging.debug(f"Replacing {zp.token_str} with {par_node.token_str}")
         if hash.find_root_node_uid(par_node_uid) == hash.find_root_node_uid(zp.uid)   :
-            print('Duplicate!')
+            logging.debug('Duplicate!')
             return
         if par_node in hash.retrieve_node(zp.uid).get_antecedent() or zp in par_node.get_antecedent():
-            print("loop")
+            logging.debug("loop")
             return 
         hash.replace_node(par_node_uid, zp.uid)
         par_node.prev += zp.prev

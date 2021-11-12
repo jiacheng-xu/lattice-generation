@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import List
 import random
 random.seed(2021)
+import logging
 class NewHash():
     def __init__(self, ngram: int = 5) -> None:
         self.data = defaultdict(list)   # key: a_b_c: val: [uid_a, uid_b, uid_c]
@@ -59,7 +60,7 @@ class NewHash():
         return self.retrieve_ngram_nodes(k)
     
     def replace_node(self, master_node_uid, del_node_uid):
-        print(f"rep: {del_node_uid} {master_node_uid}")
+        logging.debug(f"rep: {del_node_uid} {master_node_uid}")
         self.uid_map[del_node_uid] = master_node_uid
 
     def add_helper(self, par_node, new_node):

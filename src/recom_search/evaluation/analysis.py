@@ -1,7 +1,16 @@
+from pyvis.network import Network
+from rouge_score import rouge_scorer
+
 from heapq import heappop, heappush
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+from src.recom_search.evaluation.vis import draw_edges, draw_nodes
 from src.recom_search.model.setup import tokenizer
 import argparse
-import logging
+
 import multiprocessing
 from multiprocessing import Pool
 import json
@@ -19,7 +28,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from src.recom_search.model.setup import setup_logger
 from src.recom_search.model.model_output import SearchModelOutput
-from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main
+from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main,bleu_scorer
 from src.recom_search.model.beam_state import BeamNode
 from typing import Dict, List
 import pickle
@@ -84,13 +93,20 @@ def reward_len(path, alpha=0.01):
     return len(path) * alpha
 
 
-class Path:
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=True)
+
+
+class GenPath:
     def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[]) -> None:
         self.tokens = tokens
         self.token_ids = token_ids
         self.scores = scores
         self.ngram_cache = ngram_cache
         self.n = 4
+        self.metrics = {}
+        # self.rouge1 = None
+        # self.rouge2 = None
+        # self.bleu = None
 
     def add(self, tok, tok_id, score):
         if len(self.tokens) >= self.n-1:
@@ -100,14 +116,16 @@ class Path:
                 return None
             dup_ngram_cache = self.ngram_cache.copy()
             dup_ngram_cache.append(tmp_ngram)
-            obj = Path(self.tokens + [tok], self.token_ids +
+            obj = GenPath(self.tokens + [tok], self.token_ids +
                        [tok_id], self.scores+score, dup_ngram_cache)
             return obj
-        obj = Path(self.tokens + [tok], self.token_ids +
+        obj = GenPath(self.tokens + [tok], self.token_ids +
                    [tok_id], self.scores+score, [])
         return obj
-    def __len__(self)->int:
+
+    def __len__(self) -> int:
         return len(self.tokens)
+
     def __repr__(self) -> str:
         return self.tokens
 
@@ -115,7 +133,7 @@ class Path:
         return self.scores / len(self.tokens) ** 0.8
 
 
-def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=25):
+def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=10, max_len=100):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -126,7 +144,7 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=25):
     # dict_path_num[sos_key] = 1
 
     paths = defaultdict(list)   #
-    paths[sos_key] = [Path()]
+    paths[sos_key] = [GenPath()]
 
     def dfs(node, score):
         # print(node)
@@ -159,7 +177,8 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(1e4), min_len=10,max_len=25):
         # path_before_dedup = paths[end_key]
         # deduplication already happens in Path class
         available_paths = paths[end_key]
-        available_paths= [x for x in available_paths if len(x)>=min_len and len(x) <=max_len]
+        available_paths = [x for x in available_paths if len(
+            x) >= min_len and len(x) <= max_len]
         total_path += available_paths
     return total_path, list_of_eos_key, degree_mat
 
@@ -194,7 +213,7 @@ def save_dataframe(df, fname, path):
         pickle.dump(df, fd)
 
 
-def analyze_graph(paths: List[Path], nodes):
+def analyze_graph(paths: List[GenPath], nodes):
     # number of paths, number of unique nodes, number of novel ngram, POS tag distributions
     # non-stop word
     stat = {}
@@ -202,40 +221,90 @@ def analyze_graph(paths: List[Path], nodes):
     stat['num_node'] = len(nodes)
 
     # find non stop word nodes
-    nodes_text = [x['text'].strip() for x in nodes.values()]
-    trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
-    stat['num_non_stop_node'] = len(trim_nodes_text)
+    # nodes_text = [x['text'].strip() for x in nodes.values()]
+    # trim_nodes_text = [x for x in nodes_text if x not in all_stopwords]
+    # stat['num_non_stop_node'] = len(trim_nodes_text)
     paths = [p.tokens for p in paths]
 
     all_1grams = [_get_ngrams(1, x) for x in paths]
     flat_1list = list(itertools.chain(*all_1grams))
     uniq_1grams = list(set(flat_1list))
     stat['novel_1gram'] = len(uniq_1grams)
+    stat['ratio_novel_1gram'] = len(uniq_1grams) / len(flat_1list)
+
+    all_2grams = [_get_ngrams(2, x) for x in paths]
+    flat_2list = list(itertools.chain(*all_2grams))
+    uniq_2grams = list(set(flat_2list))
+    stat['novel_2gram'] = len(uniq_2grams)
+    stat['ratio_novel_2gram'] = len(uniq_2grams) / len(flat_2list)
 
     all_3grams = [_get_ngrams(3, x) for x in paths]
     flat_3list = list(itertools.chain(*all_3grams))
     uniq_3grams = list(set(flat_3list))
     stat['novel_3gram'] = len(uniq_3grams)
-    stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
+    stat['ratio_novel_3gram'] = len(uniq_3grams) / len(flat_3list)
+    # stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
     return stat
 
 
-def viz_result(generated_outputs: List[BeamNode], ref_sum):
+def _evaluate_rouge(path_obj: GenPath, ref):
+    decoded_text = tokenizer.decode(
+        path_obj.token_ids, skip_special_tokens=True)
+    if random.random() < 0.02:
+        logging.info(f"Comparing {decoded_text} with {ref}")
+    s = scorer.score(decoded_text, ref)
+    f1, f2 = s['rouge1'].fmeasure, s['rouge2'].fmeasure
+    path_obj.metrics['rouge1'] = f1
+    path_obj.metrics['rouge2'] = f2
+    path_obj.ngram_cache = None
+    path_obj.text = decoded_text
+
+
+def _evaluate_bleu(path_obj: GenPath, ref):
+    decoded_text = tokenizer.decode(
+        path_obj.token_ids, skip_special_tokens=True)
+    if random.random() < 0.02:
+        logging.info(f"Comparing {decoded_text} with {ref}")
+    s = bleu_scorer.sentence_score(decoded_text, [ref])
+    path_obj.metrics['bleu'] = s.score
+    path_obj.ngram_cache = None
+    path_obj.text = decoded_text
+
+
+def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=100):
+    if flag_sum:
+        f = _evaluate_rouge
+    else:
+        f = _evaluate_bleu
+    output = list(map(lambda x: f(x, ref_sum), cand_paths))
+    logging.info(f"Done with calculating ROUGE/BLEU")
+    if flag_sum:
+        cand_paths.sort(key=lambda p: p.metrics['rouge2'], reverse=True)
+    else:
+        cand_paths.sort(key=lambda p: p.metrics['bleu'], reverse=True)
+    oracle_sents = cand_paths[:oracle_samples]
+    
+    sampled_paths = random.choices(cand_paths, k=oracle_samples)
+    return oracle_sents, sampled_paths
+
+
+def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100):
     for go in generated_outputs:
         print(go)
     if len(generated_outputs) == 0:
         return {}
-    d_stat = defaultdict(list)
-    # net.toggle_stabilization(False)
+
     # first set all nodes and edges
     all_nodes = {}
     all_edges = {}
+    net = Network(height='1500px', width='100%', directed=True)
+
     for idx, go in enumerate(generated_outputs):
         nodes, edges = go.visualization()
-
         all_nodes.update(nodes)
         all_edges.update(edges)
-
+        draw_nodes(net, nodes, idx)
+        draw_edges(net, edges, idx)
 
     all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges)
     # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
@@ -243,33 +312,70 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum):
 
     abs_degrees = list(all_degree_mat.values())
     stat['degree'] = statistics.mean(abs_degrees)
-    random.shuffle(all_paths)
-    sampled_paths = all_paths[:100]
-    sampled_paths = [tokenizer.decode(x.token_ids) for x in sampled_paths]
-    logger.info(sampled_paths)
 
-    extrinsic_eval = eval_main(sampled_paths, ref_sum)
-    stat = {**stat, **extrinsic_eval}
+    # compute ROUGE or BLEU
+
+    path_oracle, path_sample =  oracle_path(all_paths, ref_sum, flag_sum,nsample)
+    path_sample_text = [x.text for x in path_sample]
+    path_oracle_text = [x.text for x in path_oracle]
+    extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,"sample")
+    extrinsic_eval_oracle = eval_main(path_oracle_text, ref_sum, "oracle")
+    stat = {**stat, **extrinsic_eval_sample, **extrinsic_eval_oracle}
     logger.info(stat)
-    return stat
+    return stat, net,path_oracle, path_sample
+
+from pathlib import Path
+
+def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_html):
+    raw_files = os.listdir(os.path.join(dict_io_data, config_name))
+    Path(os.path.join(dict_io_text, config_name)).mkdir(parents=True, exist_ok=True)
+    Path(os.path.join(dict_io_stat, config_name)).mkdir(parents=True, exist_ok=True)
+    Path(os.path.join(dict_io_html, config_name)).mkdir(parents=True, exist_ok=True)
+    l = len(raw_files)
+    analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data,
+                 dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
+    with Pool(10) as pool:
+        L = pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 
 
-def test_one_file(f):
+def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_html , dict_io_stat):
     name = ".".join(f.split('.')[:-1])
-    config = name.split('_')[:-2]
-    logger.info(config)
-    with open(f"vizs/{f}", 'rb') as fd:
+
+    # summarization or translation?
+    if config_name.startswith('sum'):
+        flag_sum = True
+    elif config_name.startswith('mt'):
+        flag_sum = False
+    else:
+        raise ValueError("Task either sum or mt")
+
+    with open(os.path.join(dict_io_data,config_name, f), 'rb') as fd:
         finished: SearchModelOutput = pickle.load(fd)
     logger.info(f)
     logger.info(finished.ends)
     if not finished.ends:
         return
 
-    stat = viz_result(finished.ends, finished.reference)
+    stat, network ,path_oracle, path_sample = viz_result(finished.ends, finished.reference, flag_sum)
 
-    fname = os.path.join('result', "_".join(config)+'.json')
+    # store text we only need str, rouge/bleu, 
+    rt_json = {'src':finished.document,
+                'tgt':finished.reference,
+                'uid':finished.doc_id
+    }
+    oracle_sents = [ (x.text, len(x), x.metrics) for x in path_oracle]
+    sample_sents = [ (x.text, len(x), x.metrics) for x in path_sample]
+    rt_json['sample'] = sample_sents
+    rt_json['oracle'] = oracle_sents
+    with open(os.path.join(dict_io_text,config_name,  f"{name}.json"), 'w') as text_fd:
+        json.dump(rt_json, text_fd)
 
-
+    fname = os.path.join(dict_io_stat, config_name, f"{name}.json")
+    stat["file"] = name
+    with open(fname, 'w') as wfd:
+        json.dump(stat, wfd)
+    network.save_graph(os.path.join(dict_io_html,config_name, f"{name}.html"))
+    """
     with FileLock(f"{fname}.lock"):
         print("Lock acquired.")
         if os.path.isfile(fname):
@@ -282,7 +388,7 @@ def test_one_file(f):
             data.append(stat)
         with open(fname, 'w') as wfd:
             json.dump(data, wfd)
-
+    """
 
 if __name__ == "__main__":
     # execute only if run as a script
@@ -311,4 +417,4 @@ if __name__ == "__main__":
 
         # test_one_file(f_con[0])
         with Pool(10) as pool:
-            L = pool.map(test_one_file, f_con)
+            L = pool.map(analyze_data, f_con)
