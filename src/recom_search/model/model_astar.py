@@ -62,12 +62,18 @@ def astar_step(tokenizer, force_dec_prefix, start_seed: BeamNode, hash: NewHash,
                      [top1_state.token_idx])[-ngram_suffix:]
             # print('===========')
             # print(ngram,tokenizer.decode(ngram))
-            # print(retrieved)
+
             for cand_par in retrieved:
                 if cand_par == top1_state:
                     print("WHY?")
                     continue
-                one_match_path_token_ids, cand_par_suffix_node_ids = cand_par.get_tokens_match_suffix(ngram)
+                try:
+                    one_match_path_token_ids, cand_par_suffix_node_ids = cand_par.get_tokens_match_suffix(ngram)
+                except ValueError:
+                    logging.error("Value error in finding suffix matching. ")
+
+                    logging.error(cand_par, ngram)
+                    continue
                 flag = similarity_heuristic(
                     one_match_path_token_ids, top1_state.all_token_idx, ngram_suffix, len_diff)
                 if flag:

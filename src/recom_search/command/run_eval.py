@@ -51,9 +51,14 @@ def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, conf
     }
     input_ids = tokenizer(
         inp, return_tensors="pt").input_ids.to(args.device)
-    comp_budget = args.max_len * args.beam_size
+    if args.max_len == -1:
+        cur_max_len = input_ids.squeeze().size()[0] * 2
+        comp_budget = cur_max_len * args.beam_size
+    else:
+        comp_budget = args.max_len * args.beam_size
+        cur_max_len = args.max_len
     output = a_star(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
-                    max_len=args.max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
+                    max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
     return mo
@@ -102,7 +107,8 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
-    dataset = dataset.shuffle(seed=2021)
+    if not isinstance(dataset,zip):
+        dataset = dataset.shuffle(seed=2021)
      
     logging.info(f"truncate dataset to {nexample}")
     for idx, example in enumerate(tqdm(dataset)):
@@ -137,6 +143,20 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
             'adhoc': args.adhoc,
             'heu': args.use_heu
         }
+        combined_dict = {**config_search, **param_sim_function}
+        combined_dict['avgsco'] = args.avg_score
+        combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
+        combined_dict['topp'] = args.top_p
+
+        config_name, fname = render_name(
+            args.task, args.dataset, args.model, doc_id, document[:10], args.beam_size, args.max_len, combined_dict)
+        fname += '.pkl'
+        Path(os.path.join(wt_dir, config_name)).mkdir(
+            parents=True, exist_ok=True)
+        if os.path.exists(os.path.join(wt_dir, config_name, fname)):
+            logging.info(f"File exists. Skip.")
+            # cnt += 1
+            continue
 
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
             output = run_baseline(args, model, inp)
@@ -151,17 +171,7 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         output.doc_id = doc_id
         output.document = document
         output.args = args
-        combined_dict = {**config_search, **param_sim_function}
-        combined_dict['avgsco'] = args.avg_score
-        combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
-        combined_dict['topp'] = args.top_p
 
-        config_name, fname = render_name(
-            args.task, args.dataset, args.model, doc_id, document[:10], args.beam_size, args.max_len, combined_dict)
-        fname += '.pkl'
-
-        Path(os.path.join(wt_dir, config_name)).mkdir(
-            parents=True, exist_ok=True)
         with open(os.path.join(wt_dir, config_name, fname), 'wb') as fd:
             pickle.dump(output, fd)
 

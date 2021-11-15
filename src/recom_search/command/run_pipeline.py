@@ -37,6 +37,5 @@ if __name__ == '__main__':
     run_model(args, tokenizer, model, dataset, dec_prefix, dict_io['data'])
 
     logging.info(f"Done with making data. Start analyzing data.")
-    analyze_main(
-        config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['html'])
+    analyze_main(config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['html'])
     logging.info("Done with analysis")

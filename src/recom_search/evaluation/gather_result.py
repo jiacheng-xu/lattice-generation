@@ -1,30 +1,33 @@
 fdir = '/mnt/data1/jcxu/back_to_fact/result'
-
+fdir = '/mnt/data1/jcxu/back_to_fact/output/stat'
 import json
 
 import os
 import statistics
 from collections import defaultdict
+import glob
 
-files  = os.listdir(fdir)
-os.chdir(fdir)
-files.sort(key=lambda x: os.path.getmtime(x))
-
-for f in files:
-    summary = defaultdict(list)
-    with open(os.path.join(fdir, f),'r') as fd:
-        data = json.load(fd)
-    for d in data:
-        for k,v in d.items():
+folders = glob.glob(f"{fdir}/**/" ) # folders under stat fdir
+# print(folders)
+for fold_dir in folders:
+    # fold_dir = os.path.join(fdir, fold)
+    files  = os.listdir(fold_dir)
+    for f in files:
+        summary = defaultdict(list)
+        with open(os.path.join(fold_dir, f),'r') as fd:
+            data = json.load(fd)
+        
+        for k,v in data.items():
             summary[k].append(v)
-    summary['num'] = [len(data)]
-    outputs = [f]
+    
+    outputs = []
     
     for k, v in summary.items():
         if k == 'file':
+            # outputs.append(v[0])
             continue
         m = statistics.median(v)
         outputs.append(str(m))
-    
+    outputs.append(fold_dir)
     print(";".join(outputs))
 print(";".join(list(summary.keys() )))

@@ -17,7 +17,7 @@ def render_address(root = 'output'):
     }
     return d
 
-def read_mt_data(path='/mnt/data1/jcxu/mt-data/wmt19', name='zh-en'):
+def read_mt_data(path='/mnt/data1/jcxu/mt-data/use', name='zh-en'):
     src = name[:2]
     tgt = name[3:]
     with open(os.path.join(path, f"{name}.{src}"), 'r') as fd:

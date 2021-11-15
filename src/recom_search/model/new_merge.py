@@ -47,7 +47,7 @@ def merge_imp(hash, beam_par, beam_drop):
 def merge_zip(hash, beam_par, beam_drop, par_match_uids:List[BeamNode]):
     # z = beam_par
     zp = beam_drop
-    print(f"Merging {beam_par} | {beam_drop}")
+    # print(f"Merging {beam_par} | {beam_drop}")
     while zp and par_match_uids:
         par_node_uid = par_match_uids.pop(0)
         par_node = hash.retrieve_node(par_node_uid)

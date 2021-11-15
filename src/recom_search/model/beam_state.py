@@ -256,7 +256,7 @@ class BeamNode():
             reversed_tokens.append(last_target_token_idx)
             prev = new_prev
             if not prev:
-                raise Exception("Not found!")
+                raise ValueError("Not found!")
         matched_suffix_node_ids = prev[0][:-1]
         prev = prev[0]
         while prev:

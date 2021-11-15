@@ -93,17 +93,18 @@ def reward_len(path, alpha=0.01):
     return len(path) * alpha
 
 
-scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=True)
+scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=False)
 
 
 class GenPath:
-    def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[]) -> None:
+    def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[],max_len=50) -> None:
         self.tokens = tokens
         self.token_ids = token_ids
         self.scores = scores
         self.ngram_cache = ngram_cache
         self.n = 4
         self.metrics = {}
+        self.max_len =max_len 
         # self.rouge1 = None
         # self.rouge2 = None
         # self.bleu = None
@@ -112,7 +113,7 @@ class GenPath:
         if len(self.tokens) >= self.n-1:
             tmp_ngram = self.tokens[-(self.n-1):] + [tok]
             tmp_ngram = [x.lower().strip() for x in tmp_ngram]
-            if tmp_ngram in self.ngram_cache:
+            if tmp_ngram in self.ngram_cache or len(self.tokens) > self.max_len:
                 return None
             dup_ngram_cache = self.ngram_cache.copy()
             dup_ngram_cache.append(tmp_ngram)
@@ -133,7 +134,7 @@ class GenPath:
         return self.scores / len(self.tokens) ** 0.8
 
 
-def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=10, max_len=100):
+def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=10, max_len=45):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -230,19 +231,16 @@ def analyze_graph(paths: List[GenPath], nodes):
     flat_1list = list(itertools.chain(*all_1grams))
     uniq_1grams = list(set(flat_1list))
     stat['novel_1gram'] = len(uniq_1grams)
-    stat['ratio_novel_1gram'] = len(uniq_1grams) / len(flat_1list)
+
 
     all_2grams = [_get_ngrams(2, x) for x in paths]
     flat_2list = list(itertools.chain(*all_2grams))
     uniq_2grams = list(set(flat_2list))
     stat['novel_2gram'] = len(uniq_2grams)
-    stat['ratio_novel_2gram'] = len(uniq_2grams) / len(flat_2list)
-
     all_3grams = [_get_ngrams(3, x) for x in paths]
     flat_3list = list(itertools.chain(*all_3grams))
     uniq_3grams = list(set(flat_3list))
     stat['novel_3gram'] = len(uniq_3grams)
-    stat['ratio_novel_3gram'] = len(uniq_3grams) / len(flat_3list)
     # stat['ratio_non_stop'] = len(trim_nodes_text) / len(nodes)
     return stat
 
@@ -250,8 +248,8 @@ def analyze_graph(paths: List[GenPath], nodes):
 def _evaluate_rouge(path_obj: GenPath, ref):
     decoded_text = tokenizer.decode(
         path_obj.token_ids, skip_special_tokens=True)
-    if random.random() < 0.02:
-        logging.info(f"Comparing {decoded_text} with {ref}")
+    # if random.random() < 0.002:
+    #     logging.info(f"Comparing {decoded_text} with {ref}")
     s = scorer.score(decoded_text, ref)
     f1, f2 = s['rouge1'].fmeasure, s['rouge2'].fmeasure
     path_obj.metrics['rouge1'] = f1
@@ -263,8 +261,8 @@ def _evaluate_rouge(path_obj: GenPath, ref):
 def _evaluate_bleu(path_obj: GenPath, ref):
     decoded_text = tokenizer.decode(
         path_obj.token_ids, skip_special_tokens=True)
-    if random.random() < 0.02:
-        logging.info(f"Comparing {decoded_text} with {ref}")
+    # if random.random() < 0.002:
+    #     logging.info(f"Comparing {decoded_text} with {ref}")
     s = bleu_scorer.sentence_score(decoded_text, [ref])
     path_obj.metrics['bleu'] = s.score
     path_obj.ngram_cache = None
@@ -334,13 +332,16 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     l = len(raw_files)
     analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data,
                  dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
-    with Pool(10) as pool:
+    with Pool(3) as pool:
         L = pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 
 
 def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_html , dict_io_stat):
     name = ".".join(f.split('.')[:-1])
-
+    fname = os.path.join(dict_io_stat, config_name, f"{name}.json")
+    if os.path.isfile(fname):
+        logging.info(f"File exist")
+        return 
     # summarization or translation?
     if config_name.startswith('sum'):
         flag_sum = True
@@ -370,7 +371,7 @@ def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_h
     with open(os.path.join(dict_io_text,config_name,  f"{name}.json"), 'w') as text_fd:
         json.dump(rt_json, text_fd)
 
-    fname = os.path.join(dict_io_stat, config_name, f"{name}.json")
+    
     stat["file"] = name
     with open(fname, 'w') as wfd:
         json.dump(stat, wfd)
