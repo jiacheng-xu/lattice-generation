@@ -6,7 +6,7 @@ from transformers.generation_logits_process import TopPLogitsWarper
 from transformers.generation_utils import top_k_top_p_filtering
 
 
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
 
 from src.recom_search.model.merge import core_merge, new_core_merge, similarity_heuristic
 from src.recom_search.model.util import run_inference_step, render_name
@@ -68,7 +68,7 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
     ngram_suffix = param_sim_function['ngram_suffix']
 
     gen_nodes = {}
-    init_seed = BeamNode(prob=1.0, token_idx=eos_token_id,
+    init_seed = BeamNodeEz(prob=1.0, token_idx=eos_token_id,
                          prev=[], prev_score=[])
     hypo = init_seed
     merge_flag = False
@@ -96,7 +96,7 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
             tmp_node = gen_nodes[feat_key]
         else:
             merge_flag = True
-            tmp_node = BeamNode(prob=next_tok_prob, token_idx=next_tok_idx, prev=[
+            tmp_node = BeamNodeEz(prob=next_tok_prob, token_idx=next_tok_idx, prev=[
                                 hypo], prev_score=[math.log(next_tok_prob)])
             gen_nodes[feat_key] = tmp_node
 
@@ -130,64 +130,48 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
         hypo.print_lattice()
     return ends
 
-# for all kinds of model output, we need (1) Graph struct with end states, (2) sampled outputs with scores
 
+def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, avg_score:float=-1, debug: bool = False):
 
-def prepare_output(ending_states):
-    pass
-
-
-def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, num_return_hypo=100, debug: bool = False):
-    # gen_hash = GenHash(ngram=param_sim_function['ngram_suffix'])
-
-    hypos = [BeamNode(prob=1.0, token_idx=eos_token_id,
-                      prev=[], prev_score=[])]
-
+    # hypos = [BeamNode(prob=1.0, token_idx=eos_token_id,prev=[], prev_score=[])]
+    hypos:List[BeamNodeEz] = [BeamNodeEz(prob=1,  token_idx=eos_token_id, prev=[], prev_score=[])]
+    finished = []
     for t in range(max_len):
         # TODO finished
-        candidates = []
+        candidates:List[BeamNodeEz] = []
         for hypo in hypos:
-            if not debug:
-                if hypo.finished:
-                    candidates.append(hypo)
-                    continue
-                # prefix
-                decoder_input_ids = hypo.get_token_idx_as_input()
-                output_tokens, output_prob, output_score, _ = run_inference_step(
-                    model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=doc_input_ids.device, output_dec_hid=False, T=1)
+            
+            if hypo.finished:
+                finished.append(hypo)
+                continue
+            # prefix
+            decoder_input_ids = hypo.get_token_idx_as_input()
+            output_tokens, output_prob, output_score, _ = run_inference_step(model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=doc_input_ids.device, output_dec_hid=False, T=1)
 
-                values, indices = torch.topk(output_prob, k=beam_size)
-                values = values[0].tolist()
-                indices = indices[0].tolist()
-                # trim
-                # values = [x for x in values if x > 0.01]
-                # indices = indices[:len(values)]
-            else:
-                # replace it with something real
-                values, indices = model(t, beam_size)
-                # values are list of probs sum<1, indices are token idx
+            values, indices = torch.topk(output_prob, k=beam_size)
+            values = values[0].tolist()
+            indices = indices[0].tolist()
 
             for idx, v, i in zip(range(beam_size), values, indices):
-                tmp_state = BeamNode(prob=v, token_idx=i, prev=[
-                                     hypo], prev_score=[math.log(v)])
-                # gen_hash.add(beam_item.token_full + [indices[idx]],tmp_state)
+                tmp_state = BeamNodeEz(prob=v, token_idx=i, prev=[hypo], prev_score=[math.log(v)])
                 candidates.append(tmp_state)
 
         # sort candidates by scores; these are active candidates of the current step
-        sorted_candidates = sorted(
+        if avg_score == -1:
+            sorted_candidates = sorted(
             candidates, key=lambda x: x.get_score_sum(), reverse=True)
+        else:
+            sorted_candidates = sorted(
+            candidates, key=lambda x: x.get_score_sum() / len(x) ** avg_score, reverse=True)
         hypos = baseline_iterative_recomb(
             sorted_candidates, param_sim_function, beam_size=beam_size)
-        print('-'*30)
-
-    logging.info(f"#Whole Beam: {len(hypos)}")
-    logging.info('\n\n\n\n\n')
-    for hypo in hypos:
-        if not hypo.finished:
-            logging.info(f"Not finished: {hypo}")
-            continue
-        logging.info(f"\n\n {hypo}")
-        # hypo.print_lattice()
-
-    # score = eval_group_diversity(outputs)
-    return hypos
+        logging.info('-'*30)
+    # sort finished
+    if avg_score == -1:
+        finished = sorted(
+        finished, key=lambda x: x.get_score_sum(), reverse=True)
+    else:
+        finished = sorted(
+        finished, key=lambda x: x.get_score_sum() / len(x) ** avg_score, reverse=True)
+    finished = finished[:beam_size]
+    return finished

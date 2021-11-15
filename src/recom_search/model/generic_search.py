@@ -41,6 +41,10 @@ class GenericSearch(SearchStrategy):
         else:
             pass
         mo = SearchModelOutput(ends=tree_ends_list, output=decoded_outputs,score=sum_scores,score_avg=avg_scores,output_token=seq)
+    #         doc_id: Optional[str] = None
+    # reference: Optional[str] = None
+    # document: Optional[str] = None
+    # args: Optional[Any] = None
         return mo
 
     @timing

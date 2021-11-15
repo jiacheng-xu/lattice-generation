@@ -23,9 +23,11 @@ from src.recom_search.model.util import *
 def run_recom_bs(args, model, input_doc, param_sim_function):
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
-    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,
-                             model=model, debug=False, beam_size=args.beam_size, max_len=args.max_len, num_return_hypo=args.beam_size)
-
+    if args.max_len == -1:
+        cur_max_len = input_ids.squeeze().size()[0] * 2
+    else:
+        cur_max_len = args.max_len
+    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=cur_max_len, avg_score=args.avg_score)
     mo = SearchModelOutput(ends=output)
     return mo
 
@@ -33,8 +35,11 @@ def run_recom_bs(args, model, input_doc, param_sim_function):
 def run_recom_sample(args, model, input_doc, param_sim_function) -> SearchModelOutput:
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
-    output = baseline_recomb_sample(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id,
-                                    model=model, debug=False, max_len=args.max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+    if args.max_len == -1:
+        cur_max_len = input_ids.squeeze().size()[0] * 2
+    else:
+        cur_max_len = args.max_len
+    output = baseline_recomb_sample(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
 
     mo = SearchModelOutput(ends=output)
     return mo
@@ -65,32 +70,37 @@ def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, conf
 
 
 def run_baseline(args, model, inp):
+    if args.max_len == -1:
+        input_ids = tokenizer(inp, return_tensors="pt").input_ids
+        cur_max_len = input_ids.squeeze().size()[0] * 2
+    else:
+        cur_max_len = args.max_len
     if args.model == 'greedy':
         gs = GenericSearch(model, tokenizer,
-                           device=args.device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=1)
+                           device=args.device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=1)
     elif args.model == 'bs':
         gs = GenericSearch(model, tokenizer,
                            device=args.device, beam_size=args.beam_size, do_sample=False,
                            min_len=args.min_len,
-                           max_len=args.max_len,
+                           max_len=cur_max_len,
                            num_beam_hyps_to_keep=args.beam_size
                            )
     elif args.model == 'dbs':
         gs = GenericSearch(model, tokenizer,
                            device=args.device, beam_size=args.beam_size, do_sample=False,
-                           min_len=args.min_len, max_len=args.max_len,
+                           min_len=args.min_len, max_len=cur_max_len,
                            num_beam_groups=args.beam_group,
                            diversity_penalty=args.hamming_penalty,
                            num_beam_hyps_to_keep=args.beam_size
                            )
     elif args.model == 'topp':
         gs = GenericSearch(model, tokenizer,
-                           device=args.device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
+                           device=args.device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=args.beam_size,
                            top_p=args.top_p)
     elif args.model == 'temp':
         gs = GenericSearch(model, tokenizer,
                            device=args.device, beam_size=1, do_sample=True,
-                           min_len=args.min_len, max_len=args.max_len, num_beam_hyps_to_keep=args.beam_size,
+                           min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=args.beam_size,
                            temperature=args.temp
                            )
     else:

@@ -212,8 +212,7 @@ def a_star(model, tokenizer,
             # print("Skipping unexpanded children!")
             continue
         expl_steps = max(1, max_len - seed.length)
-        output_node, added_num_calls = astar_step(tokenizer, dec_prefix, seed, new_hash, [], doc_input_ids, model, param_sim_function,
-                                                  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
+        output_node, added_num_calls = astar_step(tokenizer, dec_prefix, seed, new_hash, [], doc_input_ids, model, param_sim_function, config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
 
         ncalls += added_num_calls
 
