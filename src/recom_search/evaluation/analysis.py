@@ -93,7 +93,7 @@ def reward_len(path, alpha=0.01):
     return len(path) * alpha
 
 
-scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=False)
+scorer = rouge_scorer.RougeScorer(['rouge2'], use_stemmer=False)
 
 
 class GenPath:
@@ -254,8 +254,8 @@ def _evaluate_rouge(path_obj: GenPath, ref):
     # if random.random() < 0.002:
     #     logging.info(f"Comparing {decoded_text} with {ref}")
     s = scorer.score(decoded_text, ref)
-    f1, f2 = s['rouge1'].fmeasure, s['rouge2'].fmeasure
-    path_obj.metrics['rouge1'] = f1
+    f2 = s['rouge2'].fmeasure
+
     path_obj.metrics['rouge2'] = f2
     path_obj.ngram_cache = None
     path_obj.text = decoded_text
@@ -277,7 +277,11 @@ def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=20):
         f = _evaluate_rouge
     else:
         f = _evaluate_bleu
-    output = list(map(lambda x: f(x, ref_sum), cand_paths))
+    random.shuffle(cand_paths)
+    original_len = len(cand_paths)
+    cand_paths = cand_paths[:10000]
+    logging.info(f"Cutting {original_len} to {len(cand_paths)}")
+    list(map(lambda x: f(x, ref_sum), cand_paths))
     logging.info(f"Done with calculating ROUGE/BLEU")
     if flag_sum:
         cand_paths.sort(key=lambda p: p.metrics['rouge2'], reverse=True)
@@ -357,7 +361,7 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     Path(os.path.join(dict_io_stat, config_name)).mkdir(parents=True, exist_ok=True)
     Path(os.path.join(dict_io_html, config_name)).mkdir(parents=True, exist_ok=True)
     l = len(raw_files)
-    analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data, dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
+    # analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data, dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
     # for f in raw_files:
     #     analyze_data(f, config_name, dict_io_data=dict_io_data,
     #              dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)

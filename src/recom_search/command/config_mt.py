@@ -1,26 +1,32 @@
-"PYTHONPATH=./ python src/recom_search/command/run_eval.py -model best -heu_seq_score 0 -heu_seq_score_len_rwd 0 -heu_pos 0 -heu_ent 0.3 -heu_word 0.0"
-
 from random import random
-
 from subprocess import Popen
 
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py  "
-cuda_range = [0,0,1,2]
-i = 0
+task = [
+    " -task mt1n -dataset en-fr",
+    " -task mt1n -dataset en-zh",
+    " -task mtn1 -dataset fr-en",
+    " -task mtn1 -dataset zh-en"
+]
 import random
+cuda_range = [0,3,1,2]
+i = 0
+
 bag = []
+cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 3   "
 
 ngram = " -ngram_suffix 4"
-beam = " -beam_group 5 -beam_size 20"
-length = " -min_len 10 -max_len 35"
+beam = " -beam_group 3"
+length = " -min_len 3 -max_len -1"
 
 cmd_base += ngram+beam+length
-config_dbs =  ["-model dbs -hamming_penalty 2.0", "-model dbs -hamming_penalty 1.0", "-model dbs -hamming_penalty 0.5"]
+
+
+config_dbs =  ["-model dbs -hamming_penalty 2.0"]
 
 config_bs = ["-model bs "]
 config_topp = ["-model topp -top_p 0.8", "-model topp -top_p 0.9"]
 config_greed = [" -model greedy"]
-config_temp = [" -model temp -temp 1.5", " -model temp -temp 1.25"]
+config_temp = [" -model temp -temp 1.5"]
 config_recom = [" -model recom_bs"]
 config_recom_sample = ['-model recom_sample']
 
@@ -39,16 +45,18 @@ baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + 
 # (I) Base baseline
 final_bases = []
 for b in baselines:
-    final_bases.append(cmd_base + f" -device cuda:{i % 3}  " + b)
-    i += 1
+    for t in task:
+        final_bases.append(cmd_base + f" -device cuda:{i % 3}  " + b + t)
+        i += 1
 
 # run commands in parallel
 import time
 
-
+random.shuffle(final_bases)
 print("We are going to run many commands, they are:")
 print("\n".join(final_bases))
 print('waiting')
+exit()
 
 # time.sleep(10)
 # processes = []
@@ -61,8 +69,8 @@ print('waiting')
 # (II) Recomb baseline
 
 d = {}
-d['-avg_score']= [-1,0.5, 0.75, 1.0]
-avg_score =  [-1,0.5, 0.75, 1.0]
+
+avg_score =  [ 0.75, 1.0]
 model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.5 ', '-post -post_ratio 0.7 ']
 models = []
 for score in avg_score:

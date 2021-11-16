@@ -20,14 +20,14 @@ import numpy as np
 from src.recom_search.model.util import *
 
 
-def run_recom_bs(args, model, input_doc, param_sim_function):
+def run_recom_bs(args, model, input_doc, dec_prefix, param_sim_function):
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
-    output = recomb_baseline(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=cur_max_len, avg_score=args.avg_score)
+    output = recomb_baseline(doc_input_ids=input_ids,dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=cur_max_len, avg_score=args.avg_score)
     mo = SearchModelOutput(ends=output)
     return mo
 
@@ -69,7 +69,7 @@ def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, conf
     return mo
 
 
-def run_baseline(args, model, inp):
+def run_baseline(args, model, inp, dec_prefix):
     if args.max_len == -1:
         input_ids = tokenizer(inp, return_tensors="pt").input_ids
         cur_max_len = input_ids.squeeze().size()[0] * 2
@@ -169,9 +169,9 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
             continue
 
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
-            output = run_baseline(args, model, inp)
+            output = run_baseline(args, model, inp, dec_prefix)
         elif args.model == 'recom_bs':
-            output = run_recom_bs(args, model, inp, param_sim_function)
+            output = run_recom_bs(args, model, inp,dec_prefix, param_sim_function)
         elif args.model == 'recom_sample':
             output = run_recom_sample(args, model, inp,dec_prefix ,param_sim_function)
         elif args.model == 'astar':
