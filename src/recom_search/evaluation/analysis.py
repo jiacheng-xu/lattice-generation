@@ -97,12 +97,12 @@ scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=False)
 
 
 class GenPath:
-    def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[],max_len=50) -> None:
+    def __init__(self, tokens=['<s>'], token_ids=[2], scores=0, ngram_cache=[],max_len=200,dedup_n=None) -> None:
         self.tokens = tokens
         self.token_ids = token_ids
         self.scores = scores
         self.ngram_cache = ngram_cache
-        self.n = 4
+        self.n = dedup_n
         self.metrics = {}
         self.max_len =max_len 
         # self.rouge1 = None
@@ -110,7 +110,7 @@ class GenPath:
         # self.bleu = None
 
     def add(self, tok, tok_id, score):
-        if len(self.tokens) >= self.n-1:
+        if self.n and len(self.tokens) >= self.n-1 :
             tmp_ngram = self.tokens[-(self.n-1):] + [tok]
             tmp_ngram = [x.lower().strip() for x in tmp_ngram]
             if tmp_ngram in self.ngram_cache or len(self.tokens) > self.max_len:
@@ -134,7 +134,7 @@ class GenPath:
         return self.scores / len(self.tokens) ** 0.8
 
 
-def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=10, max_len=45):
+def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=5, max_len=200):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
@@ -179,7 +179,7 @@ def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=10, max_len=45):
         # deduplication already happens in Path class
         available_paths = paths[end_key]
         available_paths = [x for x in available_paths if len(
-            x) >= min_len and len(x) <= max_len]
+            x) >= min_len]
         total_path += available_paths
     return total_path, list_of_eos_key, degree_mat
 
@@ -287,11 +287,12 @@ def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=100):
 
 
 def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100):
+    logging.info('\n\n---')
     for go in generated_outputs:
-        print(go)
+        logging.info(go)
     if len(generated_outputs) == 0:
         return {}
-
+    
     # first set all nodes and edges
     all_nodes = {}
     all_edges = {}
@@ -312,7 +313,8 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100
     stat['degree'] = statistics.mean(abs_degrees)
 
     # compute ROUGE or BLEU
-
+    logging.info("ALL path")
+    logging.info(len(all_paths))
     path_oracle, path_sample =  oracle_path(all_paths, ref_sum, flag_sum,nsample)
     path_sample_text = [x.text for x in path_sample]
     path_oracle_text = [x.text for x in path_oracle]
@@ -332,6 +334,9 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     l = len(raw_files)
     analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data,
                  dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
+    # for f in raw_files:
+    #     analyze_data(f, config_name, dict_io_data=dict_io_data,
+    #              dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
     with Pool(3) as pool:
         L = pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 

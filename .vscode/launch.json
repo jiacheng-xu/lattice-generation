@@ -58,12 +58,14 @@
                 "-task",
                 "mtn1",
                 "-dataset",
-                "zh-en",
+                "fr-en",
                 "-adhoc",
                 "-beam_size",
-                "3",
+                "2",
                 "-max_len",
-                "50"
+                "-1",
+                "-min_len",
+                "5"
             ],
         },
         {
