@@ -20,7 +20,7 @@ from src.recom_search.model.new_merge import merge_zip, merge_imp
 
 from src.recom_search.model.bfs_util import  NewHash
 from src.recom_search.model.heuristic import DeployHeu
-from src.recom_search.model.merge import new_core_merge, similarity_heuristic
+from src.recom_search.model.merge import  similarity_heuristic
 from src.recom_search.model.util import pnum, render_name, run_inference_step
 from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union

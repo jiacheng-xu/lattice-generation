@@ -32,14 +32,14 @@ def run_recom_bs(args, model, input_doc, param_sim_function):
     return mo
 
 
-def run_recom_sample(args, model, input_doc, param_sim_function) -> SearchModelOutput:
+def run_recom_sample(args, model, input_doc,dec_prefix, param_sim_function) -> SearchModelOutput:
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
-    output = baseline_recomb_sample(doc_input_ids=input_ids, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+    output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
 
     mo = SearchModelOutput(ends=output)
     return mo
@@ -173,7 +173,7 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         elif args.model == 'recom_bs':
             output = run_recom_bs(args, model, inp, param_sim_function)
         elif args.model == 'recom_sample':
-            output = run_recom_sample(args, model, inp, param_sim_function)
+            output = run_recom_sample(args, model, inp,dec_prefix ,param_sim_function)
         elif args.model == 'astar':
             output = run_a_star(
                 args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search=config_search)

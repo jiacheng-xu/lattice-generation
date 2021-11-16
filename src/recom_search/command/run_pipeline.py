@@ -13,9 +13,9 @@ from src.recom_search.command.run_eval import run_model
 from multiprocessing import Pool
 from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix, args, dict_io
 import logging
+
 if __name__ == '__main__':
     logging.info(f"Start running the pipeline")
-
     param_sim_function = {
         'ngram_suffix': args.ngram_suffix,
         'len_diff': args.len_diff,
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         args.task, args.dataset, args.model, args.beam_size, args.max_len, combined_dict)
     logging.info(f"Config name: {config_name}")
     run_model(args, tokenizer, model, dataset, dec_prefix, dict_io['data'])
-
+    del model
     logging.info(f"Done with making data. Start analyzing data.")
     analyze_main(config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['html'])
     logging.info("Done with analysis")

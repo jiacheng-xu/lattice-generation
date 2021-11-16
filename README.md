@@ -1,4 +1,4 @@
-# back_to_fact
+# Lattice Sum
 Two major components here:
 1. path recombination
 2. dynamic beam expansion

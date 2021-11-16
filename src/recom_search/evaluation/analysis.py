@@ -33,10 +33,10 @@ from src.recom_search.model.beam_state import BeamNode
 from typing import Dict, List
 import pickle
 from collections import defaultdict
-import spacy
+# import spacy
 
-nlp = spacy.load("en_core_web_sm")
-all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
+# nlp = spacy.load("en_core_web_sm")
+# all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
 
 
 
@@ -105,9 +105,7 @@ class GenPath:
         self.n = dedup_n
         self.metrics = {}
         self.max_len =max_len 
-        # self.rouge1 = None
-        # self.rouge2 = None
-        # self.bleu = None
+
 
     def add(self, tok, tok_id, score):
         if self.n and len(self.tokens) >= self.n-1 :
@@ -118,10 +116,10 @@ class GenPath:
             dup_ngram_cache = self.ngram_cache.copy()
             dup_ngram_cache.append(tmp_ngram)
             obj = GenPath(self.tokens + [tok], self.token_ids +
-                       [tok_id], self.scores+score, dup_ngram_cache)
+                       [tok_id], self.scores+score, dup_ngram_cache, max_len=self.max_len,dedup_n=self.n)
             return obj
         obj = GenPath(self.tokens + [tok], self.token_ids +
-                   [tok_id], self.scores+score, [])
+                   [tok_id], self.scores+score, [], max_len=self.max_len,dedup_n=self.n)
         return obj
 
     def __len__(self) -> int:
@@ -134,18 +132,23 @@ class GenPath:
         return self.scores / len(self.tokens) ** 0.8
 
 
-def derive_path(nodes: Dict, edges: Dict, eps=int(5e3), min_len=5, max_len=200):
+def derive_path(nodes: Dict, edges: Dict,flag_sum:bool, eps=int(5e3), min_len=5):
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
     seen = [sos_key]
     edges_tgt_to_src, edges_tgt_to_src_score = cache_edges(edges)
-
+    if flag_sum:
+        dedup = 4
+        max_len = 50
+    else:
+        dedup = None
+        max_len = 200
     # dict_path_num = defaultdict(int)    # from sos till uid, how many paths
     # dict_path_num[sos_key] = 1
 
     paths = defaultdict(list)   #
-    paths[sos_key] = [GenPath()]
+    paths[sos_key] = [GenPath(dedup_n=dedup,max_len=max_len)]
 
     def dfs(node, score):
         # print(node)
@@ -269,7 +272,7 @@ def _evaluate_bleu(path_obj: GenPath, ref):
     path_obj.text = decoded_text
 
 
-def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=100):
+def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=20):
     if flag_sum:
         f = _evaluate_rouge
     else:
@@ -280,13 +283,35 @@ def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=100):
         cand_paths.sort(key=lambda p: p.metrics['rouge2'], reverse=True)
     else:
         cand_paths.sort(key=lambda p: p.metrics['bleu'], reverse=True)
+    logging.info(f"Done with sorting")
+    var_paths = defaultdict(list)
     oracle_sents = cand_paths[:oracle_samples]
+    var_paths[f"oracle_{oracle_samples}"] = oracle_sents
+    oracle_top1 = cand_paths[:1]
+    var_paths['oracle_1'] = oracle_top1
+
+    sampled_paths = random.choices(cand_paths, k=oracle_samples*10)
+    var_paths['sample'] = sampled_paths
     
-    sampled_paths = random.choices(cand_paths, k=oracle_samples)
-    return oracle_sents, sampled_paths
+    # oracle_sents = [ (x.text, len(x), x.metrics) for x in path_oracle]
+    # bucket
+    bucket = [10, 20 , 40, 1000]
+    for samp_path in sampled_paths:
+        l = len(samp_path)
+
+        for idx, b in enumerate(bucket):
+            if l<=b:
+                var_paths[f"buck_{b}"].append(samp_path)
+                break
+
+    stat = {}
+    for idx, b in enumerate(bucket):
+        rate = len(var_paths[f"buck_{b}"]) / len(var_paths['sample'])
+        stat[f"ratio_{b}"] = rate
+    return var_paths, stat
 
 
-def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100):
+def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=20):
     logging.info('\n\n---')
     for go in generated_outputs:
         logging.info(go)
@@ -305,7 +330,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100
         draw_nodes(net, nodes, idx)
         draw_edges(net, edges, idx)
 
-    all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges)
+    all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges, flag_sum)
     # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
     stat = analyze_graph(all_paths, all_nodes)
 
@@ -315,14 +340,14 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=100
     # compute ROUGE or BLEU
     logging.info("ALL path")
     logging.info(len(all_paths))
-    path_oracle, path_sample =  oracle_path(all_paths, ref_sum, flag_sum,nsample)
-    path_sample_text = [x.text for x in path_sample]
-    path_oracle_text = [x.text for x in path_oracle]
-    extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,"sample")
-    extrinsic_eval_oracle = eval_main(path_oracle_text, ref_sum, "oracle")
-    stat = {**stat, **extrinsic_eval_sample, **extrinsic_eval_oracle}
+    dict_of_var_paths ,buck_ratio =  oracle_path(all_paths, ref_sum, flag_sum,nsample)
+    stat = {**stat, **buck_ratio}
+    for k, v in dict_of_var_paths.items():
+        path_sample_text = [x.text for x in v]
+        extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,k)
+        stat = {**stat, **extrinsic_eval_sample}
     logger.info(stat)
-    return stat, net,path_oracle, path_sample
+    return stat, net,dict_of_var_paths
 
 from pathlib import Path
 
@@ -332,13 +357,12 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     Path(os.path.join(dict_io_stat, config_name)).mkdir(parents=True, exist_ok=True)
     Path(os.path.join(dict_io_html, config_name)).mkdir(parents=True, exist_ok=True)
     l = len(raw_files)
-    analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data,
-                 dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
+    analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data, dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
     # for f in raw_files:
     #     analyze_data(f, config_name, dict_io_data=dict_io_data,
     #              dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
     with Pool(3) as pool:
-        L = pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
+        pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 
 
 def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_html , dict_io_stat):
@@ -362,20 +386,21 @@ def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_h
     if not finished.ends:
         return
 
-    stat, network ,path_oracle, path_sample = viz_result(finished.ends, finished.reference, flag_sum)
+    stat, network ,dict_of_var_paths = viz_result(finished.ends, finished.reference, flag_sum)
 
     # store text we only need str, rouge/bleu, 
     rt_json = {'src':finished.document,
                 'tgt':finished.reference,
                 'uid':finished.doc_id
     }
-    oracle_sents = [ (x.text, len(x), x.metrics) for x in path_oracle]
-    sample_sents = [ (x.text, len(x), x.metrics) for x in path_sample]
-    rt_json['sample'] = sample_sents
-    rt_json['oracle'] = oracle_sents
+    for k,v in dict_of_var_paths.items():
+        oracle_sents = [ (x.text, len(x), x.metrics) for x in v]
+        rt_json[k] = oracle_sents
     with open(os.path.join(dict_io_text,config_name,  f"{name}.json"), 'w') as text_fd:
         json.dump(rt_json, text_fd)
-
+    sample_as_pure_text = [x.text for x in dict_of_var_paths['sample']]
+    with open(os.path.join(dict_io_text,config_name,  f"{name}.txt"), 'w') as text_fd:
+        text_fd.write("\n".join(sample_as_pure_text))
     
     stat["file"] = name
     with open(fname, 'w') as wfd:

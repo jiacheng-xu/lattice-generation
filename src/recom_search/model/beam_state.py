@@ -66,13 +66,6 @@ class BeamNodeEz():
         assert self.all_score
         assert self.length
 
-        if self.prev:
-            self.min_score = min([x.min_score for x in self.prev])
-        else:
-            self.min_score = float('inf')
-        self.min_score = min(self.min_score, self.score)
-
-
         self.finished = finished
         self.min_len = min_len
 
@@ -123,14 +116,14 @@ class BeamNodeEz():
 
         self.prev.append(node)
         self.prev_score.append(score)
-        self.min_score = min(self.min_score ,score)
+
         # sort
 
     def visualization(self):
         nodes, edges = {}, {}
         seen = {}
 
-        def dfs(node: BeamNode):
+        def dfs(node: BeamNodeEz):
             if not node:
                 return
 
@@ -152,6 +145,7 @@ class BeamNodeEz():
             nodes[node.uid] = {
                 'uid': node.uid,
                 'text': node.token_str,
+                'tok_idx':node.token_idx
             }
             # nodes.append({'uid': node.uid,'text': node.token_str})
 
@@ -212,7 +206,7 @@ class BeamNodeEz():
         self.length = len(tokens)
     def __len__(self):
         return self.length
-        
+
     def get_tokens_str(self):
         out = [self.token_str]
         prev = self.prev
@@ -396,7 +390,10 @@ class BeamNode():
         out = out[::-1]
         return '-'.join(out)
 
-
+    def get_token_idx_as_input(self):
+        tokens = self.all_token_idx
+        dec_prefix = torch.tensor([tokens], dtype=torch.long)
+        return dec_prefix
     def get_score_sum(self):
         all_score = self.all_score
         return sum(all_score)

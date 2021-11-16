@@ -39,7 +39,8 @@ class GenericSearch(SearchStrategy):
             # sum scores
             sum_scores = [avg_s * len(seq[idx]) for idx, avg_s in enumerate(avg_scores)]
         else:
-            pass
+            sum_scores = None
+            avg_scores = None
         mo = SearchModelOutput(ends=tree_ends_list, output=decoded_outputs,score=sum_scores,score_avg=avg_scores,output_token=seq)
     #         doc_id: Optional[str] = None
     # reference: Optional[str] = None

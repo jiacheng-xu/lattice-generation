@@ -8,7 +8,7 @@ from transformers.generation_utils import top_k_top_p_filtering
 
 from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
 
-from src.recom_search.model.merge import core_merge, new_core_merge, similarity_heuristic
+from src.recom_search.model.merge import core_merge, similarity_heuristic
 from src.recom_search.model.util import run_inference_step, render_name
 from typing import List
 import logging
@@ -49,15 +49,27 @@ def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, be
                 break
         if flag_merge:
             # core_merge(pointer, candidate)
-            new_core_merge(pointer,candidate,None)
+            core_merge(pointer,candidate)
         else:
             next_candidate.append(candidate)
         if len(next_candidate) >= beam_size:
             return next_candidate
     return next_candidate
 
+def gen_init_seed_with_dec_prefix(dec_prefix)->BeamNodeEz:
+    last = None
+    for prefix in dec_prefix:
+        if last:
+            init_seed = BeamNodeEz( prob=1., token_idx=prefix,
+                                 prev=[last], prev_score=[0])
+        else:
+            init_seed = BeamNodeEz( prob=1., token_idx=prefix,
+                                 prev=[], prev_score=[])
 
-def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100, debug: bool = False, top_p=0.8):
+        last = init_seed
+    return last
+
+def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100, debug: bool = False, top_p=0.8):
     topp_logit_wrapper = TopPLogitsWarper(top_p=top_p)
     """Neucleus sampling with path recombination"""
     # budget = max_len * beam size
@@ -68,8 +80,9 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
     ngram_suffix = param_sim_function['ngram_suffix']
 
     gen_nodes = {}
-    init_seed = BeamNodeEz(prob=1.0, token_idx=eos_token_id,
-                         prev=[], prev_score=[])
+
+
+    init_seed = gen_init_seed_with_dec_prefix(dec_prefix)
     hypo = init_seed
     merge_flag = False
     ends = []
@@ -131,10 +144,10 @@ def baseline_recomb_sample(doc_input_ids, model, param_sim_function, eos_token_i
     return ends
 
 
-def recomb_baseline(doc_input_ids, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, avg_score:float=-1, debug: bool = False):
+def recomb_baseline(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, avg_score:float=-1, debug: bool = False):
+    init_seed = gen_init_seed_with_dec_prefix(dec_prefix)
 
-    # hypos = [BeamNode(prob=1.0, token_idx=eos_token_id,prev=[], prev_score=[])]
-    hypos:List[BeamNodeEz] = [BeamNodeEz(prob=1,  token_idx=eos_token_id, prev=[], prev_score=[])]
+    hypos:List[BeamNodeEz] = [init_seed]
     finished = []
     for t in range(max_len):
         # TODO finished

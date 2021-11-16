@@ -1,5 +1,5 @@
-fdir = '/mnt/data1/jcxu/back_to_fact/result'
-fdir = '/mnt/data1/jcxu/back_to_fact/output/stat'
+
+fdir = '/mnt/data1/jcxu/lattice-sum/output/stat'
 import json
 
 import os
@@ -26,7 +26,7 @@ for fold_dir in folders:
         if k == 'file':
             # outputs.append(v[0])
             continue
-        m = statistics.median(v)
+        m = statistics.mean(v)
         outputs.append(str(m))
     outputs.append(fold_dir)
     print(";".join(outputs))

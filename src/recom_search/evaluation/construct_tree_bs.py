@@ -1,7 +1,7 @@
 import statistics
 import math
 from collections import defaultdict
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
 
 
 def convert_seq_score(seq, inp_score):
@@ -80,9 +80,9 @@ def construct_trees(seq):
             father_key = "_".join(prev_tokens)
             if father_key:
                 father = d[father_key]
-                tmp = BeamNode(1, x, prev=[father], prev_score=[father.score])
+                tmp = BeamNodeEz(1, x, prev=[father], prev_score=[father.score])
             else:
-                tmp = BeamNode(1, x, prev=[], prev_score=[])
+                tmp = BeamNodeEz(1, x, prev=[], prev_score=[])
             d[key] = tmp
             prev_tokens.append(str(x))
         min_len = min(min_len, len(prev_tokens))

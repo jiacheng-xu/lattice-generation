@@ -7,8 +7,6 @@ import imp
 from typing import List
 import nltk
 import spacy
-
-
 nlp = spacy.load("en_core_web_sm")
 
 full_rouge_scorer = rouge_scorer.RougeScorer(
@@ -101,7 +99,7 @@ def rouge(inp_group, reference: str) -> dict:
 
 def eval_main(inp_group, reference, prefix=""):
     dict_rouge = rouge(inp_group, reference)
-    if len(inp_group) == 1:
+    if len(inp_group) <= 1:
         d = {
             'REP': 0,
             'SELF_BLEU': 0,
