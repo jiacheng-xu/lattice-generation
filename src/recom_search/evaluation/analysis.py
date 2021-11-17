@@ -348,7 +348,7 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=20)
     stat = {**stat, **buck_ratio}
     for k, v in dict_of_var_paths.items():
         path_sample_text = [x.text for x in v]
-        extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,k)
+        extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,flag_sum,k)
         stat = {**stat, **extrinsic_eval_sample}
     logger.info(stat)
     return stat, net,dict_of_var_paths
@@ -362,9 +362,9 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     Path(os.path.join(dict_io_html, config_name)).mkdir(parents=True, exist_ok=True)
     l = len(raw_files)
     # analyze_data(raw_files[0], config_name, dict_io_data=dict_io_data, dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
-    # for f in raw_files:
-    #     analyze_data(f, config_name, dict_io_data=dict_io_data,
-    #              dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
+    for f in raw_files:
+        analyze_data(f, config_name, dict_io_data=dict_io_data,
+                 dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
     with Pool(3) as pool:
         pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 
@@ -425,31 +425,32 @@ def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_h
             json.dump(data, wfd)
     """
 
+
+from src.recom_search.model.util import render_config_name
+from src.recom_search.command.run_eval import run_model
+
+from multiprocessing import Pool
+from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix, args, dict_io
+import logging
 if __name__ == "__main__":
     # execute only if run as a script
-    files = os.listdir('vizs')
-    suffix = '.pkl'
-    prefix = 'sum'
-    # suffix = 'bs_10_25_False_0.7_False_False_3_5_0.0_0.9.pkl'
-    # suffix = 'dbs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
-    # suffix ='recom_sample_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
-    # suffix='recom_bs_15_35_False_0.7_False_False_3_5_0.0_0.9.pkl'
-    # suffix = 'astar_15_35_True_0.5_False_False_3_5_0.0_0.9.pkl'
-    # suffix = 'astar_15_35_False_0.7_False_True_3_5_0.5_0.9.pkl'
-    # suffix = 'astar_15_35_True_0.4_False_False_3_5_True_0.0_0.9.pkl'
-    # suffix = '17532613_The countr_astar_15_35_True_0.4_False_False_4_5_True_0.0_0.9.pkl'
-    files = [f for f in files if f.endswith(
-        '.pkl') and f.endswith(suffix) and f.startswith(prefix)]
-    f_configs = set(['_'.join(name.split('_')[:-2]) for name in files])
-    for confi in f_configs:
-        print(confi)
-        # if 'astar_15_35_False_0.4_True_False_4_5' not in confi :
-        # continue
-        # else:
-        #     continue
-        logger = setup_logger(name=f"analysis-{confi}")
-        f_con = [f for f in files if f.startswith(confi)]
-
-        # test_one_file(f_con[0])
-        with Pool(10) as pool:
-            L = pool.map(analyze_data, f_con)
+    logging.info(f"Start running the pipeline")
+    param_sim_function = {
+        'ngram_suffix': args.ngram_suffix,
+        'len_diff': args.len_diff,
+        'merge': args.merge
+    }
+    config_search = {
+        'post': args.post,
+        'post_ratio': args.post_ratio,  # ratio of model calls left for post finishing
+        'adhoc': args.adhoc,
+        'heu': args.use_heu
+    }
+    combined_dict = {**config_search, **param_sim_function}
+    combined_dict['avgsco'] = args.avg_score
+    combined_dict['lenrwd'] = args.heu_seq_score_len_rwd
+    combined_dict['topp'] = args.top_p
+    config_name = render_config_name(
+        args.task, args.dataset, args.model, args.beam_size, args.max_len, combined_dict)
+    logging.info(f"Config name: {config_name}")
+    analyze_main(config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['html'])

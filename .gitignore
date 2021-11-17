@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 # custom
+/mt-data
 .html
 .txt
 *.json

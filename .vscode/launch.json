@@ -79,11 +79,19 @@
             "args": [
                 "-model",
                 "astar",
-                "-adhoc",
+                "-post_ratio",
+                "0.5",
+                "-post",
                 "-ngram_suffix",
                 "4",
                 "-merge",
-                "imp"
+                "imp",
+                "-beam_size",
+                "20",
+                "-max_len",
+                "35",
+                "-avg_score",
+                "0.75"
             ],
             // "-use_heu", "-heu_seq_score_len_rwd","0.4","-heu_ent","1", "-avg_score"
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"], ,"-heu_seq_score_len_rwd","0.5", -model astar -use_heu -heu_seq_score_len_rwd 0.5

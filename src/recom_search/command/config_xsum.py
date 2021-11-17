@@ -4,7 +4,7 @@ from random import random
 
 from subprocess import Popen
 
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py  "
+cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100 "
 cuda_range = [0,0,1,2]
 i = 0
 import random
@@ -15,7 +15,7 @@ beam = " -beam_group 5 -beam_size 20"
 length = " -min_len 10 -max_len 35"
 
 cmd_base += ngram+beam+length
-config_dbs =  ["-model dbs -hamming_penalty 2.0", "-model dbs -hamming_penalty 1.0", "-model dbs -hamming_penalty 0.5"]
+config_dbs =  ["-model dbs -hamming_penalty 2.0"]
 
 config_bs = ["-model bs "]
 config_topp = ["-model topp -top_p 0.8", "-model topp -top_p 0.9"]
@@ -63,14 +63,14 @@ print('waiting')
 d = {}
 d['-avg_score']= [-1,0.5, 0.75, 1.0]
 avg_score =  [-1,0.5, 0.75, 1.0]
-model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.5 ', '-post -post_ratio 0.7 ']
+model = [" -adhoc ",  '-post -post_ratio 0.5 ', '-post -post_ratio 0.7 ']
 models = []
 for score in avg_score:
     for m in model:
         models.append(f" -avg_score {score} {m} ")
 final_bases = []
 for b in models:
-    final_bases.append(cmd_base + f" -model astar -device cuda:{cuda_range[i % 4]}  " + b)
+    final_bases.append(cmd_base + f" -model astar -merge imp -device cuda:{cuda_range[i % 4]}  " + b)
     i += 1
 
 # run commands in parallel

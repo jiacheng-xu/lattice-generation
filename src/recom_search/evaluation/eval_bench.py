@@ -96,9 +96,23 @@ def rouge(inp_group, reference: str) -> dict:
         d[k] = avg
     return d
 
+def group_bleu(inp_group, reference: str)->dict:
+    scores = defaultdict(list)
+    for idx, inp in enumerate(inp_group):
+        # bleu_score = nltk.translate.bleu_score.sentence_bleu([x for jdx, x in enumerate(tok_inputs) if jdx != idx], inp)
+        bleu_score = bleu_scorer.sentence_score(inp, reference)
+        scores['bleu'].append(bleu_score.score)
+    d = {}
+    for k, v in scores.items():
+        avg = statistics.mean(v)
+        d[k] = avg
+    return d
 
-def eval_main(inp_group, reference, prefix=""):
-    dict_rouge = rouge(inp_group, reference)
+def eval_main(inp_group, reference, flag_sum, prefix=""):
+    if flag_sum:
+        dict_rouge = rouge(inp_group, reference)
+    else:
+        dict_rouge = group_bleu(inp_group,reference)
     if len(inp_group) <= 1:
         d = {
             'REP': 0,
