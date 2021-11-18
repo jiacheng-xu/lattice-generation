@@ -8,7 +8,7 @@ task = [
     " -task mtn1 -dataset zh-en"
 ]
 import random
-cuda_range = [0,0,1,2]
+cuda_range = [0,3,1,2]
 i = 0
 
 bag = []

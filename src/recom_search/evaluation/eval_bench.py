@@ -115,14 +115,14 @@ def eval_main(inp_group, reference, flag_sum, prefix=""):
         dict_rouge = group_bleu(inp_group,reference)
     if len(inp_group) <= 1:
         d = {
-            'REP': 0,
+            # 'REP': 0,
             'SELF_BLEU': 0,
             # 'NP_OVERLAP': 0,
         }
     else:
         d = {
            
-            'REP': repetition(inp_group),
+            # 'REP': repetition(inp_group),
             'SELF_BLEU': self_bleu(inp_group),
             # 'NP_OVERLAP': np_overlap(inp_group),
         }
