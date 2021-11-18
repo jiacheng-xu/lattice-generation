@@ -169,7 +169,8 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
             parents=True, exist_ok=True)
         if os.path.exists(os.path.join(wt_dir, config_name, fname)):
             logging.info(f"File exists. Skip.")
-            # cnt += 1
+            if cnt > nexample:
+                break
             continue
 
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:

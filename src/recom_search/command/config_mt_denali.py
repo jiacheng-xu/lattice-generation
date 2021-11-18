@@ -12,10 +12,10 @@ cuda_range = [0,3,1,2]
 i = 0
 
 bag = []
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 10   "
+cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 2   "
 
 ngram = " -ngram_suffix 4"
-beam = " -beam_group 5"
+beam = " -beam_group 2"
 length = " -min_len 3 -max_len -1"
 
 cmd_base += ngram+beam+length
@@ -28,7 +28,8 @@ model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.7 ']
 models = []
 for score in avg_score:
     for m in model:
-        models.append(f" -avg_score {score} {m} ")
+        for merge in ['zip','imp']:
+            models.append(f" -avg_score {score} {m} -merge {merge} ")
 final_bases = []
 for b in models:
     for t in task:

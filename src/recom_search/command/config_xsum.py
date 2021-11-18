@@ -39,7 +39,7 @@ baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + 
 # (I) Base baseline
 final_bases = []
 for b in baselines:
-    final_bases.append(cmd_base + f" -device cuda:{i % 3}  " + b)
+    final_bases.append(cmd_base + f" -device cuda:{cuda_range[i % 4]}  " + b)
     i += 1
 
 # run commands in parallel
@@ -51,12 +51,12 @@ print("\n".join(final_bases))
 print('waiting')
 
 # time.sleep(10)
-# processes = []
-# for i in range(len(final_bases)):
-#     p = Popen(final_bases[i], shell=True)
-#     processes.append(p)
-#     time.sleep(60)
-# exitcodes = [p.wait() for p in processes]
+processes = []
+for i in range(len(final_bases)):
+    p = Popen(final_bases[i], shell=True)
+    processes.append(p)
+    time.sleep(60)
+exitcodes = [p.wait() for p in processes]
 
 # (II) Recomb baseline
 
