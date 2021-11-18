@@ -264,8 +264,8 @@ def _evaluate_rouge(path_obj: GenPath, ref):
 def _evaluate_bleu(path_obj: GenPath, ref):
     decoded_text = tokenizer.decode(
         path_obj.token_ids, skip_special_tokens=True)
-    # if random.random() < 0.002:
-    #     logging.info(f"Comparing {decoded_text} with {ref}")
+    if random.random() < 0.01:
+        logging.info(f"Comparing {decoded_text} with {ref}")
     s = bleu_scorer.sentence_score(decoded_text, [ref])
     path_obj.metrics['bleu'] = s.score
     path_obj.ngram_cache = None
@@ -365,8 +365,8 @@ def analyze_main(config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_
     for f in raw_files:
         analyze_data(f, config_name, dict_io_data=dict_io_data,
                  dict_io_text=dict_io_text, dict_io_html=dict_io_html,dict_io_stat=dict_io_stat)
-    with Pool(3) as pool:
-        pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
+    # with Pool(3) as pool:
+    #     pool.starmap(analyze_data, zip(raw_files, [config_name]*l, [dict_io_data]*l, [dict_io_text]*l,  [dict_io_html]*l, [dict_io_stat]*l))
 
 
 def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_html , dict_io_stat):

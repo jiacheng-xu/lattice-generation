@@ -100,7 +100,7 @@ def group_bleu(inp_group, reference: str)->dict:
     scores = defaultdict(list)
     for idx, inp in enumerate(inp_group):
         # bleu_score = nltk.translate.bleu_score.sentence_bleu([x for jdx, x in enumerate(tok_inputs) if jdx != idx], inp)
-        bleu_score = bleu_scorer.sentence_score(inp, reference)
+        bleu_score = bleu_scorer.sentence_score(inp, [reference])
         scores['bleu'].append(bleu_score.score)
     d = {}
     for k, v in scores.items():

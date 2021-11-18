@@ -132,6 +132,7 @@ dmypy.json
 /mt-data
 .html
 .txt
+*.csv
 *.json
 *.html
 *.txt

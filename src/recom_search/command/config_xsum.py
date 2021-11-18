@@ -62,8 +62,9 @@ print('waiting')
 
 d = {}
 d['-avg_score']= [-1,0.5, 0.75, 1.0]
-avg_score =  [-1,0.5, 0.75, 1.0]
-model = [" -adhoc ",  '-post -post_ratio 0.5 ', '-post -post_ratio 0.7 ']
+avg_score =  [-1, 0.75]
+# model = [" -adhoc ", '-post -post_ratio 0.7 ',]
+model = ['-post -post_ratio 0.7 ','-post -post_ratio 0.3 ',]
 models = []
 for score in avg_score:
     for m in model:

@@ -8,14 +8,14 @@ task = [
     " -task mtn1 -dataset zh-en"
 ]
 import random
-cuda_range = [0,3,1,2]
+cuda_range = [0,0,1,2]
 i = 0
 
 bag = []
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 3   "
+cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 10   "
 
 ngram = " -ngram_suffix 4"
-beam = " -beam_group 3"
+beam = " -beam_group 5"
 length = " -min_len 3 -max_len -1"
 
 cmd_base += ngram+beam+length
@@ -46,7 +46,7 @@ baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + 
 final_bases = []
 for b in baselines:
     for t in task:
-        final_bases.append(cmd_base + f" -device cuda:{i % 3}  " + b + t)
+        final_bases.append(cmd_base + f" -device cuda:{cuda_range[i % 4]}  " + b + t)
         i += 1
 
 # run commands in parallel
@@ -56,29 +56,30 @@ random.shuffle(final_bases)
 print("We are going to run many commands, they are:")
 print("\n".join(final_bases))
 print('waiting')
-exit()
 
-# time.sleep(10)
+
+# time.sleep(5)
 # processes = []
 # for i in range(len(final_bases)):
 #     p = Popen(final_bases[i], shell=True)
 #     processes.append(p)
-#     time.sleep(60)
+#     time.sleep(600)
 # exitcodes = [p.wait() for p in processes]
 
 # (II) Recomb baseline
 
 d = {}
 
-avg_score =  [ 0.75, 1.0]
-model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.5 ', '-post -post_ratio 0.7 ']
+avg_score =  [ -1, 0.5, 0.75]
+model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.7 ']
 models = []
 for score in avg_score:
     for m in model:
         models.append(f" -avg_score {score} {m} ")
 final_bases = []
 for b in models:
-    final_bases.append(cmd_base + f" -model astar -device cuda:{cuda_range[i % 4]}  " + b)
+    for t in task:
+        final_bases.append(cmd_base + f" -model astar -device cuda:{cuda_range[i % 4]}  " +t + b)
     i += 1
 
 # run commands in parallel

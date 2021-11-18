@@ -17,7 +17,7 @@ def render_address(root = 'output'):
     }
     return d
 
-def read_mt_data(path='/mnt/data1/jcxu/mt-data/use', name='zh-en'):
+def read_mt_data(path='/mnt/data1/jcxu/lattice-sum/mt-data/use', name='zh-en'):
     src = name[:2]
     tgt = name[3:]
     with open(os.path.join(path, f"{name}.{src}"), 'r') as fd:
@@ -67,8 +67,9 @@ def setup_model(task='sum', dataset='xsum', device_name='cuda:2'):
         match = [x for x in FAIRSEQ_LANGUAGE_CODES if x.startswith(tgt_lang)]
         assert len(match) == 1
         lang = match[0]
+        logging.info(f"Lang: {lang}")
         dec_prefix = [tokenizer.eos_token_id, tokenizer.lang_code_to_id[lang]]
-
+        logging.info(f"{tokenizer.decode(dec_prefix)}")
     elif task == 'mtn1':
         from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
         model = MBartForConditionalGeneration.from_pretrained(
@@ -86,7 +87,7 @@ def setup_model(task='sum', dataset='xsum', device_name='cuda:2'):
         dataset = read_mt_data(name=dataset)
         dec_prefix = [tokenizer.eos_token_id,
                       tokenizer.lang_code_to_id["en_XX"]]
-
+        logging.info(f"{tokenizer.decode(dec_prefix)}")
     model = model.to(device)
     return tokenizer, model, dataset, dec_prefix
 

@@ -70,6 +70,10 @@ def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, conf
 
 
 def run_baseline(args, model, inp, dec_prefix):
+    if args.task == 'sum':
+        forced_bos_token_id = None
+    else:
+        forced_bos_token_id  = dec_prefix[-1]
     if args.max_len == -1:
         input_ids = tokenizer(inp, return_tensors="pt").input_ids
         cur_max_len = input_ids.squeeze().size()[0] * 2
@@ -105,7 +109,7 @@ def run_baseline(args, model, inp, dec_prefix):
                            )
     else:
         raise NotImplementedError
-    output_dict = gs.run(inp)
+    output_dict = gs.run(inp, forced_bos_token_id)
 
     return output_dict
 

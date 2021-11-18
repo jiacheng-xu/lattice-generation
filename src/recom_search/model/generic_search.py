@@ -17,11 +17,11 @@ class GenericSearch(SearchStrategy):
         self.diversity_penalty = diversity_penalty
         self.top_p = top_p
 
-    def run(self, input_doc: str):
+    def run(self, input_doc: str, forced_bos_token_id):
         input_ids = self.tokenizer(
             input_doc, return_tensors="pt").input_ids.to(self.device)
         run_output = self._timed_run(
-            input_ids=input_ids)
+            input_ids=input_ids,forced_bos_token_id  =forced_bos_token_id )
 
         sequences = run_output['output']['sequences'].cpu().tolist()
         # sequences_scores = run_output['output']['scores']   # seq_len, batch, vocab
@@ -49,8 +49,8 @@ class GenericSearch(SearchStrategy):
         return mo
 
     @timing
-    def _timed_run(self, input_ids):
-        outputs = self.model.generate(input_ids=input_ids, top_p=self.top_p, max_length=self.max_len, min_length=self.min_len, num_beams=self.beam_size,
+    def _timed_run(self, input_ids, forced_bos_token_id ):
+        outputs = self.model.generate(input_ids=input_ids,forced_bos_token_id =forced_bos_token_id , top_p=self.top_p, max_length=self.max_len, min_length=self.min_len, num_beams=self.beam_size,
                                       num_beam_groups=self.num_beam_groups,
                                       do_sample=self.do_sample,
                                       num_return_sequences=self.num_beam_hyps_to_keep,
