@@ -111,14 +111,15 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
 import csv
 def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_table):
     raw_files = os.listdir(os.path.join(dict_io_data, config_name))
+    raw_files_stat = os.listdir(os.path.join(dict_io_stat, config_name))
     # get number of finished nodes from data, analyze model parameter, gather results to json and a latex table
     Path(os.path.join(dict_io_table, config_name)).mkdir(
         parents=True, exist_ok=True)
-    l = len(raw_files)
+
     if args.dataset.startswith('en'):
         error_rate = 0
     else:
-        error_rate = evaluate_grammar_gector(raw_files, config_name,
+        error_rate = evaluate_grammar_gector(raw_files_stat, config_name,
                             dict_io_text, dict_io_table)
     num_ends = get_finished_hypo(os.path.join(dict_io_data, config_name), raw_files)
     data_points:dict = get_jsons_from_a_folder(os.path.join(dict_io_stat, config_name) )

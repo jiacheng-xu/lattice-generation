@@ -8,7 +8,7 @@ task = [
     " -task mtn1 -dataset zh-en"
 ]
 import random
-cuda_range = [0,3,1,2]
+cuda_range = [0,0,1,2]
 i = 0
 
 bag = []
@@ -58,14 +58,14 @@ print("\n".join(final_bases))
 print('waiting')
 
 
-# time.sleep(5)
-# processes = []
-# for i in range(len(final_bases)):
-#     p = Popen(final_bases[i], shell=True)
-#     processes.append(p)
-#     time.sleep(600)
-# exitcodes = [p.wait() for p in processes]
-
+time.sleep(5)
+processes = []
+for i in range(len(final_bases)):
+    p = Popen(final_bases[i], shell=True)
+    processes.append(p)
+    time.sleep(60)
+exitcodes = [p.wait() for p in processes]
+exit()
 # (II) Recomb baseline
 
 d = {}
