@@ -6,6 +6,7 @@
 """
 
 
+from src.recom_search.evaluation.deep_ana import deep_analyze_main
 from src.recom_search.evaluation.analysis import analyze_data, analyze_main
 from src.recom_search.model.util import render_config_name
 from src.recom_search.command.run_eval import run_model
@@ -38,4 +39,6 @@ if __name__ == '__main__':
     del model
     logging.info(f"Done with making data. Start analyzing data.")
     analyze_main(config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['html'])
-    logging.info("Done with analysis")
+    logging.info("Done with initial analysis")
+    # second stage analysis: run gector model, get number of finished nodes from data, analyze model parameter, gather results to json and a latex table
+    deep_analyze_main(args, config_name, dict_io['data'], dict_io['text'], dict_io['stat'], dict_io['table'])

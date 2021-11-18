@@ -14,6 +14,7 @@ def render_address(root = 'output'):
         'html':os.path.join(root, 'html'),
         'stat':os.path.join(root, 'stat'),
         'text':os.path.join(root, 'text'),
+        'table':os.path.join(root, 'table'),
     }
     return d
 
