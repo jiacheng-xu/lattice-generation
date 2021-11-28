@@ -130,7 +130,7 @@ def process_arg():
     parser = argparse.ArgumentParser()
     parser.add_argument('-device', type=str, default='cuda:2')
     parser.add_argument("-model", type=str, choices=[
-                        'dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample', 'astar'], default='bs')
+                        'dbs', 'bs', 'greedy', 'topp', 'temp', 'recom_bs', 'recom_sample', 'astar','astar_base'], default='bs')
     parser.add_argument('-beam_size', type=int, default=15)
     parser.add_argument('-nexample', type=int, default=100)
     parser.add_argument('-task', type=str, default='sum',

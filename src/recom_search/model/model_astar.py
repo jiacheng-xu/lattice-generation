@@ -363,12 +363,6 @@ def a_star(model, tokenizer,
 
         if output_node and output_node.finished:
             finished_hypos.append(output_node)
-
-    # check what's in heap, hash
-    # print(heap)
-    # print(gen_hash)
-    ###
-
     for hypo in finished_hypos:
         if not hypo.finished:
             logging.info(f"Not finished: {hypo}")

@@ -203,6 +203,9 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         elif args.model == 'astar':
             output = run_a_star(
                 args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search=config_search)
+        elif args.model == 'astar_base':
+            output = run_a_star_baseline(
+                args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search=config_search)
         output.reference = ref_sum
         output.doc_id = doc_id
         output.document = document
@@ -214,9 +217,6 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         # break
         if cnt > nexample:
             break
-
-
-# from src.recom_search.model.util import tokenizer
 
 if __name__ == "__main__":
     # execute only if run as a script

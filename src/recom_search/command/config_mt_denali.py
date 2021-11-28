@@ -7,47 +7,70 @@ task = [
     " -task mtn1 -dataset fr-en",
     " -task mtn1 -dataset zh-en"
 ]
-import random
+
+
 cuda_range = [0,3,1,2]
 i = 0
 
 bag = []
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 2   "
 
-ngram = " -ngram_suffix 4"
-beam = " -beam_group 2"
-length = " -min_len 3 -max_len -1"
-
-cmd_base += ngram+beam+length
-
-
-d = {}
-
-avg_score =  [ -1, 0.5, 0.75]
-model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.7 ']
-models = []
+# a star configs
+avg_score =  [-1, 0.75]
+astar_mode = [" -adhoc ",'-post -post_ratio 0.7 ','-post -post_ratio 0.3 ',]
+common_a_star = []
 for score in avg_score:
-    for m in model:
-        for merge in ['zip','imp']:
-            models.append(f" -avg_score {score} {m} -merge {merge} ")
-final_bases = []
-for b in models:
-    for t in task:
-        final_bases.append(cmd_base + f" -model astar -device cuda:{cuda_range[i % 4]}  " +t + b)
-    i += 1
+    for m in astar_mode:
+        common_a_star.append(f" -avg_score {score} {m} ")
 
-# run commands in parallel
+
+base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100   "
+
+ngram = " -ngram_suffix 4 "
+length = " -min_len 3 -max_len -1 "
+beam = " -beam_group 4 -beam_size 8 "
+low_beam = " -beam_group 1 -beam_size 2 "
+
+cmd_base =base+ ngram+beam+length
+cmd_base_low =base+ ngram+low_beam+length
+
+
+config_dbs =  ["-model dbs -hamming_penalty 2.0"]
+config_bs = ["-model bs "]
+config_topp = ["-model topp -top_p 0.8", "-model topp -top_p 0.9"]
+config_greed = [" -model greedy"]
+config_temp = [" -model temp -temp 1.5", " -model temp -temp 1.25"]
+config_recom = [" -model recom_bs"]
+config_recom_sample = [' -model recom_sample -top_p 0.8 ',' -model recom_sample -top_p 0.9 ']
+config_astar_base = ['-model astar_base -avg_score -1  -adhoc ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
+baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + config_recom +  config_recom_sample + config_astar_base
+
+
 import time
+# (I) Base baseline
+all_commands = []
+for b in baselines:
+    for t in task:
+        all_commands.append(cmd_base + f" {t} -device cuda:{cuda_range[i % 4]}  " + b)
+        i += 1
+
+# (II) recomb + best
+for b in common_a_star:
+    for t in task:
+        all_commands.append(cmd_base + f" {t} -model astar -merge imp -device cuda:{cuda_range[i % 4]}  " + b)
+        i += 1
+        all_commands.append(cmd_base + f" {t} -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
+        i += 1
+        all_commands.append(cmd_base_low + f" {t} -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
+        i += 1
+
 print("We are going to run many commands, they are:")
-print("\n".join(final_bases))
+print("\n".join(all_commands))
 print('waiting')
 time.sleep(10)
 processes = []
-for i in range(len(final_bases)):
-    p = Popen(final_bases[i], shell=True)
+for i in range(len(all_commands)):
+    p = Popen(all_commands[i], shell=True)
     processes.append(p)
-    time.sleep(60)
-    # if i % 4 == 0:
-    #     time.sleep(360)
-# collect statuses
+    time.sleep(60*5)
+
 exitcodes = [p.wait() for p in processes]
