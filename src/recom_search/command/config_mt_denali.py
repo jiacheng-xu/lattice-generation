@@ -72,6 +72,6 @@ processes = []
 for i in range(len(all_commands)):
     p = Popen(all_commands[i], shell=True)
     processes.append(p)
-    time.sleep(60*5)
+    time.sleep(60)
 
 exitcodes = [p.wait() for p in processes]

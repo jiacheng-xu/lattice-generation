@@ -128,6 +128,9 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
     if os.path.isfile(outpuf_cnt_file):
         logging.info('all analysis has been done. skip')
         return
+    else:
+        with open(outpuf_cnt_file, 'w') as fp:
+            pass
     if args.dataset.startswith('en'):
         error_rate = 0
     else:
