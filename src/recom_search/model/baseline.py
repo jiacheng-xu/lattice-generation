@@ -69,7 +69,7 @@ def gen_init_seed_with_dec_prefix(dec_prefix)->BeamNodeEz:
         last = init_seed
     return last
 
-def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100, debug: bool = False, top_p=0.8):
+def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100,  top_p=0.8):
     topp_logit_wrapper = TopPLogitsWarper(top_p=top_p)
     """Neucleus sampling with path recombination"""
     # budget = max_len * beam size
@@ -81,10 +81,9 @@ def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function,
 
     gen_nodes = {}
 
-
     init_seed = gen_init_seed_with_dec_prefix(dec_prefix)
     hypo = init_seed
-    merge_flag = False
+    
     ends = []
     while True:
         # sample start from a sentence, do not create a new node if something matches the record
@@ -96,17 +95,20 @@ def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function,
             model, doc_input_ids, decoder_input_ids=decoder_input_ids, device=doc_input_ids.device, output_dec_hid=False, T=1)
         usage += 1
         sample_output = topp_logit_wrapper(None, scores=output_score).squeeze()
-        # print(sample_output)
+        
         m = Categorical(logits=sample_output)
-        # print(m)
+        
         next_tok_idx = m.sample().cpu().item()
         next_tok_prob = output_prob[0][next_tok_idx]
         # has this token combination been pred before?
         feat = hypo.all_token_idx + [next_tok_idx]
         feat = [str(x) for x in feat]
         feat_key = "_".join(feat)
+
         if feat_key in gen_nodes:
             tmp_node = gen_nodes[feat_key]
+            # the same path has been generated before, so we do not need to recombine
+            merge_flag = False
         else:
             merge_flag = True
             tmp_node = BeamNodeEz(prob=next_tok_prob, token_idx=next_tok_idx, prev=[
@@ -138,9 +140,7 @@ def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function,
             hypo = tmp_node
         if total_budget <= usage:
             break
-    for hypo in ends:
-        logging.info(f"\n\n {hypo}")
-        hypo.print_lattice()
+
     return ends
 
 

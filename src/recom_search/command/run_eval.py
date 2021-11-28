@@ -39,7 +39,7 @@ def run_recom_sample(args, model, input_doc,dec_prefix, param_sim_function) -> S
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
-    output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+    output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
 
     mo = SearchModelOutput(ends=output)
     return mo

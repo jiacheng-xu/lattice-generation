@@ -28,7 +28,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from src.recom_search.model.setup import setup_logger
 from src.recom_search.model.model_output import SearchModelOutput
-from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main,bleu_scorer
+from src.recom_search.evaluation.eval_bench import _get_ngrams, eval_main,bleu_scorer, group_bleu, self_bleu, self_edit_distance
 from src.recom_search.model.beam_state import BeamNode
 from typing import Dict, List
 import pickle
@@ -136,6 +136,9 @@ def derive_path(nodes: Dict, edges: Dict,flag_sum:bool, eps=int(5e3), min_len=5)
     # node_uids = [x['uid'] for x in nodes]
     node_text, node_tok_idx = build_node_text_dict(nodes)
     sos_key, list_of_eos_key, degree_mat = find_start_end(nodes, edges)
+
+
+
     seen = [sos_key]
     edges_tgt_to_src, edges_tgt_to_src_score = cache_edges(edges)
     if flag_sum:
@@ -184,7 +187,7 @@ def derive_path(nodes: Dict, edges: Dict,flag_sum:bool, eps=int(5e3), min_len=5)
         available_paths = [x for x in available_paths if len(
             x) >= min_len]
         total_path += available_paths
-    return total_path, list_of_eos_key, degree_mat
+    return total_path, list_of_eos_key, degree_mat, sos_key
 
 
 # things we care about: distribution of the path's score
@@ -314,7 +317,41 @@ def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=20):
         stat[f"ratio_{b}"] = rate
     return var_paths, stat
 
+def random_walk_from_sos(sos_key, all_nodes, all_edges, max_len=100):
+    # edges[f"{p_uid}_{node_uid}"] = edge_info
+    # nodes[node.uid] = {   'uid': node_uid,
+                # 'text': node.token_str,
+                # 'tok_idx': node.token_idx
+    # get the chain of node id
+    rt = [sos_key]
+    edges = list(all_edges.keys())
+    while True:
+        ele = rt[-1]
+        cand_edges = [ e.split('_')[1] for e in edges if e.startswith(ele)]
+        if not cand_edges:
+            break
+        rand_nxt  =random.choice(cand_edges)
+        rt.append(rand_nxt)
+        if len(rt) >= max_len:
+            break
+    rt_token_ids = [all_nodes[uid]['tok_idx'] for uid in rt]
 
+    return rt_token_ids
+
+def get_random_walk_eval(sos_key,nodes,edges, nsample=5):
+    group = []
+    cnt = 0
+    while cnt <=nsample:
+        rand_1 = random_walk_from_sos(sos_key,nodes,edges)
+        sample_sent1 = tokenizer.decode(rand_1, skip_special_tokens=True)
+        group.append(sample_sent1)
+        cnt += 1
+    stat = {}
+    b =  self_bleu(group)
+    ed_dis = self_edit_distance(group)
+    stat['rand_walk_self_bleu'] = b
+    stat['rand_walk_self_edit'] = ed_dis
+    return stat
 def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=20):
     logging.info('\n\n---')
     for go in generated_outputs:
@@ -334,8 +371,8 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=20)
         draw_nodes(net, nodes, idx)
         draw_edges(net, edges, idx)
 
-    all_paths, all_eos, all_degree_mat = derive_path(all_nodes, all_edges, flag_sum)
-    # panda_df, all_stat = extract_graph_feat(all_nodes, all_edges, all_paths, all_degree_mat)
+    all_paths, all_eos, all_degree_mat,sos_key = derive_path(all_nodes, all_edges, flag_sum)
+    
     stat = analyze_graph(all_paths, all_nodes)
 
     abs_degrees = list(all_degree_mat.values())
@@ -350,6 +387,9 @@ def viz_result(generated_outputs: List[BeamNode], ref_sum, flag_sum, nsample=20)
         path_sample_text = [x.text for x in v]
         extrinsic_eval_sample = eval_main(path_sample_text, ref_sum,flag_sum,k)
         stat = {**stat, **extrinsic_eval_sample}
+    random_walk_dict = get_random_walk_eval(sos_key,all_nodes,all_edges)
+    stat = {**stat, **random_walk_dict}
+    
     logger.info(stat)
     return stat, net,dict_of_var_paths
 

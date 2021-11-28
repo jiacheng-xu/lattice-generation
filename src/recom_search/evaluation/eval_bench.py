@@ -62,7 +62,17 @@ def self_bleu(inp_group: List[str]):
         bleu_score = bleu_scorer.sentence_score(inp, [x for jdx, x in enumerate(inp_group) if jdx != idx])
         bleu_scores.append(bleu_score.score)
     return statistics.mean(bleu_scores)
+import editdistance
 
+def self_edit_distance(inp_group: List[str]):
+    # tok_inputs = tokenize_sentences(inp_group)
+    ed_scores = []
+    for idx, inp in enumerate(inp_group):
+        for jdx in range(idx+1, len(inp_group)):
+
+            v = editdistance.eval(inp_group[idx],inp_group[jdx])
+            ed_scores.append(v)
+    return statistics.mean(ed_scores)
 
 def repetition(inp_group: List[str], threshold=3):
     tok_inputs = tokenize_sentences(inp_group)
