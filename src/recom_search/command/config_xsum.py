@@ -58,7 +58,8 @@ for b in common_a_star:
     all_commands.append(cmd_base_low + f" -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
     i += 1
 
-
+import random
+random.shuffle(all_commands)
 print("We are going to run many commands, they are:")
 print("\n".join(all_commands))
 print('waiting')
