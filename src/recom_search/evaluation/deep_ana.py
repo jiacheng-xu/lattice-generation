@@ -117,6 +117,7 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
     err = float(lines[0])
     return err
 
+import pandas as pd
 
 def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_table,  proj_dir='/mnt/data1/jcxu/lattice-sum/'):
     raw_files = os.listdir(os.path.join(dict_io_data, config_name))
@@ -155,15 +156,23 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
             continue
         val = statistics.mean(v) if v else 0
         final[k] = "{:.4f}".format(val)
+
+    # we will have two files at the same time, one pkl and one csv
+    gather_pkl = os.path.join(dict_io_table, f"{args.task}_{args.dataset}.pkl")
     gather_csv = os.path.join(dict_io_table, f"{args.task}_{args.dataset}.csv")
-    add_key = False
-    if not os.path.isfile(gather_csv):
-        add_key = True
-    with open(gather_csv, 'a') as csvfile:
-        keys = list(final.keys())
-        values = list(final.values())
-        # values = [ "{:.4f}".format(v) for v in values]
-        spamwriter = csv.writer(csvfile, delimiter=';')
-        if add_key:
-            spamwriter.writerow(keys)
-        spamwriter.writerow(values)
+    # convert to panda ready format
+    for k in final.keys():
+        final[k] = [final[k]]
+    original_df = pd.DataFrame(final)
+    
+    concat = False
+    if not os.path.isfile(gather_pkl):
+        concat = True
+    if concat:
+        unpickled_df = pd.read_pickle(gather_pkl)
+        original_df = pd.concat([unpickled_df,original_df], axis=0, ignore_index=True)
+        original_df.to_pickle(gather_pkl)
+    else:
+        original_df.to_pickle(gather_pkl)
+    original_df.to_csv(path_or_buf=gather_csv,index=False)
+    

@@ -343,7 +343,7 @@ def a_star(model, tokenizer,
         output_node, added_num_calls = astar_step(tokenizer,  seed, new_hash, heap, doc_input_ids, model, param_sim_function, config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
 
         ncalls += added_num_calls
-        print(output_node)
+        # print(output_node)
         if output_node and output_node.finished:
             finished_hypos.append(output_node)
     num_mid_point_hypo = len(finished_hypos)

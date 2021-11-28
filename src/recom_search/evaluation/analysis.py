@@ -301,6 +301,9 @@ def oracle_path(cand_paths: List, ref_sum, flag_sum, oracle_samples=20):
     # oracle_sents = [ (x.text, len(x), x.metrics) for x in path_oracle]
     # bucket
     bucket = [10, 20, 40, 1000]
+    # for idx, b in enumerate(bucket):
+    #     var_paths[f"buck_{b}"] = []
+    
     for samp_path in sampled_paths:
         l = len(samp_path)
 
@@ -458,20 +461,6 @@ def analyze_data(f, config_name: str, dict_io_data: str, dict_io_text, dict_io_h
     with open(fname, 'w') as wfd:
         json.dump(stat, wfd)
     network.save_graph(os.path.join(dict_io_html, config_name, f"{name}.html"))
-    """
-    with FileLock(f"{fname}.lock"):
-        print("Lock acquired.")
-        if os.path.isfile(fname):
-            with open(fname, 'r') as read_file:
-                data = json.load(read_file)
-        else:
-            data = []
-        stat["file"] = name
-        if stat not in data:
-            data.append(stat)
-        with open(fname, 'w') as wfd:
-            json.dump(data, wfd)
-    """
 
 
 if __name__ == "__main__":
