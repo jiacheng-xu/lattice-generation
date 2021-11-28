@@ -166,7 +166,7 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
     original_df = pd.DataFrame(final)
     
     concat = False
-    if not os.path.isfile(gather_pkl):
+    if os.path.isfile(gather_pkl):
         concat = True
     if concat:
         unpickled_df = pd.read_pickle(gather_pkl)
