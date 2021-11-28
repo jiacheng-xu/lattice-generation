@@ -100,8 +100,7 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
         proj_dir, dict_io_table, config_name, "output.txt")
     outpuf_cnt_file = os.path.join(proj_dir,
                                    dict_io_table, config_name, "output_cnt.txt")
-    if os.path.isfile(outpuf_cnt_file):
-        return 
+
     with open(input_file, 'w') as fd:
         fd.write('\n'.join(all_lines))
 

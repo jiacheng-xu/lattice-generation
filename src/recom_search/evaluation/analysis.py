@@ -265,7 +265,7 @@ def _evaluate_rouge(path_obj: GenPath, ref):
 def _evaluate_bleu(path_obj: GenPath, ref):
     decoded_text = tokenizer.decode(
         path_obj.token_ids, skip_special_tokens=True)
-    if random.random() < 0.01:
+    if random.random() < 0.001:
         logging.info(f"Comparing {decoded_text} with {ref}")
     s = bleu_scorer.sentence_score(decoded_text, [ref])
     path_obj.metrics['bleu'] = s.score
