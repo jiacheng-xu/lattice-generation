@@ -100,6 +100,8 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
         proj_dir, dict_io_table, config_name, "output.txt")
     outpuf_cnt_file = os.path.join(proj_dir,
                                    dict_io_table, config_name, "output_cnt.txt")
+    if os.path.isfile(outpuf_cnt_file):
+        return 
     with open(input_file, 'w') as fd:
         fd.write('\n'.join(all_lines))
 
@@ -116,13 +118,16 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
     return err
 
 
-def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_table):
+def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_table,  proj_dir='/mnt/data1/jcxu/lattice-sum/'):
     raw_files = os.listdir(os.path.join(dict_io_data, config_name))
     raw_files_stat = os.listdir(os.path.join(dict_io_stat, config_name))
     # get number of finished nodes from data, analyze model parameter, gather results to json and a latex table
     Path(os.path.join(dict_io_table, config_name)).mkdir(
         parents=True, exist_ok=True)
-
+    outpuf_cnt_file = os.path.join(proj_dir,dict_io_table, config_name, "output_cnt.txt")
+    if os.path.isfile(outpuf_cnt_file):
+        logging.info('all analysis has been done. skip')
+        return
     if args.dataset.startswith('en'):
         error_rate = 0
     else:
