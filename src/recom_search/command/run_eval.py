@@ -7,7 +7,7 @@ import pickle
 
 from datasets.load import import_main_class
 from src.recom_search.model.model_output import SearchModelOutput
-from src.recom_search.model.model_astar import a_star
+from src.recom_search.model.model_astar import a_star, a_star_baseline
 
 from src.recom_search.evaluation.eval_bench import rouge_single_pair
 import pandas as pd
@@ -44,7 +44,28 @@ def run_recom_sample(args, model, input_doc,dec_prefix, param_sim_function) -> S
     mo = SearchModelOutput(ends=output)
     return mo
 
+def run_a_star_baseline(args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search):
 
+    config_heu = {
+        'heu_seq_score': args.heu_seq_score,
+        'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
+        'heu_pos': args.heu_pos,
+        'heu_ent': args.heu_ent,
+        'heu_word': args.heu_word
+    }
+    input_ids = tokenizer(
+        inp, return_tensors="pt").input_ids.to(args.device)
+    if args.max_len == -1:
+        cur_max_len = input_ids.squeeze().size()[0] * 2
+        comp_budget = cur_max_len * args.beam_size
+    else:
+        comp_budget = args.max_len * args.beam_size
+        cur_max_len = args.max_len
+    output = a_star_baseline(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
+                    max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
+
+    mo = SearchModelOutput(ends=output)
+    return mo
 def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search) -> SearchModelOutput:
 
     config_heu = {
