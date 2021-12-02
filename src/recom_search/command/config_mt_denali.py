@@ -15,7 +15,8 @@ i = 0
 bag = []
 
 # a star configs
-avg_score =  [-1, 0.75]
+# avg_score =  [-1, 0.75]
+avg_score =  [0.75]
 astar_mode = [" -adhoc ",'-post -post_ratio 0.7 ','-post -post_ratio 0.3 ',]
 common_a_star = []
 for score in avg_score:
@@ -31,7 +32,7 @@ beam = " -beam_group 4 -beam_size 8 "
 low_beam = " -beam_group 1 -beam_size 2 "
 
 cmd_base =base+ ngram+beam+length
-cmd_base_low =base+ ngram+low_beam+length
+cmd_base_low = base+ ngram+low_beam+length
 
 
 config_dbs =  ["-model dbs -hamming_penalty 2.0"]
@@ -43,6 +44,7 @@ config_recom = [" -model recom_bs"]
 config_recom_sample = [' -model recom_sample -top_p 0.8 ',' -model recom_sample -top_p 0.9 ']
 config_astar_base = ['-model astar_base -avg_score -1  -adhoc ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
 baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + config_recom +  config_recom_sample + config_astar_base
+baselines = []      # ONLY a star
 
 
 import time

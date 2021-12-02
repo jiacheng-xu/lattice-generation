@@ -87,7 +87,7 @@ def astar_step_baseline(tokenizer,  start_seed: BeamNode, hash: NewHash, heap,  
                 logging.info(
                     f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
             # print(score)
-            heapq.heappush(heap, (-score, tmp_state.uid))
+            heapq.heappush(heap, (-score, tmp_state.uid, pointer.uid))
         
         pointer = top1_state
         if pointer.finished or flag_merge:
@@ -197,7 +197,7 @@ def astar_step(tokenizer,  start_seed: BeamNode, hash: NewHash, heap,  doc_input
                 logging.info(
                     f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
             # print(score)
-            heapq.heappush(heap, (-score, tmp_state.uid))
+            heapq.heappush(heap, (-score, tmp_state.uid, pointer.uid))
         
         pointer = top1_state
         if pointer.finished or flag_merge:
@@ -325,15 +325,18 @@ def a_star(model, tokenizer,
             last = init_seed
         # new_hash.set_node(init_seed.uid, init_seed)
 
-    heapq.heappush(heap, (-init_seed.prob, init_seed.uid))
+    heapq.heappush(heap, (-init_seed.prob, init_seed.uid, last.uid))
 
     while ncalls < budget_expl:
-        _, seed_uid = heapq.heappop(heap)
+        _, seed_uid, seed_prev_uid = heapq.heappop(heap)
         seed = new_hash.retrieve_node(seed_uid)
 
         master_uid = seed.master_node_uid
         if master_uid != new_hash.find_root_node_uid(master_uid):
             # print("Skipping unexpanded children!")
+            continue
+        if seed_prev_uid != new_hash.find_root_node_uid(seed_prev_uid):
+            print('unexpanded kid skip')
             continue
         
         if config_search['adhoc']:
@@ -349,12 +352,15 @@ def a_star(model, tokenizer,
     num_mid_point_hypo = len(finished_hypos)
     # if there is post generation (like explore-then-gen)
     while ncalls < comp_budget:
-        _, seed_uid = heapq.heappop(heap)
+        _, seed_uid, seed_prev_uid = heapq.heappop(heap)
         seed = new_hash.retrieve_node(seed_uid)
 
         master_uid = seed.master_node_uid
         if master_uid != new_hash.find_root_node_uid(master_uid):
             # print("Skipping unexpanded children!")
+            continue
+        if seed_prev_uid != new_hash.find_root_node_uid(seed_prev_uid):
+            print('unexpanded kid skip')
             continue
         expl_steps = max(1, max_len - seed.length)
         output_node, added_num_calls = astar_step(tokenizer,  seed, new_hash, [], doc_input_ids, model, param_sim_function, config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)

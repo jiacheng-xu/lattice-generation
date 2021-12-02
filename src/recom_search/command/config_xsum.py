@@ -5,6 +5,7 @@ cuda_range = [0,0,1,2]
 
 # a star configs
 avg_score =  [-1, 0.75]
+avg_score =  [0.75]
 astar_mode = [" -adhoc ",'-post -post_ratio 0.7 ','-post -post_ratio 0.3 ',]
 common_a_star = []
 for score in avg_score:
@@ -32,6 +33,7 @@ config_recom = [" -model recom_bs"]
 config_recom_sample = [' -model recom_sample -top_p 0.8 ',' -model recom_sample -top_p 0.9 ']
 config_astar_base = ['-model astar_base -avg_score -1  -adhoc ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
 baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + config_recom +  config_recom_sample + config_astar_base
+baselines = []
 
 # d = {'heu_seq_score': [0.0, 0.1, 0.05,0.5],
 #      'heu_seq_score_len_rwd': [0.0,0.01, 0.05,0.1],
