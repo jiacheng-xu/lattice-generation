@@ -14,7 +14,6 @@ import pickle
 
 from src.recom_search.evaluation.analysis import derive_path, viz_result
 
-files = os.listdir(d)
 
 def study_bs(generated_outputs):
     
@@ -49,6 +48,8 @@ def study_bs(generated_outputs):
     return total / (truncate_len * 8)
 for d in dirs:
     bag = []
+    
+    files = os.listdir(d)
     for f in files:
         with open(os.path.join(d,f),'rb') as fd:
             data = pickle.load(fd)
