@@ -28,9 +28,10 @@ def study_bs(generated_outputs):
         nodes, edges = go.visualization()
         all_nodes.update(nodes)
         all_edges.update(edges)
-
+    # print(generated_outputs)
     all_paths, all_eos, all_degree_mat, sos_key = derive_path(
-        all_nodes, all_edges, True)
+        all_nodes, all_edges, False)
+    # print(all_paths)
     truncate_len = min([len(x.tokens) for x in all_paths])
     # edges" srcid tgtid
     edge_info = list(all_edges.keys())
@@ -50,6 +51,7 @@ for d in dirs:
     bag = []
     
     files = os.listdir(d)
+    # print(files)
     for f in files:
         with open(os.path.join(d,f),'rb') as fd:
             data = pickle.load(fd)

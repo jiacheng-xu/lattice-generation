@@ -17,7 +17,7 @@ bag = []
 # a star configs
 # avg_score =  [-1, 0.75]
 avg_score =  [0.75]
-astar_mode = [" -adhoc ",'-post -post_ratio 0.7 ','-post -post_ratio 0.3 ',]
+astar_mode = [" -adhoc "]
 common_a_star = []
 for score in avg_score:
     for m in astar_mode:
@@ -30,10 +30,11 @@ ngram = " -ngram_suffix 4 "
 length = " -min_len 3 -max_len -1 "
 beam = " -beam_group 4 -beam_size 8 "
 low_beam = " -beam_group 1 -beam_size 2 "
+mid_beam = " -beam_group 2 -beam_size 4 "
 
 cmd_base =base+ ngram+beam+length
 cmd_base_low = base+ ngram+low_beam+length
-
+cmd_base_mid = base+ ngram+mid_beam+length
 
 config_dbs =  ["-model dbs -hamming_penalty 2.0"]
 config_bs = ["-model bs "]
@@ -58,11 +59,15 @@ for b in baselines:
 # (II) recomb + best
 for b in common_a_star:
     for t in task:
+        """
         all_commands.append(cmd_base + f" {t} -model astar -merge imp -device cuda:{cuda_range[i % 4]}  " + b)
         i += 1
         all_commands.append(cmd_base + f" {t} -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
         i += 1
+        """
         all_commands.append(cmd_base_low + f" {t} -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
+        i += 1
+        all_commands.append(cmd_base_mid + f" {t} -model astar -merge zip -device cuda:{cuda_range[i % 4]}  " + b)
         i += 1
 import random
 random.shuffle(all_commands)

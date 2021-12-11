@@ -20,29 +20,58 @@ import numpy as np
 from src.recom_search.model.util import *
 
 
-def run_recom_bs(args, model, input_doc, dec_prefix, param_sim_function):
+def adjust_batch_size(max_len, task, dataset):
+    if task == 'sum':
+        bs = max_len * 16 / 25
+
+    elif dataset == 'en-fr':
+        bs = max_len * 8 / 37
+    elif dataset == 'zh-en':
+        bs = max_len * 8 / 42
+    elif dataset == 'fr-en':
+        bs = max_len * 8 / 33
+    else:
+        raise NotImplementedError
+    # for dbs, we set ngroup to be 4
+
+    group = 4
+    bs = int(bs)
+    while bs % group != 0:
+        bs -= 1
+    return bs
+
+
+def run_recom_bs(args, model, input_doc, dec_prefix, param_sim_function, adjust=True):
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
-    output = recomb_baseline(doc_input_ids=input_ids,dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=args.beam_size, max_len=cur_max_len, avg_score=args.avg_score)
+    if adjust:
+        adj_batch_size = adjust_batch_size(
+            cur_max_len, args.task, args.dataset)
+    else:
+        adj_batch_size = args.beam_size
+    output = recomb_baseline(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,
+                             eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=adj_batch_size, max_len=cur_max_len, avg_score=args.avg_score)
     mo = SearchModelOutput(ends=output)
     return mo
 
 
-def run_recom_sample(args, model, input_doc,dec_prefix, param_sim_function) -> SearchModelOutput:
+def run_recom_sample(args, model, input_doc, dec_prefix, param_sim_function) -> SearchModelOutput:
     input_ids = tokenizer(
         input_doc, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
-    output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,  eos_token_id=tokenizer.eos_token_id, model=model, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+    output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,
+                                    eos_token_id=tokenizer.eos_token_id, model=model, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
 
     mo = SearchModelOutput(ends=output)
     return mo
+
 
 def run_a_star_baseline(args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search):
 
@@ -62,10 +91,12 @@ def run_a_star_baseline(args, model, tokenizer, inp, dec_prefix, param_sim_funct
         comp_budget = args.max_len * args.beam_size
         cur_max_len = args.max_len
     output = a_star_baseline(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
-                    max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
+                             max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
     return mo
+
+
 def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search) -> SearchModelOutput:
 
     config_heu = {
@@ -90,42 +121,47 @@ def run_a_star(args, model, tokenizer, inp, dec_prefix, param_sim_function, conf
     return mo
 
 
-def run_baseline(args, model, inp, dec_prefix):
+def run_baseline(args, model, inp, dec_prefix, adjust=True):
     if args.task == 'sum':
         forced_bos_token_id = None
     else:
-        forced_bos_token_id  = dec_prefix[-1]
+        forced_bos_token_id = dec_prefix[-1]
     if args.max_len == -1:
         input_ids = tokenizer(inp, return_tensors="pt").input_ids
         cur_max_len = input_ids.squeeze().size()[0] * 2
     else:
         cur_max_len = args.max_len
+    if adjust:
+        adj_batch_size = adjust_batch_size(
+            cur_max_len, args.task, args.dataset)
+    else:
+        adj_batch_size = args.beam_size
     if args.model == 'greedy':
         gs = GenericSearch(model, tokenizer,
                            device=args.device, beam_size=1, do_sample=False, min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=1)
     elif args.model == 'bs':
         gs = GenericSearch(model, tokenizer,
-                           device=args.device, beam_size=args.beam_size, do_sample=False,
+                           device=args.device, beam_size=adj_batch_size, do_sample=False,
                            min_len=args.min_len,
                            max_len=cur_max_len,
-                           num_beam_hyps_to_keep=args.beam_size
+                           num_beam_hyps_to_keep=adj_batch_size
                            )
     elif args.model == 'dbs':
         gs = GenericSearch(model, tokenizer,
-                           device=args.device, beam_size=args.beam_size, do_sample=False,
+                           device=args.device, beam_size=adj_batch_size, do_sample=False,
                            min_len=args.min_len, max_len=cur_max_len,
-                           num_beam_groups=args.beam_group,
+                           num_beam_groups=4,
                            diversity_penalty=args.hamming_penalty,
-                           num_beam_hyps_to_keep=args.beam_size
+                           num_beam_hyps_to_keep=adj_batch_size
                            )
     elif args.model == 'topp':
         gs = GenericSearch(model, tokenizer,
-                           device=args.device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=args.beam_size,
+                           device=args.device, beam_size=1, do_sample=True, min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=adj_batch_size,
                            top_p=args.top_p)
     elif args.model == 'temp':
         gs = GenericSearch(model, tokenizer,
                            device=args.device, beam_size=1, do_sample=True,
-                           min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=args.beam_size,
+                           min_len=args.min_len, max_len=cur_max_len, num_beam_hyps_to_keep=adj_batch_size,
                            temperature=args.temp
                            )
     else:
@@ -142,9 +178,9 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
     # logging.info(args)
     nexample = args.nexample
     cnt = 0
-    if not isinstance(dataset,zip):
+    if not isinstance(dataset, zip):
         dataset = dataset.shuffle(seed=2021)
-     
+
     logging.info(f"truncate dataset to {nexample}")
     for idx, example in enumerate(tqdm(dataset)):
         cnt += 1
@@ -197,9 +233,11 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
             output = run_baseline(args, model, inp, dec_prefix)
         elif args.model == 'recom_bs':
-            output = run_recom_bs(args, model, inp,dec_prefix, param_sim_function)
+            output = run_recom_bs(
+                args, model, inp, dec_prefix, param_sim_function)
         elif args.model == 'recom_sample':
-            output = run_recom_sample(args, model, inp,dec_prefix ,param_sim_function)
+            output = run_recom_sample(
+                args, model, inp, dec_prefix, param_sim_function)
         elif args.model == 'astar':
             output = run_a_star(
                 args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search=config_search)
@@ -217,6 +255,7 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         # break
         if cnt > nexample:
             break
+
 
 if __name__ == "__main__":
     # execute only if run as a script
