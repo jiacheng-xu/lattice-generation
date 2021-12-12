@@ -137,6 +137,7 @@ def run_check(all_recombs, folder_name, device):
 def main(directory, folder, device='cuda:0') -> int:
     """Echo the input arguments to standard output"""
     files = os.listdir(os.path.join(directory, folder))
+    print(files)
     recombs = []
     for f in files:
         with open(os.path.join(directory, folder, f), 'rb') as rfd:
@@ -148,10 +149,9 @@ def main(directory, folder, device='cuda:0') -> int:
 
 
 if __name__ == '__main__':
-    directory = '/mnt/data1/jcxu/lattice-sum/output/table/'
+    directory = '/mnt/data1/jcxu/lattice-sum/output/data/'
     folders = os.listdir(directory)
     folders = [f for f in folders if 'sum_xsum_astar' in f]
     for d in folders:
-    # d = 'sum_xsum_astar_16_35_True_0.7_False_False_4_5_zip_0.75_0.0_0.9'
-    # d = 'sum_xsum_astar_16_35_False_0.4_True_False_8_5_imp_0.75_0.0_0.9'
+        print(d)
         main(directory, d, args.device) 
