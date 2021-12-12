@@ -25,11 +25,11 @@ def adjust_batch_size(max_len, task, dataset):
         bs = max_len * 16 / 25
 
     elif dataset == 'en-fr':
-        bs = max_len * 8 / 37
+        bs = 12
     elif dataset == 'zh-en':
-        bs = max_len * 8 / 42
+        bs = 12
     elif dataset == 'fr-en':
-        bs = max_len * 8 / 33
+        bs = 12
     else:
         raise NotImplementedError
     # for dbs, we set ngroup to be 4
@@ -38,7 +38,7 @@ def adjust_batch_size(max_len, task, dataset):
     bs = int(bs)
     while bs % group != 0:
         bs -= 1
-    return bs
+    return max(bs,1)
 
 
 def run_recom_bs(args, model, input_doc, dec_prefix, param_sim_function, adjust=True):
@@ -90,8 +90,7 @@ def run_a_star_baseline(args, model, tokenizer, inp, dec_prefix, param_sim_funct
     else:
         comp_budget = args.max_len * args.beam_size
         cur_max_len = args.max_len
-    output = a_star_baseline(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
-                             max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
+    output = a_star_baseline(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score, max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
     return mo
@@ -132,8 +131,8 @@ def run_baseline(args, model, inp, dec_prefix, adjust=True):
     else:
         cur_max_len = args.max_len
     if adjust:
-        adj_batch_size = adjust_batch_size(
-            cur_max_len, args.task, args.dataset)
+        adj_batch_size = max(adjust_batch_size(
+            cur_max_len, args.task, args.dataset),1)
     else:
         adj_batch_size = args.beam_size
     if args.model == 'greedy':
@@ -229,7 +228,7 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
             if cnt > nexample:
                 break
             continue
-
+        
         if args.model in ['dbs', 'bs', 'greedy', 'topp', 'temp']:
             output = run_baseline(args, model, inp, dec_prefix)
         elif args.model == 'recom_bs':

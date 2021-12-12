@@ -20,7 +20,7 @@ base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 
 ngram = " -ngram_suffix 4 "
 length = " -min_len 3 -max_len -1 "
 # beam = " -beam_group 4 -beam_size 8 "
-beam = " -beam_group 4 -beam_size 9"
+beam = " -beam_group 4 -beam_size 12 "
 
 cmd_base =base+ ngram+beam+length
 
