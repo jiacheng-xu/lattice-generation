@@ -64,7 +64,6 @@ def func_one_file(data):
                     sec_prev_tok = sec_prev_node.all_token_idx
                     output.append((data.document, prev_tok +
                                   [cur_tok_id], sec_prev_tok+[cur_tok_id]))
-
         for f in fathers:
             dfs(f)
         # seen.append(node)
@@ -77,7 +76,7 @@ def func_one_file(data):
     # print(list_of_eos_key)
     # print(output)
     trunc_output = random.choices(output, k=10)
-    return trunc_output
+    return trunc_output, len(output)
 
 
 bucket = [1, 2, 4, 8, 16]
@@ -107,11 +106,11 @@ def run_check(all_recombs, folder_name, device):
         total_cnt += 1
         a_suffix = output_a[len_a:]
         b_suffix = output_b[len_b:]
-        print(tokenizer.decode(output_a[:len_a], skip_special_tokens=True),
-              "======", tokenizer.decode(a_suffix, skip_special_tokens=True))
-        print(tokenizer.decode(output_b[:len_b], skip_special_tokens=True),
-              "======", tokenizer.decode(b_suffix, skip_special_tokens=True))
-        print('')
+        # print(tokenizer.decode(output_a[:len_a], skip_special_tokens=True),
+        #       "======", tokenizer.decode(a_suffix, skip_special_tokens=True))
+        # print(tokenizer.decode(output_b[:len_b], skip_special_tokens=True),
+        #       "======", tokenizer.decode(b_suffix, skip_special_tokens=True))
+        # print('')
         for buck in bucket:
             tmp_a_suffix = a_suffix[:buck]
             tmp_b_suffix = b_suffix[:buck]
@@ -137,14 +136,17 @@ def run_check(all_recombs, folder_name, device):
 def main(directory, folder, device='cuda:0') -> int:
     """Echo the input arguments to standard output"""
     files = os.listdir(os.path.join(directory, folder))
-    print(files)
+    print(folder)
+    # print(files)
     recombs = []
+    mergs = []
     for f in files:
         with open(os.path.join(directory, folder, f), 'rb') as rfd:
             data = pickle.load(rfd)
         # find all nodes with >1 prev
-        one_output = func_one_file(data)
+        one_output, nmerges = func_one_file(data)
         recombs += one_output
+        mergs.append(nmerges)
     run_check(recombs, folder, device=device)
 
 
