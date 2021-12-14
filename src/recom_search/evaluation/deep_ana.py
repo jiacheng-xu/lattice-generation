@@ -1,3 +1,4 @@
+import pandas as pd
 import csv
 import glob
 from collections import defaultdict
@@ -116,7 +117,6 @@ def evaluate_grammar_gector(all_files, config_name, dict_io_text, dict_io_table,
     err = float(lines[0])
     return err
 
-import pandas as pd
 
 def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_stat, dict_io_table,  proj_dir='/mnt/data1/jcxu/lattice-sum/'):
     raw_files = os.listdir(os.path.join(dict_io_data, config_name))
@@ -124,7 +124,8 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
     # get number of finished nodes from data, analyze model parameter, gather results to json and a latex table
     Path(os.path.join(dict_io_table, config_name)).mkdir(
         parents=True, exist_ok=True)
-    outpuf_cnt_file = os.path.join(proj_dir,dict_io_table, config_name, "output_cnt.txt")
+    outpuf_cnt_file = os.path.join(
+        proj_dir, dict_io_table, config_name, "output_cnt.txt")
     if os.path.isfile(outpuf_cnt_file):
         logging.info('all analysis has been done. skip')
         return
@@ -163,15 +164,15 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
     for k in final.keys():
         final[k] = [final[k]]
     original_df = pd.DataFrame(final)
-    
+
     concat = False
     if os.path.isfile(gather_pkl):
         concat = True
     if concat:
         unpickled_df = pd.read_pickle(gather_pkl)
-        original_df = pd.concat([unpickled_df,original_df], axis=0, ignore_index=True)
+        original_df = pd.concat(
+            [unpickled_df, original_df], axis=0, ignore_index=True)
         original_df.to_pickle(gather_pkl)
     else:
         original_df.to_pickle(gather_pkl)
-    original_df.to_csv(path_or_buf=gather_csv,index=False)
-    
+    original_df.to_csv(path_or_buf=gather_csv, index=False)
