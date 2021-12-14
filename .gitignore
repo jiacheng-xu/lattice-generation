@@ -130,6 +130,7 @@ dmypy.json
 
 # custom
 /mt-data
+/notebooks
 .html
 .txt
 *.csv
