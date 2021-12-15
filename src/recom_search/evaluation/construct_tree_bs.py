@@ -38,29 +38,6 @@ def truncate_sequence(seq):
     return trunc_seq
 
 
-"""
-def truncate_sequence(seq, seq_score):
-    assert len(seq) == len(seq_score)
-    l = len(seq)
-    trunc_seq, trunc_seq_score = [], []
-    for i in range(l):
-        tmp_seq, tmp_seq_score = [], []
-        cur_seq = seq[i]
-        cur_seq_score = seq_score[i]
-        cur_seq_len  = len(cur_seq)
-        j = 0
-        while j < cur_seq_len:
-            tok = cur_seq[j]
-            sco = cur_seq_score[j]
-            if tok == 2 and j > 0:
-                break
-            tmp_seq.append(tok)
-            tmp_seq_score.append(sco)
-            j += 1
-        trunc_seq.append(tmp_seq)
-        trunc_seq_score.append(tmp_seq_score)
-    return trunc_seq, trunc_seq_score
-"""
 
 
 def construct_trees(seq):
@@ -105,4 +82,4 @@ def construct_trees(seq):
     print(quants)
     """
     return ends
-    return ends, quants
+

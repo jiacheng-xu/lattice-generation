@@ -8,7 +8,7 @@ from transformers.generation_utils import top_k_top_p_filtering
 
 from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
 
-from src.recom_search.model.merge import core_merge, similarity_heuristic
+from src.recom_search.model.merge import naive_merge, similarity_heuristic
 from src.recom_search.model.util import run_inference_step, render_name
 from typing import List
 import logging
@@ -49,7 +49,7 @@ def baseline_iterative_recomb(candidates: List[BeamNode], param_sim_function, be
                 break
         if flag_merge:
             # core_merge(pointer, candidate)
-            core_merge(pointer,candidate)
+            naive_merge(pointer, candidate)
         else:
             next_candidate.append(candidate)
         if len(next_candidate) >= beam_size:
@@ -126,7 +126,7 @@ def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function,
                 flag = similarity_heuristic(
                     tmp_node_token_idx, node.all_token_idx, ngram_suffix, len_diff)
                 if flag:
-                    core_merge(node, tmp_node)
+                    naive_merge(node, tmp_node)
                     merge_happen = True
                     break
         # if not finished, move on, else, reset

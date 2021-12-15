@@ -15,15 +15,15 @@ from typing import Dict, List, Optional
 import logging
 import heapq
 import statistics
-from src.recom_search.model.new_merge import merge_zip, merge_imp
-from src.recom_search.model.bfs_util import  NewHash
+from src.recom_search.model.merge_strategy import merge_zip, merge_imp
+from src.recom_search.model.bfs_util import  HashObject
 from src.recom_search.model.heuristic import DeployHeu
 from src.recom_search.model.merge import  similarity_heuristic
 from src.recom_search.model.util import pnum, render_name, run_inference_step
 from src.recom_search.model.beam_state import BeamNode
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-def astar_step_baseline(tokenizer,  start_seed: BeamNode, hash: NewHash, heap,  doc_input_ids, model,  use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
+def astar_step_baseline(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_input_ids, model, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
     cnt_call = 0
     step = 0
 
@@ -97,7 +97,7 @@ def astar_step_baseline(tokenizer,  start_seed: BeamNode, hash: NewHash, heap,  
     return pointer, cnt_call
 
 
-def astar_step(tokenizer,  start_seed: BeamNode, hash: NewHash, heap,  doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
+def astar_step(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
     cnt_call = 0
     step = 0
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -222,7 +222,7 @@ def a_star_baseline(model, tokenizer,
     ncalls = 0
     heu_func = DeployHeu(config_heu)
     
-    new_hash = NewHash(param_sim_function['ngram_suffix'])
+    new_hash = HashObject(param_sim_function['ngram_suffix'])
     heap = []  # nodes at the frontier of search
     finished_hypos = []
     # config_search.in: each time we expand a node, we always extend to end
@@ -300,7 +300,7 @@ def a_star(model, tokenizer,
     ncalls = 0
     heu_func = DeployHeu(config_heu)
     
-    new_hash = NewHash(param_sim_function['ngram_suffix'])
+    new_hash = HashObject(param_sim_function['ngram_suffix'])
     heap = []  # nodes at the frontier of search
     finished_hypos = []
     # config_search.in: each time we expand a node, we always extend to end
