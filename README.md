@@ -12,7 +12,7 @@ We provide a few examples in the ```vis``` folder and on [my homepage](https://w
 The complete set of outputs are available on [Box](https://utexas.box.com/s/wmvhg8lol3kvgirizqyiyiblbn6ogj1a).
 
 ## Getting started
-More detailed instruction coming soon!
+
 
 - ```model``` contains all of the methods, including baselines like beam search, nucleus sampling, and our methods.
 - ```evaluation``` contains scripts for evaluation.
@@ -37,6 +37,7 @@ Best-first Search with Zip:
 ```
 PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100  -ngram_suffix 4 -beam_size 16 -min_len 10 -max_len 35 -model astar -merge zip  -avg_score 0.75  -adhoc 
 ```
+More detailed instructions coming soon!
 
 ## Citation
 ```
