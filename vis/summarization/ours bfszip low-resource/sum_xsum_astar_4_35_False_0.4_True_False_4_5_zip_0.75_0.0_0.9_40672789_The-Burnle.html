@@ -1,0 +1,204 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 100%;
+            height: 1500px;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+        #loadingBar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width: 100%;
+            height: 1500px;
+            background-color:rgba(200,200,200,0.8);
+            -webkit-transition: all 0.5s ease;
+            -moz-transition: all 0.5s ease;
+            -ms-transition: all 0.5s ease;
+            -o-transition: all 0.5s ease;
+            transition: all 0.5s ease;
+            opacity:1;
+        }
+
+        #bar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width:20px;
+            height:20px;
+            margin:auto auto auto auto;
+            border-radius:11px;
+            border:2px solid rgba(30,30,30,0.05);
+            background: rgb(0, 173, 246); /* Old browsers */
+            box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+        }
+
+        #border {
+            position:absolute;
+            top:10px;
+            left:10px;
+            width:500px;
+            height:23px;
+            margin:auto auto auto auto;
+            box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+            border-radius:10px;
+        }
+
+        #text {
+            position:absolute;
+            top:8px;
+            left:530px;
+            width:30px;
+            height:50px;
+            margin:auto auto auto auto;
+            font-size:22px;
+            color: #000000;
+        }
+
+        div.outerBorder {
+            position:relative;
+            top:400px;
+            width:600px;
+            height:44px;
+            margin:auto auto auto auto;
+            border:8px solid rgba(0,0,0,0.1);
+            background: rgb(252,252,252); /* Old browsers */
+            background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+            background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+            background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+            background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+            background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+            border-radius:72px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+<div id="loadingBar">
+    <div class="outerBorder">
+        <div id="text">0%</div>
+        <div id="border">
+            <div id="bar"></div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"group": 0, "id": "GJMW0YQJR1", "label": ".", "shape": "dot", "size": 8}, {"group": 0, "id": "06008OPPDP", "label": " Liverpool", "shape": "dot", "size": 8}, {"group": 0, "id": "VEMA2VVLBS", "label": " from", "shape": "dot", "size": 8}, {"group": 0, "id": "34B3O1VWL4", "label": " loan", "shape": "dot", "size": 8}, {"group": 0, "id": "XV37VRZ4TP", "label": " on", "shape": "dot", "size": 8}, {"group": 0, "id": "08D12AA5UF", "label": " joining", "shape": "dot", "size": 8}, {"group": 0, "id": "01Z3H39DQ4", "label": " after", "shape": "dot", "size": 8}, {"group": 0, "id": "0LQUQT5JZG", "label": " club", "shape": "dot", "size": 8}, {"group": 0, "id": "8U9LIUC1Z5", "label": " the", "shape": "dot", "size": 8}, {"group": 0, "id": "A3KTA2JDE2", "label": " for", "shape": "dot", "size": 8}, {"group": 0, "id": "MLDM3QZI3T", "label": " debut", "shape": "dot", "size": 8}, {"group": 0, "id": "3HWVN6G1XP", "label": " his", "shape": "dot", "size": 8}, {"group": 0, "id": "DHORMXLXG7", "label": " making", "shape": "dot", "size": 8}, {"group": 0, "id": "BD4XPBHHIZ", "label": " of", "shape": "dot", "size": 8}, {"group": 0, "id": "UV64KT6DZ5", "label": " hopeful", "shape": "dot", "size": 8}, {"group": 0, "id": "LKZS1PYPV7", "label": " is", "shape": "dot", "size": 8}, {"group": 0, "id": "ZDTXC0O60C", "label": " he", "shape": "dot", "size": 8}, {"group": 0, "id": "APD7R0P72I", "label": " says", "shape": "dot", "size": 8}, {"group": 0, "id": "NRZ87RUIJ7", "label": " Fulton", "shape": "dot", "size": 8}, {"group": 0, "id": "C3IDBIGNXE", "label": "um", "shape": "dot", "size": 8}, {"group": 0, "id": "FU4MOVHH73", "label": " Call", "shape": "dot", "size": 8}, {"group": 0, "id": "WRR3XCDMW3", "label": " signing", "shape": "dot", "size": 8}, {"group": 0, "id": "81AYWPPODN", "label": "New", "shape": "dot", "size": 8}, {"group": 0, "id": "PFLAF4Q0F9", "label": "\u003c/s\u003e", "shape": "dot", "size": 8}, {"group": 0, "id": "JB2EYRSEOR", "label": "ny", "shape": "dot", "size": 8}, {"group": 0, "id": "606QK0F3VR", "label": " Jon", "shape": "dot", "size": 8}, {"group": 0, "id": "EANQDJA6W5", "label": " signing", "shape": "dot", "size": 8}, {"group": 0, "id": "54AC95VRXY", "label": " Celtic", "shape": "dot", "size": 8}, {"group": 0, "id": "4IF8QKU0KS", "label": "signed", "shape": "dot", "size": 8}, {"group": 0, "id": "6R2A0WLG6J", "label": "-", "shape": "dot", "size": 8}, {"group": 0, "id": "6UQEIIVXKP", "label": "ly", "shape": "dot", "size": 8}, {"group": 0, "id": "ZBXNKE3U1X", "label": " Hearts", "shape": "dot", "size": 8}, {"group": 0, "id": "CR2XPB73ZW", "label": " goalkeeper", "shape": "dot", "size": 8}, {"group": 0, "id": "0Z4SX9JA4L", "label": " Andy", "shape": "dot", "size": 8}, {"group": 0, "id": "KTUDIQPTHD", "label": " Michael", "shape": "dot", "size": 8}, {"group": 0, "id": "1QUJ988QHO", "label": " Ryan", "shape": "dot", "size": 8}, {"group": 0, "id": "03HQM8UAFB", "label": "ulton", "shape": "dot", "size": 8}, {"group": 1, "id": "UGB6D0E14K", "label": ".", "shape": "dot", "size": 8}, {"group": 1, "id": "DDIG06YOU3", "label": " champions", "shape": "dot", "size": 8}, {"group": 1, "id": "GHB17ZP9QB", "label": " Scottish", "shape": "dot", "size": 8}, {"group": 1, "id": "04N452GIIZ", "label": " the", "shape": "dot", "size": 8}, {"group": 1, "id": "6B9LDREDNE", "label": " at", "shape": "dot", "size": 8}, {"group": 1, "id": "TC781QQSZQ", "label": " place", "shape": "dot", "size": 8}, {"group": 1, "id": "AAHP3X4CXB", "label": "team", "shape": "dot", "size": 8}, {"group": 1, "id": "VJRFV18VUA", "label": "-", "shape": "dot", "size": 8}, {"group": 1, "id": "PB6OCAZO88", "label": " first", "shape": "dot", "size": 8}, {"group": 1, "id": "D52PJJBG9V", "label": " a", "shape": "dot", "size": 8}, {"group": 1, "id": "WQN9ECCZWN", "label": " of", "shape": "dot", "size": 8}, {"group": 1, "id": "VKLXEQZWFB", "label": " hopeful", "shape": "dot", "size": 8}, {"group": 1, "id": "6J5HD1EOGZ", "label": " is", "shape": "dot", "size": 8}, {"group": 1, "id": "WDX0NLZS7C", "label": " he", "shape": "dot", "size": 8}, {"group": 1, "id": "281VGB41MI", "label": " says", "shape": "dot", "size": 8}, {"group": 1, "id": "LY4SPJ92NV", "label": " Fulton", "shape": "dot", "size": 8}, {"group": 1, "id": "83GZ0B34ED", "label": " Lee", "shape": "dot", "size": 8}, {"group": 1, "id": "FBAXTO22EK", "label": " goalkeeper", "shape": "dot", "size": 8}, {"group": 1, "id": "BZ9GEJL4YY", "label": "ic", "shape": "dot", "size": 8}, {"group": 1, "id": "7LXW685HJ3", "label": "elt", "shape": "dot", "size": 8}, {"group": 1, "id": "SIZYHAMWLE", "label": "C", "shape": "dot", "size": 8}, {"group": 2, "id": "YP5XZ5AW16", "label": ".", "shape": "dot", "size": 8}, {"group": 2, "id": "YF5BDMTPGC", "label": " Liverpool", "shape": "dot", "size": 8}, {"group": 2, "id": "7W9MXTNLGE", "label": " from", "shape": "dot", "size": 8}, {"group": 2, "id": "MEXJ92FSMK", "label": " joining", "shape": "dot", "size": 8}, {"group": 2, "id": "J77V0PJTDV", "label": " after", "shape": "dot", "size": 8}, {"group": 2, "id": "3N59SRYQA2", "label": " Celtic", "shape": "dot", "size": 8}, {"group": 2, "id": "NGFA75MSRX", "label": " by", "shape": "dot", "size": 8}, {"group": 2, "id": "SXO87O4V14", "label": " chance", "shape": "dot", "size": 8}, {"group": 2, "id": "6D1ANA3NLF", "label": " a", "shape": "dot", "size": 8}, {"group": 2, "id": "SPPY5ZK9RA", "label": " given", "shape": "dot", "size": 8}, {"group": 2, "id": "1P2CYTRAH0", "label": " be", "shape": "dot", "size": 8}, {"group": 2, "id": "0FYPK27YKS", "label": " could", "shape": "dot", "size": 8}, {"group": 2, "id": "2UYR5TYZ3Q", "label": " he", "shape": "dot", "size": 8}, {"group": 2, "id": "EQ3DHSBYYB", "label": " believes", "shape": "dot", "size": 8}, {"group": 3, "id": "8HC4MQPRBF", "label": ".", "shape": "dot", "size": 8}, {"group": 3, "id": "UTR6HYBZQ1", "label": " Liverpool", "shape": "dot", "size": 8}, {"group": 3, "id": "H5OD50NSWT", "label": " from", "shape": "dot", "size": 8}, {"group": 3, "id": "O30931OKZC", "label": " champions", "shape": "dot", "size": 8}, {"group": 3, "id": "DCTWRA2Z5L", "label": " Scottish", "shape": "dot", "size": 8}, {"group": 3, "id": "IA7GXG0SEE", "label": " the", "shape": "dot", "size": 8}, {"group": 3, "id": "H6S9K5N8QW", "label": " joining", "shape": "dot", "size": 8}, {"group": 3, "id": "TU2N8RQLVV", "label": " after", "shape": "dot", "size": 8}, {"group": 3, "id": "26AXVVKMMD", "label": " Celtic", "shape": "dot", "size": 8}, {"group": 3, "id": "ERFEV6X77J", "label": " at", "shape": "dot", "size": 8}, {"group": 3, "id": "F10FJXJS6T", "label": " chance", "shape": "dot", "size": 8}, {"group": 3, "id": "5KWV9SHHLB", "label": " a", "shape": "dot", "size": 8}, {"group": 3, "id": "4I1HV3Q9EM", "label": " given", "shape": "dot", "size": 8}, {"group": 3, "id": "YC969GQLG5", "label": " be", "shape": "dot", "size": 8}, {"group": 3, "id": "0143AN716X", "label": " could", "shape": "dot", "size": 8}, {"group": 3, "id": "736UVI9MV1", "label": " he", "shape": "dot", "size": 8}, {"group": 3, "id": "66EU0CARRJ", "label": " believes", "shape": "dot", "size": 8}, {"group": 3, "id": "06A6LZZOIJ", "label": " Fulton", "shape": "dot", "size": 8}, {"group": 3, "id": "GQ0S1KJI41", "label": "enny", "shape": "dot", "size": 8}, {"group": 3, "id": "9UXKI2CUQ9", "label": "K", "shape": "dot", "size": 8}, {"group": 3, "id": "Z8WDWSGLFV", "label": " team", "shape": "dot", "size": 8}, {"group": 3, "id": "P3QUDXIF0C", "label": " first", "shape": "dot", "size": 8}, {"group": 3, "id": "1ZCYG8U66W", "label": " Celtic", "shape": "dot", "size": 8}, {"group": 3, "id": "PXZBP26Y8A", "label": " the", "shape": "dot", "size": 8}, {"group": 3, "id": "PLB7Z51RS8", "label": " into", "shape": "dot", "size": 8}, {"group": 3, "id": "YFAQ5JDY1G", "label": " break", "shape": "dot", "size": 8}, {"group": 3, "id": "WDH2886NC7", "label": " him", "shape": "dot", "size": 8}, {"group": 3, "id": "G7EJ6RG0RO", "label": " help", "shape": "dot", "size": 8}, {"group": 3, "id": "FWKOVDI5G5", "label": " could", "shape": "dot", "size": 8}, {"group": 3, "id": "W11L6RQ4S9", "label": " Rodgers", "shape": "dot", "size": 8}, {"group": 3, "id": "3GWG2BX9A6", "label": " Brendan", "shape": "dot", "size": 8}, {"group": 4, "id": "RO09C7RH5U", "label": ".", "shape": "dot", "size": 8}, {"group": 4, "id": "1NX4IAJUQY", "label": " Liverpool", "shape": "dot", "size": 8}, {"group": 4, "id": "C85YEM46ML", "label": " from", "shape": "dot", "size": 8}, {"group": 4, "id": "6D8ZYRS6Y5", "label": " Celtic", "shape": "dot", "size": 8}, {"group": 4, "id": "XA77U07KR8", "label": " to", "shape": "dot", "size": 8}, {"group": 4, "id": "N8M8ZOXZOM", "label": " move", "shape": "dot", "size": 8}, {"group": 4, "id": "LYJ6NIENXR", "label": " his", "shape": "dot", "size": 8}, {"group": 4, "id": "P9X4EE4OMC", "label": " by", "shape": "dot", "size": 8}, {"group": 4, "id": "QSDOISAINP", "label": " boost", "shape": "dot", "size": 8}, {"group": 4, "id": "CRI9DFILTQ", "label": " a", "shape": "dot", "size": 8}, {"group": 4, "id": "NSP799NJTP", "label": " given", "shape": "dot", "size": 8}, {"group": 4, "id": "31LC9Y3BRK", "label": " been", "shape": "dot", "size": 8}, {"group": 4, "id": "AHKMD5VI6V", "label": " has", "shape": "dot", "size": 8}]);
+        edges = new vis.DataSet([{"arrowStrikethrough": false, "arrows": "to", "from": "06008OPPDP", "title": "-0.4", "to": "GJMW0YQJR1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VEMA2VVLBS", "title": "-0.1", "to": "06008OPPDP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "34B3O1VWL4", "title": "-0.1", "to": "VEMA2VVLBS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XV37VRZ4TP", "title": "-0.9", "to": "34B3O1VWL4"}, {"arrowStrikethrough": false, "arrows": "to", "from": "08D12AA5UF", "title": "-1.0", "to": "XV37VRZ4TP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "01Z3H39DQ4", "title": "-1.5", "to": "08D12AA5UF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0LQUQT5JZG", "title": "-2.0", "to": "01Z3H39DQ4"}, {"arrowStrikethrough": false, "arrows": "to", "from": "8U9LIUC1Z5", "title": "-1.1", "to": "0LQUQT5JZG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "A3KTA2JDE2", "title": "-0.3", "to": "8U9LIUC1Z5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MLDM3QZI3T", "title": "-0.9", "to": "A3KTA2JDE2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3HWVN6G1XP", "title": "-1.3", "to": "MLDM3QZI3T"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DHORMXLXG7", "title": "-0.4", "to": "3HWVN6G1XP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "BD4XPBHHIZ", "title": "-1.6", "to": "DHORMXLXG7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UV64KT6DZ5", "title": "-0.8", "to": "BD4XPBHHIZ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LKZS1PYPV7", "title": "-1.8", "to": "UV64KT6DZ5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZDTXC0O60C", "title": "-1.4", "to": "LKZS1PYPV7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "APD7R0P72I", "title": "-0.8", "to": "ZDTXC0O60C"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NRZ87RUIJ7", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "03HQM8UAFB", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "C3IDBIGNXE", "title": "-0.2", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0Z4SX9JA4L", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KTUDIQPTHD", "title": "-0.3", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1QUJ988QHO", "title": "-0.1", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FU4MOVHH73", "title": "-0.0", "to": "C3IDBIGNXE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WRR3XCDMW3", "title": "-3.0", "to": "FU4MOVHH73"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.9", "to": "WRR3XCDMW3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-1.4", "to": "81AYWPPODN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "606QK0F3VR", "title": "-0.1", "to": "JB2EYRSEOR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.1", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CR2XPB73ZW", "title": "-2.9", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.4", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZBXNKE3U1X", "title": "-0.6", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.0", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6R2A0WLG6J", "title": "-0.6", "to": "4IF8QKU0KS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6UQEIIVXKP", "title": "-0.6", "to": "6R2A0WLG6J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-3.0", "to": "6UQEIIVXKP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-2.9", "to": "ZBXNKE3U1X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "CR2XPB73ZW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "0Z4SX9JA4L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "KTUDIQPTHD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.3", "to": "1QUJ988QHO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-1.2", "to": "03HQM8UAFB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DDIG06YOU3", "title": "-0.9", "to": "UGB6D0E14K"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GHB17ZP9QB", "title": "-0.3", "to": "DDIG06YOU3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "04N452GIIZ", "title": "-1.1", "to": "GHB17ZP9QB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6B9LDREDNE", "title": "-0.7", "to": "04N452GIIZ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TC781QQSZQ", "title": "-0.8", "to": "6B9LDREDNE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AAHP3X4CXB", "title": "-2.2", "to": "TC781QQSZQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VJRFV18VUA", "title": "-0.1", "to": "AAHP3X4CXB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PB6OCAZO88", "title": "-0.2", "to": "VJRFV18VUA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "D52PJJBG9V", "title": "-1.6", "to": "PB6OCAZO88"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WQN9ECCZWN", "title": "-1.6", "to": "D52PJJBG9V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VKLXEQZWFB", "title": "-0.8", "to": "WQN9ECCZWN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6J5HD1EOGZ", "title": "-1.8", "to": "VKLXEQZWFB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WDX0NLZS7C", "title": "-1.4", "to": "6J5HD1EOGZ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "281VGB41MI", "title": "-0.8", "to": "WDX0NLZS7C"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LY4SPJ92NV", "title": "-1.5", "to": "281VGB41MI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "83GZ0B34ED", "title": "-0.2", "to": "LY4SPJ92NV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FBAXTO22EK", "title": "-2.8", "to": "83GZ0B34ED"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "83GZ0B34ED"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.2", "to": "FBAXTO22EK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "BZ9GEJL4YY", "title": "-1.2", "to": "FBAXTO22EK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.0", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-1.4", "to": "81AYWPPODN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6R2A0WLG6J", "title": "-0.6", "to": "4IF8QKU0KS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6UQEIIVXKP", "title": "-0.6", "to": "6R2A0WLG6J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-3.0", "to": "6UQEIIVXKP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7LXW685HJ3", "title": "-0.0", "to": "BZ9GEJL4YY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SIZYHAMWLE", "title": "-0.0", "to": "7LXW685HJ3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-3.1", "to": "SIZYHAMWLE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.4", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZBXNKE3U1X", "title": "-0.6", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-2.9", "to": "ZBXNKE3U1X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YF5BDMTPGC", "title": "-1.1", "to": "YP5XZ5AW16"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7W9MXTNLGE", "title": "-0.1", "to": "YF5BDMTPGC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MEXJ92FSMK", "title": "-1.3", "to": "7W9MXTNLGE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J77V0PJTDV", "title": "-1.2", "to": "MEXJ92FSMK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3N59SRYQA2", "title": "-1.2", "to": "J77V0PJTDV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NGFA75MSRX", "title": "-0.8", "to": "3N59SRYQA2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SXO87O4V14", "title": "-1.1", "to": "NGFA75MSRX"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6D1ANA3NLF", "title": "-0.4", "to": "SXO87O4V14"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SPPY5ZK9RA", "title": "-0.4", "to": "6D1ANA3NLF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1P2CYTRAH0", "title": "-1.5", "to": "SPPY5ZK9RA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0FYPK27YKS", "title": "-1.7", "to": "1P2CYTRAH0"}, {"arrowStrikethrough": false, "arrows": "to", "from": "2UYR5TYZ3Q", "title": "-1.3", "to": "0FYPK27YKS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EQ3DHSBYYB", "title": "-0.6", "to": "2UYR5TYZ3Q"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NRZ87RUIJ7", "title": "-1.7", "to": "EQ3DHSBYYB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "C3IDBIGNXE", "title": "-0.2", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0Z4SX9JA4L", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KTUDIQPTHD", "title": "-0.3", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1QUJ988QHO", "title": "-0.1", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FU4MOVHH73", "title": "-0.0", "to": "C3IDBIGNXE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WRR3XCDMW3", "title": "-3.0", "to": "FU4MOVHH73"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.9", "to": "WRR3XCDMW3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-1.4", "to": "81AYWPPODN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "606QK0F3VR", "title": "-0.1", "to": "JB2EYRSEOR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.1", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CR2XPB73ZW", "title": "-2.9", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.4", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZBXNKE3U1X", "title": "-0.6", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.0", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6R2A0WLG6J", "title": "-0.6", "to": "4IF8QKU0KS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6UQEIIVXKP", "title": "-0.6", "to": "6R2A0WLG6J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-3.0", "to": "6UQEIIVXKP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-2.9", "to": "ZBXNKE3U1X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "CR2XPB73ZW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "0Z4SX9JA4L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "KTUDIQPTHD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.3", "to": "1QUJ988QHO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UTR6HYBZQ1", "title": "-0.9", "to": "8HC4MQPRBF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "H5OD50NSWT", "title": "-0.1", "to": "UTR6HYBZQ1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "O30931OKZC", "title": "-0.5", "to": "H5OD50NSWT"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DCTWRA2Z5L", "title": "-0.6", "to": "O30931OKZC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "IA7GXG0SEE", "title": "-0.6", "to": "DCTWRA2Z5L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "H6S9K5N8QW", "title": "-1.1", "to": "IA7GXG0SEE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TU2N8RQLVV", "title": "-1.3", "to": "H6S9K5N8QW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "26AXVVKMMD", "title": "-0.5", "to": "TU2N8RQLVV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Z8WDWSGLFV", "title": "-0.7", "to": "TU2N8RQLVV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ERFEV6X77J", "title": "-0.1", "to": "26AXVVKMMD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "F10FJXJS6T", "title": "-1.0", "to": "ERFEV6X77J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5KWV9SHHLB", "title": "-0.5", "to": "F10FJXJS6T"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4I1HV3Q9EM", "title": "-0.4", "to": "5KWV9SHHLB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YC969GQLG5", "title": "-1.4", "to": "4I1HV3Q9EM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0143AN716X", "title": "-1.7", "to": "YC969GQLG5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "736UVI9MV1", "title": "-1.4", "to": "0143AN716X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "66EU0CARRJ", "title": "-0.8", "to": "736UVI9MV1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "06A6LZZOIJ", "title": "-1.8", "to": "66EU0CARRJ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GQ0S1KJI41", "title": "-0.2", "to": "06A6LZZOIJ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9UXKI2CUQ9", "title": "-1.5", "to": "GQ0S1KJI41"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-3.1", "to": "9UXKI2CUQ9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "P3QUDXIF0C", "title": "-0.4", "to": "Z8WDWSGLFV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1ZCYG8U66W", "title": "-1.0", "to": "P3QUDXIF0C"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PXZBP26Y8A", "title": "-0.2", "to": "1ZCYG8U66W"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PLB7Z51RS8", "title": "-0.6", "to": "PXZBP26Y8A"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YFAQ5JDY1G", "title": "-0.1", "to": "PLB7Z51RS8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WDH2886NC7", "title": "-2.2", "to": "YFAQ5JDY1G"}, {"arrowStrikethrough": false, "arrows": "to", "from": "G7EJ6RG0RO", "title": "-0.4", "to": "WDH2886NC7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FWKOVDI5G5", "title": "-1.2", "to": "G7EJ6RG0RO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "W11L6RQ4S9", "title": "-1.5", "to": "FWKOVDI5G5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3GWG2BX9A6", "title": "-0.1", "to": "W11L6RQ4S9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "APD7R0P72I", "title": "-1.8", "to": "3GWG2BX9A6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NRZ87RUIJ7", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "03HQM8UAFB", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "C3IDBIGNXE", "title": "-0.2", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0Z4SX9JA4L", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KTUDIQPTHD", "title": "-0.3", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1QUJ988QHO", "title": "-0.1", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FU4MOVHH73", "title": "-0.0", "to": "C3IDBIGNXE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WRR3XCDMW3", "title": "-3.0", "to": "FU4MOVHH73"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.9", "to": "WRR3XCDMW3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-1.4", "to": "81AYWPPODN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "606QK0F3VR", "title": "-0.1", "to": "JB2EYRSEOR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.1", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CR2XPB73ZW", "title": "-2.9", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.4", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZBXNKE3U1X", "title": "-0.6", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.0", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6R2A0WLG6J", "title": "-0.6", "to": "4IF8QKU0KS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6UQEIIVXKP", "title": "-0.6", "to": "6R2A0WLG6J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-3.0", "to": "6UQEIIVXKP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-2.9", "to": "ZBXNKE3U1X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "CR2XPB73ZW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "0Z4SX9JA4L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "KTUDIQPTHD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.3", "to": "1QUJ988QHO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-1.2", "to": "03HQM8UAFB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1NX4IAJUQY", "title": "-0.7", "to": "RO09C7RH5U"}, {"arrowStrikethrough": false, "arrows": "to", "from": "C85YEM46ML", "title": "-0.1", "to": "1NX4IAJUQY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6D8ZYRS6Y5", "title": "-1.4", "to": "C85YEM46ML"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XA77U07KR8", "title": "-0.4", "to": "6D8ZYRS6Y5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "N8M8ZOXZOM", "title": "-0.5", "to": "XA77U07KR8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LYJ6NIENXR", "title": "-1.1", "to": "N8M8ZOXZOM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "P9X4EE4OMC", "title": "-1.6", "to": "LYJ6NIENXR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "QSDOISAINP", "title": "-0.4", "to": "P9X4EE4OMC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CRI9DFILTQ", "title": "-1.3", "to": "QSDOISAINP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NSP799NJTP", "title": "-1.1", "to": "CRI9DFILTQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "31LC9Y3BRK", "title": "-0.9", "to": "NSP799NJTP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AHKMD5VI6V", "title": "-1.6", "to": "31LC9Y3BRK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZDTXC0O60C", "title": "-1.9", "to": "AHKMD5VI6V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "APD7R0P72I", "title": "-0.8", "to": "ZDTXC0O60C"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NRZ87RUIJ7", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "03HQM8UAFB", "title": "-1.5", "to": "APD7R0P72I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "C3IDBIGNXE", "title": "-0.2", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0Z4SX9JA4L", "title": "-0.7", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KTUDIQPTHD", "title": "-0.3", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1QUJ988QHO", "title": "-0.1", "to": "NRZ87RUIJ7"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FU4MOVHH73", "title": "-0.0", "to": "C3IDBIGNXE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WRR3XCDMW3", "title": "-3.0", "to": "FU4MOVHH73"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.9", "to": "WRR3XCDMW3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PFLAF4Q0F9", "title": "-1.4", "to": "81AYWPPODN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "606QK0F3VR", "title": "-0.1", "to": "JB2EYRSEOR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.1", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CR2XPB73ZW", "title": "-2.9", "to": "606QK0F3VR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "54AC95VRXY", "title": "-0.4", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZBXNKE3U1X", "title": "-0.6", "to": "EANQDJA6W5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-1.0", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "54AC95VRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6R2A0WLG6J", "title": "-0.6", "to": "4IF8QKU0KS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6UQEIIVXKP", "title": "-0.6", "to": "6R2A0WLG6J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-3.0", "to": "6UQEIIVXKP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "81AYWPPODN", "title": "-2.9", "to": "ZBXNKE3U1X"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4IF8QKU0KS", "title": "-1.8", "to": "CR2XPB73ZW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "0Z4SX9JA4L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.2", "to": "KTUDIQPTHD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EANQDJA6W5", "title": "-3.3", "to": "1QUJ988QHO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JB2EYRSEOR", "title": "-1.2", "to": "03HQM8UAFB"}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": false,
+            "type": "continuous"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+        network.on("stabilizationProgress", function(params) {
+      		document.getElementById('loadingBar').removeAttribute("style");
+	        var maxWidth = 496;
+	        var minWidth = 20;
+	        var widthFactor = params.iterations/params.total;
+	        var width = Math.max(minWidth,maxWidth * widthFactor);
+
+	        document.getElementById('bar').style.width = width + 'px';
+	        document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+	    });
+	    network.once("stabilizationIterationsDone", function() {
+	        document.getElementById('text').innerHTML = '100%';
+	        document.getElementById('bar').style.width = '496px';
+	        document.getElementById('loadingBar').style.opacity = 0;
+	        // really clean the dom element
+	        setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+	    });
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>
