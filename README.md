@@ -6,11 +6,12 @@ two key technical contribution: (1) best-first search, (2) path recombination.
 
 
 
-## Visulization
-
+## Visualization
+We provide a few examples at vis folder. You need to download the html files to view and **intereact** with the model outputs.
+The completed set of outputs are available at [Box](https://utexas.box.com/s/wmvhg8lol3kvgirizqyiyiblbn6ogj1a).
 
 ## Getting started
-
+Under construction.
 
 ## Citation
 ```
@@ -23,9 +24,6 @@ two key technical contribution: (1) best-first search, (2) path recombination.
     primaryClass={cs.CL}
 }
 ```
-
-## Acknowledgement
-This work was partially supported by a gift from Amazon, NSF Grant IIS-1814522, and a gift from Salesforce Inc.
 
 ## Contact
 jcxu@utexas.edu 
