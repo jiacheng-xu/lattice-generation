@@ -1,0 +1,204 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 100%;
+            height: 1500px;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+        #loadingBar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width: 100%;
+            height: 1500px;
+            background-color:rgba(200,200,200,0.8);
+            -webkit-transition: all 0.5s ease;
+            -moz-transition: all 0.5s ease;
+            -ms-transition: all 0.5s ease;
+            -o-transition: all 0.5s ease;
+            transition: all 0.5s ease;
+            opacity:1;
+        }
+
+        #bar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width:20px;
+            height:20px;
+            margin:auto auto auto auto;
+            border-radius:11px;
+            border:2px solid rgba(30,30,30,0.05);
+            background: rgb(0, 173, 246); /* Old browsers */
+            box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+        }
+
+        #border {
+            position:absolute;
+            top:10px;
+            left:10px;
+            width:500px;
+            height:23px;
+            margin:auto auto auto auto;
+            box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+            border-radius:10px;
+        }
+
+        #text {
+            position:absolute;
+            top:8px;
+            left:530px;
+            width:30px;
+            height:50px;
+            margin:auto auto auto auto;
+            font-size:22px;
+            color: #000000;
+        }
+
+        div.outerBorder {
+            position:relative;
+            top:400px;
+            width:600px;
+            height:44px;
+            margin:auto auto auto auto;
+            border:8px solid rgba(0,0,0,0.1);
+            background: rgb(252,252,252); /* Old browsers */
+            background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+            background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+            background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+            background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+            background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+            border-radius:72px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+<div id="loadingBar">
+    <div class="outerBorder">
+        <div id="text">0%</div>
+        <div id="border">
+            <div id="bar"></div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"group": 0, "id": "7RIXBO38UX", "label": ".", "shape": "dot", "size": 8}, {"group": 0, "id": "84OFMSQWS9", "label": " resign", "shape": "dot", "size": 8}, {"group": 0, "id": "8JSQD2YII2", "label": " to", "shape": "dot", "size": 8}, {"group": 0, "id": "6DPE6ZNO6H", "label": ",", "shape": "dot", "size": 8}, {"group": 0, "id": "ZZCILSE039", "label": " Carey", "shape": "dot", "size": 8}, {"group": 0, "id": "NL3N42HONP", "label": " George", "shape": "dot", "size": 8}, {"group": 0, "id": "NPABDVMVEK", "label": ",", "shape": "dot", "size": 8}, {"group": 0, "id": "TQUNF33K0S", "label": " Canterbury", "shape": "dot", "size": 8}, {"group": 0, "id": "D7PZAKKGZQ", "label": " of", "shape": "dot", "size": 8}, {"group": 0, "id": "VVUHCNUZ88", "label": " Archbishop", "shape": "dot", "size": 8}, {"group": 0, "id": "GSGPWNF4CA", "label": " the", "shape": "dot", "size": 8}, {"group": 0, "id": "R2J6KXU4GS", "label": " for", "shape": "dot", "size": 8}, {"group": 0, "id": "M8ZC3REICQ", "label": " called", "shape": "dot", "size": 8}, {"group": 0, "id": "YHHLCPB5IA", "label": " has", "shape": "dot", "size": 8}, {"group": 0, "id": "7RP3OOEW5A", "label": "ar", "shape": "dot", "size": 8}, {"group": 0, "id": "4I59Z1FGX0", "label": " vic", "shape": "dot", "size": 8}, {"group": 0, "id": "0JD0Q1MPIP", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "YOQQ395EEE", "label": " by", "shape": "dot", "size": 8}, {"group": 0, "id": "41ZVSRRZML", "label": " abused", "shape": "dot", "size": 8}, {"group": 0, "id": "XXAIMPDTGM", "label": " sexually", "shape": "dot", "size": 8}, {"group": 0, "id": "GS6JYVORBP", "label": " was", "shape": "dot", "size": 8}, {"group": 0, "id": "5PODU22RY9", "label": " who", "shape": "dot", "size": 8}, {"group": 0, "id": "1KFF1P1EN6", "label": " woman", "shape": "dot", "size": 8}, {"group": 0, "id": "6BUQ0B2E0B", "label": "A", "shape": "dot", "size": 8}, {"group": 0, "id": "9HGV445G2H", "label": "\u003c/s\u003e", "shape": "dot", "size": 8}, {"group": 0, "id": "J1B5XQWFE9", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "WC1GUPTJPF", "label": " by", "shape": "dot", "size": 8}, {"group": 0, "id": "P7PQ3V5QX8", "label": " child", "shape": "dot", "size": 8}, {"group": 0, "id": "2DUGR2ENJG", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "F68QRB7QXB", "label": " as", "shape": "dot", "size": 8}, {"group": 0, "id": "BWASG0HDY2", "label": " Sussex", "shape": "dot", "size": 8}, {"group": 0, "id": "Z4TSOT7GBE", "label": " West", "shape": "dot", "size": 8}, {"group": 0, "id": "B340HEJSBW", "label": " in", "shape": "dot", "size": 8}, {"group": 0, "id": "7R7Y07O8PN", "label": " church", "shape": "dot", "size": 8}, {"group": 0, "id": "6LTAWMOJUR", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "FZ2MOONEH1", "label": " at", "shape": "dot", "size": 8}, {"group": 0, "id": "8DV6N84W85", "label": "ar", "shape": "dot", "size": 8}, {"group": 0, "id": "J4E21TSO9W", "label": " vic", "shape": "dot", "size": 8}, {"group": 0, "id": "6S8RG04RGE", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "CNQBXZGGYL", "label": " by", "shape": "dot", "size": 8}, {"group": 0, "id": "S4CIIWAEZG", "label": " abused", "shape": "dot", "size": 8}, {"group": 0, "id": "IALIKML4JF", "label": " child", "shape": "dot", "size": 8}, {"group": 0, "id": "J4AKC886OI", "label": " a", "shape": "dot", "size": 8}, {"group": 0, "id": "RPY980DBB3", "label": " as", "shape": "dot", "size": 8}, {"group": 0, "id": "I4UHW4T5S8", "label": "man", "shape": "dot", "size": 8}, {"group": 0, "id": "DPFPCAKIKO", "label": " clergy", "shape": "dot", "size": 8}, {"group": 0, "id": "7Y1YN6EOCA", "label": " by", "shape": "dot", "size": 8}, {"group": 0, "id": "FEYJUJMIO6", "label": "\"", "shape": "dot", "size": 8}, {"group": 0, "id": "MPIB5QWPZV", "label": "rified", "shape": "dot", "size": 8}, {"group": 0, "id": "A93K84E9VL", "label": "ter", "shape": "dot", "size": 8}, {"group": 0, "id": "PXSMBNJFEH", "label": " \"", "shape": "dot", "size": 8}, {"group": 0, "id": "JP8ANFQMW9", "label": " was", "shape": "dot", "size": 8}, {"group": 0, "id": "P96MX4CDJE", "label": " she", "shape": "dot", "size": 8}, {"group": 0, "id": "2Q6FHMIM5Y", "label": " said", "shape": "dot", "size": 8}, {"group": 1, "id": "6WX7TGAH7Z", "label": ".", "shape": "dot", "size": 8}, {"group": 1, "id": "B0GLRLJ2LI", "label": " police", "shape": "dot", "size": 8}, {"group": 1, "id": "42P7888X4V", "label": " the", "shape": "dot", "size": 8}, {"group": 1, "id": "RWJBNBX9XH", "label": " to", "shape": "dot", "size": 8}, {"group": 1, "id": "T8S17SYOBR", "label": " case", "shape": "dot", "size": 8}, {"group": 1, "id": "TANRK3QNIA", "label": " abuse", "shape": "dot", "size": 8}, {"group": 1, "id": "Q3XTPN9YTZ", "label": " sex", "shape": "dot", "size": 8}, {"group": 1, "id": "B8GDFJPOFG", "label": " child", "shape": "dot", "size": 8}, {"group": 1, "id": "H8M9U46FHS", "label": " a", "shape": "dot", "size": 8}, {"group": 1, "id": "GP00QDAYL6", "label": " report", "shape": "dot", "size": 8}, {"group": 1, "id": "NATUVV45NB", "label": " to", "shape": "dot", "size": 8}, {"group": 1, "id": "6LEUS5CR6T", "label": " failed", "shape": "dot", "size": 8}, {"group": 1, "id": "F4X9W030FD", "label": " he", "shape": "dot", "size": 8}, {"group": 1, "id": "APGP0OA7JU", "label": " found", "shape": "dot", "size": 8}, {"group": 1, "id": "3XUQJXA3AW", "label": " review", "shape": "dot", "size": 8}, {"group": 1, "id": "XLX9FOY556", "label": " a", "shape": "dot", "size": 8}, {"group": 1, "id": "6MIWOOOLMG", "label": " after", "shape": "dot", "size": 8}, {"group": 1, "id": "FZY9B4RT0B", "label": " resigned", "shape": "dot", "size": 8}, {"group": 1, "id": "OG7W5G3WOF", "label": " has", "shape": "dot", "size": 8}, {"group": 1, "id": "PAAB0HW2NP", "label": " Canterbury", "shape": "dot", "size": 8}, {"group": 1, "id": "FVI8GJUAZD", "label": " of", "shape": "dot", "size": 8}, {"group": 1, "id": "71DWE5DMS1", "label": " Archbishop", "shape": "dot", "size": 8}, {"group": 1, "id": "OIAKRKZCJU", "label": "The", "shape": "dot", "size": 8}, {"group": 1, "id": "OZFXBKOLKI", "label": ",", "shape": "dot", "size": 8}, {"group": 1, "id": "DAIA2JVQ1J", "label": " Carey", "shape": "dot", "size": 8}, {"group": 1, "id": "20TQ09KABU", "label": " Lord", "shape": "dot", "size": 8}, {"group": 1, "id": "0KCOPRKYT1", "label": ",", "shape": "dot", "size": 8}, {"group": 1, "id": "V8ZVUZOHSB", "label": " George", "shape": "dot", "size": 8}, {"group": 1, "id": "3SU0YIU0CG", "label": " Carey", "shape": "dot", "size": 8}, {"group": 1, "id": "84US77OT1B", "label": " George", "shape": "dot", "size": 8}, {"group": 1, "id": "VLEGJFQZNQ", "label": " investigation", "shape": "dot", "size": 8}, {"group": 1, "id": "0MGLC7U6BK", "label": " an", "shape": "dot", "size": 8}, {"group": 2, "id": "6DF9IVOMQ3", "label": ".", "shape": "dot", "size": 8}, {"group": 2, "id": "HNTQBBSNVS", "label": " Sussex", "shape": "dot", "size": 8}, {"group": 2, "id": "7TVCG4MN42", "label": " West", "shape": "dot", "size": 8}, {"group": 2, "id": "0GQBRTECGK", "label": " in", "shape": "dot", "size": 8}, {"group": 2, "id": "GPY85E3Y3S", "label": " abuse", "shape": "dot", "size": 8}, {"group": 2, "id": "NCFLBVD6WR", "label": " sex", "shape": "dot", "size": 8}, {"group": 2, "id": "78OXEAM06V", "label": " child", "shape": "dot", "size": 8}, {"group": 2, "id": "IZT4IVGKRL", "label": " of", "shape": "dot", "size": 8}, {"group": 2, "id": "F7938SSFEW", "label": " handling", "shape": "dot", "size": 8}, {"group": 2, "id": "JI3ERMU9NI", "label": " the", "shape": "dot", "size": 8}, {"group": 2, "id": "VIXPSJA1NB", "label": " into", "shape": "dot", "size": 8}, {"group": 2, "id": "24J8JJTJDL", "label": " report", "shape": "dot", "size": 8}, {"group": 2, "id": "AO9R06L04W", "label": " a", "shape": "dot", "size": 8}, {"group": 2, "id": "EZFP0ZB8U5", "label": " over", "shape": "dot", "size": 8}, {"group": 2, "id": "FM6Y2P24DT", "label": " review", "shape": "dot", "size": 8}, {"group": 2, "id": "KX4XYB83AU", "label": " a", "shape": "dot", "size": 8}, {"group": 2, "id": "PO3U05WIC9", "label": " following", "shape": "dot", "size": 8}, {"group": 3, "id": "7W73XY4UZ0", "label": ".", "shape": "dot", "size": 8}, {"group": 3, "id": "XTQN4AZBEF", "label": " police", "shape": "dot", "size": 8}, {"group": 3, "id": "9LCKAUFJ10", "label": " the", "shape": "dot", "size": 8}, {"group": 3, "id": "335F72AI7G", "label": " to", "shape": "dot", "size": 8}, {"group": 3, "id": "N1XMIXYIIW", "label": " case", "shape": "dot", "size": 8}, {"group": 3, "id": "KWK1BZV5HO", "label": " abuse", "shape": "dot", "size": 8}, {"group": 3, "id": "Y9DJKBP535", "label": " sex", "shape": "dot", "size": 8}, {"group": 3, "id": "TH5ZDTO76V", "label": " child", "shape": "dot", "size": 8}, {"group": 3, "id": "PD2T7Y9SSZ", "label": " a", "shape": "dot", "size": 8}, {"group": 3, "id": "ICPFCGQRXY", "label": " report", "shape": "dot", "size": 8}, {"group": 3, "id": "QV3334TES1", "label": " to", "shape": "dot", "size": 8}, {"group": 3, "id": "9DL8MIJ54B", "label": " failing", "shape": "dot", "size": 8}, {"group": 3, "id": "8NDHMGEKGR", "label": " for", "shape": "dot", "size": 8}, {"group": 3, "id": "79OQS6HL15", "label": " criticised", "shape": "dot", "size": 8}, {"group": 3, "id": "T0DQ9RNCP9", "label": " been", "shape": "dot", "size": 8}, {"group": 3, "id": "1M7YFYTHQU", "label": " being", "shape": "dot", "size": 8}]);
+        edges = new vis.DataSet([{"arrowStrikethrough": false, "arrows": "to", "from": "84OFMSQWS9", "title": "-0.8", "to": "7RIXBO38UX"}, {"arrowStrikethrough": false, "arrows": "to", "from": "8JSQD2YII2", "title": "-0.9", "to": "84OFMSQWS9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6DPE6ZNO6H", "title": "-0.1", "to": "8JSQD2YII2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZZCILSE039", "title": "-0.2", "to": "6DPE6ZNO6H"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NL3N42HONP", "title": "-0.1", "to": "ZZCILSE039"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NPABDVMVEK", "title": "-0.8", "to": "NL3N42HONP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TQUNF33K0S", "title": "-0.8", "to": "NPABDVMVEK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "D7PZAKKGZQ", "title": "-0.0", "to": "TQUNF33K0S"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VVUHCNUZ88", "title": "-0.1", "to": "D7PZAKKGZQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GSGPWNF4CA", "title": "-1.1", "to": "VVUHCNUZ88"}, {"arrowStrikethrough": false, "arrows": "to", "from": "R2J6KXU4GS", "title": "-0.4", "to": "GSGPWNF4CA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7Y1YN6EOCA", "title": "-1.0", "to": "GSGPWNF4CA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "M8ZC3REICQ", "title": "-0.6", "to": "R2J6KXU4GS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YHHLCPB5IA", "title": "-1.2", "to": "M8ZC3REICQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7RP3OOEW5A", "title": "-1.1", "to": "YHHLCPB5IA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "BWASG0HDY2", "title": "-0.6", "to": "YHHLCPB5IA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "IALIKML4JF", "title": "-0.9", "to": "YHHLCPB5IA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "4I59Z1FGX0", "title": "-0.0", "to": "7RP3OOEW5A"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0JD0Q1MPIP", "title": "-0.8", "to": "4I59Z1FGX0"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J1B5XQWFE9", "title": "-0.7", "to": "4I59Z1FGX0"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YOQQ395EEE", "title": "-0.2", "to": "0JD0Q1MPIP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "41ZVSRRZML", "title": "-0.9", "to": "YOQQ395EEE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XXAIMPDTGM", "title": "-0.2", "to": "41ZVSRRZML"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GS6JYVORBP", "title": "-0.4", "to": "XXAIMPDTGM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5PODU22RY9", "title": "-0.9", "to": "GS6JYVORBP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1KFF1P1EN6", "title": "-0.7", "to": "5PODU22RY9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6BUQ0B2E0B", "title": "-0.8", "to": "1KFF1P1EN6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9HGV445G2H", "title": "-0.9", "to": "6BUQ0B2E0B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WC1GUPTJPF", "title": "-0.3", "to": "J1B5XQWFE9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "P7PQ3V5QX8", "title": "-0.5", "to": "WC1GUPTJPF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "2DUGR2ENJG", "title": "-0.5", "to": "P7PQ3V5QX8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "F68QRB7QXB", "title": "-0.1", "to": "2DUGR2ENJG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "41ZVSRRZML", "title": "-0.9", "to": "F68QRB7QXB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Z4TSOT7GBE", "title": "-0.1", "to": "BWASG0HDY2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "B340HEJSBW", "title": "-0.4", "to": "Z4TSOT7GBE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7R7Y07O8PN", "title": "-0.2", "to": "B340HEJSBW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "8DV6N84W85", "title": "-1.5", "to": "B340HEJSBW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6LTAWMOJUR", "title": "-0.7", "to": "7R7Y07O8PN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FZ2MOONEH1", "title": "-0.6", "to": "6LTAWMOJUR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7RP3OOEW5A", "title": "-1.4", "to": "FZ2MOONEH1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J4E21TSO9W", "title": "-0.0", "to": "8DV6N84W85"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6S8RG04RGE", "title": "-1.0", "to": "J4E21TSO9W"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CNQBXZGGYL", "title": "-0.2", "to": "6S8RG04RGE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "S4CIIWAEZG", "title": "-0.5", "to": "CNQBXZGGYL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1KFF1P1EN6", "title": "-1.5", "to": "S4CIIWAEZG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J4AKC886OI", "title": "-0.6", "to": "IALIKML4JF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "RPY980DBB3", "title": "-0.2", "to": "J4AKC886OI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "I4UHW4T5S8", "title": "-1.2", "to": "RPY980DBB3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DPFPCAKIKO", "title": "-0.1", "to": "I4UHW4T5S8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0JD0Q1MPIP", "title": "-1.6", "to": "DPFPCAKIKO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FEYJUJMIO6", "title": "-1.8", "to": "7Y1YN6EOCA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MPIB5QWPZV", "title": "-0.1", "to": "FEYJUJMIO6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "A93K84E9VL", "title": "-0.0", "to": "MPIB5QWPZV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PXSMBNJFEH", "title": "-2.3", "to": "A93K84E9VL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JP8ANFQMW9", "title": "-1.3", "to": "PXSMBNJFEH"}, {"arrowStrikethrough": false, "arrows": "to", "from": "P96MX4CDJE", "title": "-0.9", "to": "JP8ANFQMW9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "2Q6FHMIM5Y", "title": "-0.6", "to": "P96MX4CDJE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YHHLCPB5IA", "title": "-1.4", "to": "2Q6FHMIM5Y"}, {"arrowStrikethrough": false, "arrows": "to", "from": "B0GLRLJ2LI", "title": "-0.2", "to": "6WX7TGAH7Z"}, {"arrowStrikethrough": false, "arrows": "to", "from": "42P7888X4V", "title": "-1.3", "to": "B0GLRLJ2LI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "RWJBNBX9XH", "title": "-0.7", "to": "42P7888X4V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "T8S17SYOBR", "title": "-0.7", "to": "RWJBNBX9XH"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TANRK3QNIA", "title": "-1.3", "to": "T8S17SYOBR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Q3XTPN9YTZ", "title": "-0.4", "to": "TANRK3QNIA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "B8GDFJPOFG", "title": "-0.6", "to": "Q3XTPN9YTZ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "H8M9U46FHS", "title": "-2.0", "to": "B8GDFJPOFG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GP00QDAYL6", "title": "-2.1", "to": "H8M9U46FHS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NATUVV45NB", "title": "-1.6", "to": "GP00QDAYL6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6LEUS5CR6T", "title": "-0.1", "to": "NATUVV45NB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "F4X9W030FD", "title": "-0.6", "to": "6LEUS5CR6T"}, {"arrowStrikethrough": false, "arrows": "to", "from": "APGP0OA7JU", "title": "-0.2", "to": "F4X9W030FD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3XUQJXA3AW", "title": "-0.5", "to": "APGP0OA7JU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VLEGJFQZNQ", "title": "-0.6", "to": "APGP0OA7JU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XLX9FOY556", "title": "-0.9", "to": "3XUQJXA3AW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6MIWOOOLMG", "title": "-1.2", "to": "XLX9FOY556"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FZY9B4RT0B", "title": "-0.8", "to": "6MIWOOOLMG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OG7W5G3WOF", "title": "-0.7", "to": "FZY9B4RT0B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-0.6", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OZFXBKOLKI", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3SU0YIU0CG", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FVI8GJUAZD", "title": "-0.0", "to": "PAAB0HW2NP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "71DWE5DMS1", "title": "-0.1", "to": "FVI8GJUAZD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OIAKRKZCJU", "title": "-0.3", "to": "71DWE5DMS1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9HGV445G2H", "title": "-1.1", "to": "OIAKRKZCJU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DAIA2JVQ1J", "title": "-0.1", "to": "OZFXBKOLKI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "20TQ09KABU", "title": "-0.3", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "V8ZVUZOHSB", "title": "-0.1", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-0.8", "to": "20TQ09KABU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-1.9", "to": "0KCOPRKYT1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-1.0", "to": "V8ZVUZOHSB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "84US77OT1B", "title": "-0.1", "to": "3SU0YIU0CG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-2.6", "to": "84US77OT1B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0MGLC7U6BK", "title": "-1.3", "to": "VLEGJFQZNQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6MIWOOOLMG", "title": "-2.5", "to": "0MGLC7U6BK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "HNTQBBSNVS", "title": "-0.4", "to": "6DF9IVOMQ3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7TVCG4MN42", "title": "-0.2", "to": "HNTQBBSNVS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0GQBRTECGK", "title": "-1.3", "to": "7TVCG4MN42"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GPY85E3Y3S", "title": "-1.1", "to": "0GQBRTECGK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NCFLBVD6WR", "title": "-0.1", "to": "GPY85E3Y3S"}, {"arrowStrikethrough": false, "arrows": "to", "from": "78OXEAM06V", "title": "-0.8", "to": "NCFLBVD6WR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "IZT4IVGKRL", "title": "-1.2", "to": "78OXEAM06V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "F7938SSFEW", "title": "-0.1", "to": "IZT4IVGKRL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JI3ERMU9NI", "title": "-0.6", "to": "F7938SSFEW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VIXPSJA1NB", "title": "-1.6", "to": "JI3ERMU9NI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "24J8JJTJDL", "title": "-1.0", "to": "VIXPSJA1NB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FM6Y2P24DT", "title": "-0.2", "to": "VIXPSJA1NB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AO9R06L04W", "title": "-1.7", "to": "24J8JJTJDL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EZFP0ZB8U5", "title": "-1.9", "to": "AO9R06L04W"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FZY9B4RT0B", "title": "-1.5", "to": "EZFP0ZB8U5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OG7W5G3WOF", "title": "-0.7", "to": "FZY9B4RT0B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-0.6", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OZFXBKOLKI", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3SU0YIU0CG", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FVI8GJUAZD", "title": "-0.0", "to": "PAAB0HW2NP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "71DWE5DMS1", "title": "-0.1", "to": "FVI8GJUAZD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OIAKRKZCJU", "title": "-0.3", "to": "71DWE5DMS1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9HGV445G2H", "title": "-1.1", "to": "OIAKRKZCJU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DAIA2JVQ1J", "title": "-0.1", "to": "OZFXBKOLKI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "20TQ09KABU", "title": "-0.3", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "V8ZVUZOHSB", "title": "-0.1", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-0.8", "to": "20TQ09KABU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-1.9", "to": "0KCOPRKYT1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-1.0", "to": "V8ZVUZOHSB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "84US77OT1B", "title": "-0.1", "to": "3SU0YIU0CG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-2.6", "to": "84US77OT1B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KX4XYB83AU", "title": "-0.4", "to": "FM6Y2P24DT"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PO3U05WIC9", "title": "-0.9", "to": "KX4XYB83AU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FZY9B4RT0B", "title": "-2.1", "to": "PO3U05WIC9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XTQN4AZBEF", "title": "-0.4", "to": "7W73XY4UZ0"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9LCKAUFJ10", "title": "-1.1", "to": "XTQN4AZBEF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "335F72AI7G", "title": "-0.8", "to": "9LCKAUFJ10"}, {"arrowStrikethrough": false, "arrows": "to", "from": "N1XMIXYIIW", "title": "-0.5", "to": "335F72AI7G"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KWK1BZV5HO", "title": "-0.9", "to": "N1XMIXYIIW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Y9DJKBP535", "title": "-0.4", "to": "KWK1BZV5HO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TH5ZDTO76V", "title": "-0.5", "to": "Y9DJKBP535"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PD2T7Y9SSZ", "title": "-1.7", "to": "TH5ZDTO76V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ICPFCGQRXY", "title": "-1.7", "to": "PD2T7Y9SSZ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "QV3334TES1", "title": "-1.8", "to": "ICPFCGQRXY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9DL8MIJ54B", "title": "-0.1", "to": "QV3334TES1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "8NDHMGEKGR", "title": "-0.4", "to": "9DL8MIJ54B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "79OQS6HL15", "title": "-0.5", "to": "8NDHMGEKGR"}, {"arrowStrikethrough": false, "arrows": "to", "from": "T0DQ9RNCP9", "title": "-0.8", "to": "79OQS6HL15"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1M7YFYTHQU", "title": "-1.0", "to": "79OQS6HL15"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OG7W5G3WOF", "title": "-2.4", "to": "T0DQ9RNCP9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-0.6", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OZFXBKOLKI", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3SU0YIU0CG", "title": "-0.3", "to": "OG7W5G3WOF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FVI8GJUAZD", "title": "-0.0", "to": "PAAB0HW2NP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "71DWE5DMS1", "title": "-0.1", "to": "FVI8GJUAZD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OIAKRKZCJU", "title": "-0.3", "to": "71DWE5DMS1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9HGV445G2H", "title": "-1.1", "to": "OIAKRKZCJU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DAIA2JVQ1J", "title": "-0.1", "to": "OZFXBKOLKI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "20TQ09KABU", "title": "-0.3", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "V8ZVUZOHSB", "title": "-0.1", "to": "DAIA2JVQ1J"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-0.8", "to": "20TQ09KABU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-1.9", "to": "0KCOPRKYT1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0KCOPRKYT1", "title": "-1.0", "to": "V8ZVUZOHSB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "84US77OT1B", "title": "-0.1", "to": "3SU0YIU0CG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PAAB0HW2NP", "title": "-2.6", "to": "84US77OT1B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "6MIWOOOLMG", "title": "-2.2", "to": "1M7YFYTHQU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FZY9B4RT0B", "title": "-0.8", "to": "6MIWOOOLMG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OG7W5G3WOF", "title": "-0.7", "to": "FZY9B4RT0B"}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": false,
+            "type": "continuous"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+        network.on("stabilizationProgress", function(params) {
+      		document.getElementById('loadingBar').removeAttribute("style");
+	        var maxWidth = 496;
+	        var minWidth = 20;
+	        var widthFactor = params.iterations/params.total;
+	        var width = Math.max(minWidth,maxWidth * widthFactor);
+
+	        document.getElementById('bar').style.width = width + 'px';
+	        document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+	    });
+	    network.once("stabilizationIterationsDone", function() {
+	        document.getElementById('text').innerHTML = '100%';
+	        document.getElementById('bar').style.width = '496px';
+	        document.getElementById('loadingBar').style.opacity = 0;
+	        // really clean the dom element
+	        setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+	    });
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>

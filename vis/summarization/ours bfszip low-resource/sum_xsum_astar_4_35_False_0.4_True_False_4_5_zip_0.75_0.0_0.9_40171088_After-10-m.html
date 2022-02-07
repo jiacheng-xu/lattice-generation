@@ -1,0 +1,204 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 100%;
+            height: 1500px;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+        #loadingBar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width: 100%;
+            height: 1500px;
+            background-color:rgba(200,200,200,0.8);
+            -webkit-transition: all 0.5s ease;
+            -moz-transition: all 0.5s ease;
+            -ms-transition: all 0.5s ease;
+            -o-transition: all 0.5s ease;
+            transition: all 0.5s ease;
+            opacity:1;
+        }
+
+        #bar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            width:20px;
+            height:20px;
+            margin:auto auto auto auto;
+            border-radius:11px;
+            border:2px solid rgba(30,30,30,0.05);
+            background: rgb(0, 173, 246); /* Old browsers */
+            box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+        }
+
+        #border {
+            position:absolute;
+            top:10px;
+            left:10px;
+            width:500px;
+            height:23px;
+            margin:auto auto auto auto;
+            box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+            border-radius:10px;
+        }
+
+        #text {
+            position:absolute;
+            top:8px;
+            left:530px;
+            width:30px;
+            height:50px;
+            margin:auto auto auto auto;
+            font-size:22px;
+            color: #000000;
+        }
+
+        div.outerBorder {
+            position:relative;
+            top:400px;
+            width:600px;
+            height:44px;
+            margin:auto auto auto auto;
+            border:8px solid rgba(0,0,0,0.1);
+            background: rgb(252,252,252); /* Old browsers */
+            background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+            background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+            background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+            background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+            background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+            border-radius:72px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+<div id="loadingBar">
+    <div class="outerBorder">
+        <div id="text">0%</div>
+        <div id="border">
+            <div id="bar"></div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"group": 0, "id": "7KV5IDMNA1", "label": ".", "shape": "dot", "size": 8}, {"group": 0, "id": "XLDCCKVU02", "label": " people", "shape": "dot", "size": 8}, {"group": 0, "id": "XDYOLO8J3O", "label": " 265", "shape": "dot", "size": 8}, {"group": 0, "id": "MNNWGLCBH1", "label": " than", "shape": "dot", "size": 8}, {"group": 0, "id": "DNELLKU80L", "label": " more", "shape": "dot", "size": 8}, {"group": 0, "id": "GF2MOPNI69", "label": " killed", "shape": "dot", "size": 8}, {"group": 0, "id": "0EO4KMQPPS", "label": " has", "shape": "dot", "size": 8}, {"group": 0, "id": "7K4YYAGZIC", "label": " that", "shape": "dot", "size": 8}, {"group": 0, "id": "EABXS5H8WW", "label": "era", "shape": "dot", "size": 8}, {"group": 0, "id": "JGODMXXV7V", "label": "ol", "shape": "dot", "size": 8}, {"group": 0, "id": "EQ535Y0EAI", "label": " ch", "shape": "dot", "size": 8}, {"group": 0, "id": "9GK3F5U7EF", "label": " of", "shape": "dot", "size": 8}, {"group": 0, "id": "PYHT2I5J63", "label": " outbreak", "shape": "dot", "size": 8}, {"group": 0, "id": "9WRW42DK1E", "label": " an", "shape": "dot", "size": 8}, {"group": 0, "id": "9FIT011ZG8", "label": " over", "shape": "dot", "size": 8}, {"group": 0, "id": "SODQY97G9T", "label": " act", "shape": "dot", "size": 8}, {"group": 0, "id": "8OQJGQNME6", "label": " to", "shape": "dot", "size": 8}, {"group": 0, "id": "Y17LVJRGRE", "label": " failing", "shape": "dot", "size": 8}, {"group": 0, "id": "YKEN47VNC8", "label": " of", "shape": "dot", "size": 8}, {"group": 0, "id": "3OVY0G35GI", "label": " accused", "shape": "dot", "size": 8}, {"group": 0, "id": "FCPNQDWUPI", "label": " been", "shape": "dot", "size": 8}, {"group": 0, "id": "730C0UFJCV", "label": " has", "shape": "dot", "size": 8}, {"group": 0, "id": "N51DUGMIRP", "label": " government", "shape": "dot", "size": 8}, {"group": 0, "id": "TMCMKSUPR3", "label": "\u0027s", "shape": "dot", "size": 8}, {"group": 0, "id": "UZQ1ON43KN", "label": "an", "shape": "dot", "size": 8}, {"group": 0, "id": "OM4OBYT4BP", "label": "ud", "shape": "dot", "size": 8}, {"group": 0, "id": "5CBZHVGFXJ", "label": "S", "shape": "dot", "size": 8}, {"group": 0, "id": "X05OPADTT0", "label": "\u003c/s\u003e", "shape": "dot", "size": 8}, {"group": 1, "id": "L2V40SGDTH", "label": ".", "shape": "dot", "size": 8}, {"group": 1, "id": "AO0IIHB1G0", "label": " 2016", "shape": "dot", "size": 8}, {"group": 1, "id": "F88N5BIOZO", "label": " October", "shape": "dot", "size": 8}, {"group": 1, "id": "JR3RURFNEC", "label": " in", "shape": "dot", "size": 8}, {"group": 1, "id": "J0HYUHOMEI", "label": " camps", "shape": "dot", "size": 8}, {"group": 1, "id": "LIMRK1ZGRF", "label": " refugee", "shape": "dot", "size": 8}, {"group": 1, "id": "5IAT39IKZD", "label": "ese", "shape": "dot", "size": 8}, {"group": 1, "id": "PQZ6JLHDUW", "label": " Sudan", "shape": "dot", "size": 8}, {"group": 1, "id": "I0YEHT9QGB", "label": " South", "shape": "dot", "size": 8}, {"group": 1, "id": "DDV9S8AE8L", "label": "\u0027s", "shape": "dot", "size": 8}, {"group": 1, "id": "360DXHYNVJ", "label": " country", "shape": "dot", "size": 8}, {"group": 1, "id": "0SRRF6OCJC", "label": " the", "shape": "dot", "size": 8}, {"group": 1, "id": "72DOPFJQII", "label": " in", "shape": "dot", "size": 8}, {"group": 1, "id": "Q4BSTWRAXB", "label": " began", "shape": "dot", "size": 8}, {"group": 1, "id": "RYFGFSGOWV", "label": " it", "shape": "dot", "size": 8}, {"group": 1, "id": "MAQCN157DV", "label": " since", "shape": "dot", "size": 8}, {"group": 1, "id": "ZQX62X191T", "label": " people", "shape": "dot", "size": 8}, {"group": 1, "id": "Z4JK79AWYG", "label": " 265", "shape": "dot", "size": 8}, {"group": 1, "id": "AKQ176Y1WL", "label": " than", "shape": "dot", "size": 8}, {"group": 1, "id": "K8OAGN15W2", "label": " more", "shape": "dot", "size": 8}, {"group": 1, "id": "768874YG8W", "label": " killed", "shape": "dot", "size": 8}, {"group": 1, "id": "3JVRTRUQFB", "label": " has", "shape": "dot", "size": 8}, {"group": 1, "id": "L9X2NZ8SXX", "label": " that", "shape": "dot", "size": 8}, {"group": 1, "id": "UJWOZ7FKKL", "label": " outbreak", "shape": "dot", "size": 8}, {"group": 1, "id": "SXKF5N6TP9", "label": "era", "shape": "dot", "size": 8}, {"group": 1, "id": "SPXEMOTTYY", "label": "ol", "shape": "dot", "size": 8}, {"group": 1, "id": "R8TXCIHBPV", "label": " ch", "shape": "dot", "size": 8}, {"group": 1, "id": "J9VURWUHVO", "label": " worst", "shape": "dot", "size": 8}, {"group": 1, "id": "QIGEAQ4UVL", "label": " its", "shape": "dot", "size": 8}, {"group": 1, "id": "KJZS1EMVEA", "label": " facing", "shape": "dot", "size": 8}, {"group": 1, "id": "ZS5IGLAQT8", "label": " is", "shape": "dot", "size": 8}, {"group": 1, "id": "9OM5KU432H", "label": "ol", "shape": "dot", "size": 8}, {"group": 1, "id": "WZ8U0JC9OP", "label": " ch", "shape": "dot", "size": 8}, {"group": 1, "id": "L6HRXAMPQS", "label": " a", "shape": "dot", "size": 8}, {"group": 1, "id": "V7KOW9JI98", "label": " by", "shape": "dot", "size": 8}, {"group": 1, "id": "FJPLKZOOYL", "label": " gripped", "shape": "dot", "size": 8}, {"group": 1, "id": "AIT9QJLGAH", "label": " been", "shape": "dot", "size": 8}, {"group": 1, "id": "NVIW5BOKXM", "label": " has", "shape": "dot", "size": 8}, {"group": 2, "id": "1HOWS9T519", "label": ".", "shape": "dot", "size": 8}, {"group": 2, "id": "QCYHMPQ264", "label": " Sudan", "shape": "dot", "size": 8}, {"group": 2, "id": "57C0S6YJXO", "label": " in", "shape": "dot", "size": 8}, {"group": 2, "id": "JQOUEN5K9L", "label": " outbreak", "shape": "dot", "size": 8}, {"group": 2, "id": "5BWJMOARB6", "label": "era", "shape": "dot", "size": 8}, {"group": 2, "id": "98WHZLIKMU", "label": "ol", "shape": "dot", "size": 8}, {"group": 2, "id": "VKNDDZO42Z", "label": " ch", "shape": "dot", "size": 8}, {"group": 2, "id": "LETP7JIZQK", "label": " the", "shape": "dot", "size": 8}, {"group": 2, "id": "SWBNE2X5K8", "label": " of", "shape": "dot", "size": 8}, {"group": 2, "id": "AXMUIGCQUD", "label": " scale", "shape": "dot", "size": 8}, {"group": 2, "id": "14RU8ORKB3", "label": " the", "shape": "dot", "size": 8}, {"group": 2, "id": "LGL283H5RQ", "label": " at", "shape": "dot", "size": 8}, {"group": 2, "id": "CVU73BRZAW", "label": " looks", "shape": "dot", "size": 8}, {"group": 2, "id": "L3ZI01M70G", "label": "zo", "shape": "dot", "size": 8}, {"group": 2, "id": "5D76GVX20B", "label": " Seven", "shape": "dot", "size": 8}, {"group": 2, "id": "YDICNOSVA3", "label": "ai", "shape": "dot", "size": 8}, {"group": 2, "id": "0HKYHJ5M8E", "label": " Far", "shape": "dot", "size": 8}, {"group": 2, "id": "YFX5Z1KZ0N", "label": " columnist", "shape": "dot", "size": 8}, {"group": 2, "id": "M9H8Y6BST4", "label": " and", "shape": "dot", "size": 8}, {"group": 2, "id": "ADCZNH9TIK", "label": "maker", "shape": "dot", "size": 8}, {"group": 2, "id": "Y74ARXILSW", "label": "-", "shape": "dot", "size": 8}, {"group": 2, "id": "OGEOJ6O0S2", "label": " film", "shape": "dot", "size": 8}, {"group": 2, "id": "68W2LBKW2F", "label": ",", "shape": "dot", "size": 8}, {"group": 2, "id": "NPO4HYXP3Q", "label": " journalists", "shape": "dot", "size": 8}, {"group": 2, "id": "EYYPC3TJK2", "label": " African", "shape": "dot", "size": 8}, {"group": 2, "id": "H6DCZBFBPP", "label": " from", "shape": "dot", "size": 8}, {"group": 2, "id": "E8QE4OSM0L", "label": " letters", "shape": "dot", "size": 8}, {"group": 2, "id": "CGTZ675WMY", "label": " of", "shape": "dot", "size": 8}, {"group": 2, "id": "AXTZ1U6SDU", "label": " series", "shape": "dot", "size": 8}, {"group": 2, "id": "JTXNMUL0XU", "label": " our", "shape": "dot", "size": 8}, {"group": 2, "id": "T041ZWEDZN", "label": "In", "shape": "dot", "size": 8}, {"group": 3, "id": "LOVC6XE948", "label": ".", "shape": "dot", "size": 8}, {"group": 3, "id": "BE2NRUBIQT", "label": " Sudan", "shape": "dot", "size": 8}, {"group": 3, "id": "S07JPZ93NY", "label": " in", "shape": "dot", "size": 8}, {"group": 3, "id": "L3AIH4872I", "label": " outbreak", "shape": "dot", "size": 8}, {"group": 3, "id": "KLEID9M12P", "label": "era", "shape": "dot", "size": 8}, {"group": 3, "id": "OBAOK2EBTM", "label": "ol", "shape": "dot", "size": 8}, {"group": 3, "id": "TWSVUCODPE", "label": " ch", "shape": "dot", "size": 8}, {"group": 3, "id": "S964HIIJT4", "label": " the", "shape": "dot", "size": 8}, {"group": 3, "id": "MOWRT75LMU", "label": " of", "shape": "dot", "size": 8}, {"group": 3, "id": "1OSYCLD9GA", "label": " scale", "shape": "dot", "size": 8}, {"group": 3, "id": "JO92Q2RTRP", "label": " the", "shape": "dot", "size": 8}, {"group": 3, "id": "04LA92Q885", "label": " at", "shape": "dot", "size": 8}, {"group": 3, "id": "NYBK6JZPHA", "label": " looks", "shape": "dot", "size": 8}, {"group": 3, "id": "RXKBIX0LUM", "label": "zo", "shape": "dot", "size": 8}, {"group": 3, "id": "IHASIS7RVK", "label": " Seven", "shape": "dot", "size": 8}, {"group": 3, "id": "23NMYZJHE9", "label": "ai", "shape": "dot", "size": 8}, {"group": 3, "id": "ZRFP1DLJMX", "label": " Far", "shape": "dot", "size": 8}, {"group": 3, "id": "QRX9VX6RZI", "label": " columnist", "shape": "dot", "size": 8}, {"group": 3, "id": "SQ5GG30RS5", "label": " and", "shape": "dot", "size": 8}, {"group": 3, "id": "28RPX1I0NL", "label": " filmmaker", "shape": "dot", "size": 8}]);
+        edges = new vis.DataSet([{"arrowStrikethrough": false, "arrows": "to", "from": "XLDCCKVU02", "title": "-1.4", "to": "7KV5IDMNA1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "XDYOLO8J3O", "title": "-0.1", "to": "XLDCCKVU02"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MNNWGLCBH1", "title": "-1.7", "to": "XDYOLO8J3O"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DNELLKU80L", "title": "-0.1", "to": "MNNWGLCBH1"}, {"arrowStrikethrough": false, "arrows": "to", "from": "GF2MOPNI69", "title": "-0.9", "to": "DNELLKU80L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0EO4KMQPPS", "title": "-0.6", "to": "GF2MOPNI69"}, {"arrowStrikethrough": false, "arrows": "to", "from": "7K4YYAGZIC", "title": "-0.5", "to": "0EO4KMQPPS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EABXS5H8WW", "title": "-1.0", "to": "7K4YYAGZIC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JGODMXXV7V", "title": "-0.1", "to": "EABXS5H8WW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EQ535Y0EAI", "title": "-0.1", "to": "JGODMXXV7V"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9GK3F5U7EF", "title": "-0.5", "to": "EQ535Y0EAI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PYHT2I5J63", "title": "-0.1", "to": "9GK3F5U7EF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9WRW42DK1E", "title": "-0.2", "to": "PYHT2I5J63"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9FIT011ZG8", "title": "-1.0", "to": "9WRW42DK1E"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SODQY97G9T", "title": "-1.0", "to": "9FIT011ZG8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "8OQJGQNME6", "title": "-1.7", "to": "SODQY97G9T"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Y17LVJRGRE", "title": "-0.1", "to": "8OQJGQNME6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YKEN47VNC8", "title": "-2.3", "to": "Y17LVJRGRE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3OVY0G35GI", "title": "-0.3", "to": "YKEN47VNC8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FCPNQDWUPI", "title": "-1.1", "to": "3OVY0G35GI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "730C0UFJCV", "title": "-1.9", "to": "FCPNQDWUPI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "N51DUGMIRP", "title": "-0.5", "to": "730C0UFJCV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TMCMKSUPR3", "title": "-1.1", "to": "N51DUGMIRP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UZQ1ON43KN", "title": "-1.0", "to": "TMCMKSUPR3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OM4OBYT4BP", "title": "-0.0", "to": "UZQ1ON43KN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5CBZHVGFXJ", "title": "-0.1", "to": "OM4OBYT4BP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "X05OPADTT0", "title": "-1.4", "to": "5CBZHVGFXJ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AO0IIHB1G0", "title": "-0.2", "to": "L2V40SGDTH"}, {"arrowStrikethrough": false, "arrows": "to", "from": "F88N5BIOZO", "title": "-0.3", "to": "AO0IIHB1G0"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JR3RURFNEC", "title": "-0.9", "to": "F88N5BIOZO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J0HYUHOMEI", "title": "-0.7", "to": "JR3RURFNEC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LIMRK1ZGRF", "title": "-0.1", "to": "J0HYUHOMEI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5IAT39IKZD", "title": "-0.1", "to": "LIMRK1ZGRF"}, {"arrowStrikethrough": false, "arrows": "to", "from": "PQZ6JLHDUW", "title": "-0.1", "to": "5IAT39IKZD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "I0YEHT9QGB", "title": "-0.2", "to": "PQZ6JLHDUW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "DDV9S8AE8L", "title": "-2.1", "to": "I0YEHT9QGB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "360DXHYNVJ", "title": "-0.5", "to": "DDV9S8AE8L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0SRRF6OCJC", "title": "-1.9", "to": "360DXHYNVJ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "72DOPFJQII", "title": "-1.9", "to": "0SRRF6OCJC"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Q4BSTWRAXB", "title": "-0.6", "to": "72DOPFJQII"}, {"arrowStrikethrough": false, "arrows": "to", "from": "RYFGFSGOWV", "title": "-1.0", "to": "Q4BSTWRAXB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MAQCN157DV", "title": "-1.5", "to": "RYFGFSGOWV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZQX62X191T", "title": "-1.2", "to": "MAQCN157DV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Z4JK79AWYG", "title": "-0.1", "to": "ZQX62X191T"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AKQ176Y1WL", "title": "-1.5", "to": "Z4JK79AWYG"}, {"arrowStrikethrough": false, "arrows": "to", "from": "K8OAGN15W2", "title": "-0.1", "to": "AKQ176Y1WL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "768874YG8W", "title": "-0.9", "to": "K8OAGN15W2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "3JVRTRUQFB", "title": "-0.8", "to": "768874YG8W"}, {"arrowStrikethrough": false, "arrows": "to", "from": "L9X2NZ8SXX", "title": "-0.8", "to": "3JVRTRUQFB"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UJWOZ7FKKL", "title": "-1.0", "to": "L9X2NZ8SXX"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SXKF5N6TP9", "title": "-0.5", "to": "UJWOZ7FKKL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SPXEMOTTYY", "title": "-0.1", "to": "SXKF5N6TP9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "9OM5KU432H", "title": "-0.1", "to": "SXKF5N6TP9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "R8TXCIHBPV", "title": "-0.1", "to": "SPXEMOTTYY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "J9VURWUHVO", "title": "-0.5", "to": "R8TXCIHBPV"}, {"arrowStrikethrough": false, "arrows": "to", "from": "QIGEAQ4UVL", "title": "-0.6", "to": "J9VURWUHVO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KJZS1EMVEA", "title": "-1.2", "to": "QIGEAQ4UVL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZS5IGLAQT8", "title": "-2.1", "to": "KJZS1EMVEA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UZQ1ON43KN", "title": "-2.2", "to": "ZS5IGLAQT8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OM4OBYT4BP", "title": "-0.0", "to": "UZQ1ON43KN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5CBZHVGFXJ", "title": "-0.1", "to": "OM4OBYT4BP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "X05OPADTT0", "title": "-1.4", "to": "5CBZHVGFXJ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "WZ8U0JC9OP", "title": "-0.1", "to": "9OM5KU432H"}, {"arrowStrikethrough": false, "arrows": "to", "from": "L6HRXAMPQS", "title": "-0.8", "to": "WZ8U0JC9OP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "V7KOW9JI98", "title": "-0.8", "to": "L6HRXAMPQS"}, {"arrowStrikethrough": false, "arrows": "to", "from": "FJPLKZOOYL", "title": "-0.1", "to": "V7KOW9JI98"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AIT9QJLGAH", "title": "-1.0", "to": "FJPLKZOOYL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NVIW5BOKXM", "title": "-0.9", "to": "AIT9QJLGAH"}, {"arrowStrikethrough": false, "arrows": "to", "from": "UZQ1ON43KN", "title": "-1.5", "to": "NVIW5BOKXM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "QCYHMPQ264", "title": "-0.7", "to": "1HOWS9T519"}, {"arrowStrikethrough": false, "arrows": "to", "from": "57C0S6YJXO", "title": "-0.2", "to": "QCYHMPQ264"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JQOUEN5K9L", "title": "-0.3", "to": "57C0S6YJXO"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5BWJMOARB6", "title": "-0.2", "to": "JQOUEN5K9L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "98WHZLIKMU", "title": "-0.1", "to": "5BWJMOARB6"}, {"arrowStrikethrough": false, "arrows": "to", "from": "VKNDDZO42Z", "title": "-0.1", "to": "98WHZLIKMU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LETP7JIZQK", "title": "-0.6", "to": "VKNDDZO42Z"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SWBNE2X5K8", "title": "-0.9", "to": "LETP7JIZQK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AXMUIGCQUD", "title": "-0.1", "to": "SWBNE2X5K8"}, {"arrowStrikethrough": false, "arrows": "to", "from": "14RU8ORKB3", "title": "-2.3", "to": "AXMUIGCQUD"}, {"arrowStrikethrough": false, "arrows": "to", "from": "LGL283H5RQ", "title": "-0.9", "to": "14RU8ORKB3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CVU73BRZAW", "title": "-0.1", "to": "LGL283H5RQ"}, {"arrowStrikethrough": false, "arrows": "to", "from": "L3ZI01M70G", "title": "-0.7", "to": "CVU73BRZAW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "5D76GVX20B", "title": "-0.2", "to": "L3ZI01M70G"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YDICNOSVA3", "title": "-0.0", "to": "5D76GVX20B"}, {"arrowStrikethrough": false, "arrows": "to", "from": "0HKYHJ5M8E", "title": "-1.2", "to": "YDICNOSVA3"}, {"arrowStrikethrough": false, "arrows": "to", "from": "YFX5Z1KZ0N", "title": "-0.8", "to": "0HKYHJ5M8E"}, {"arrowStrikethrough": false, "arrows": "to", "from": "M9H8Y6BST4", "title": "-0.1", "to": "YFX5Z1KZ0N"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ADCZNH9TIK", "title": "-0.1", "to": "M9H8Y6BST4"}, {"arrowStrikethrough": false, "arrows": "to", "from": "Y74ARXILSW", "title": "-0.1", "to": "ADCZNH9TIK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OGEOJ6O0S2", "title": "-0.1", "to": "Y74ARXILSW"}, {"arrowStrikethrough": false, "arrows": "to", "from": "68W2LBKW2F", "title": "-1.1", "to": "OGEOJ6O0S2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NPO4HYXP3Q", "title": "-0.1", "to": "68W2LBKW2F"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EYYPC3TJK2", "title": "-0.1", "to": "NPO4HYXP3Q"}, {"arrowStrikethrough": false, "arrows": "to", "from": "H6DCZBFBPP", "title": "-0.1", "to": "EYYPC3TJK2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "E8QE4OSM0L", "title": "-0.1", "to": "H6DCZBFBPP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CGTZ675WMY", "title": "-0.1", "to": "E8QE4OSM0L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AXTZ1U6SDU", "title": "-0.1", "to": "CGTZ675WMY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JTXNMUL0XU", "title": "-0.0", "to": "AXTZ1U6SDU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "T041ZWEDZN", "title": "-0.2", "to": "JTXNMUL0XU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "X05OPADTT0", "title": "-2.1", "to": "T041ZWEDZN"}, {"arrowStrikethrough": false, "arrows": "to", "from": "BE2NRUBIQT", "title": "-0.7", "to": "LOVC6XE948"}, {"arrowStrikethrough": false, "arrows": "to", "from": "S07JPZ93NY", "title": "-0.2", "to": "BE2NRUBIQT"}, {"arrowStrikethrough": false, "arrows": "to", "from": "L3AIH4872I", "title": "-0.3", "to": "S07JPZ93NY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "KLEID9M12P", "title": "-0.2", "to": "L3AIH4872I"}, {"arrowStrikethrough": false, "arrows": "to", "from": "OBAOK2EBTM", "title": "-0.1", "to": "KLEID9M12P"}, {"arrowStrikethrough": false, "arrows": "to", "from": "TWSVUCODPE", "title": "-0.1", "to": "OBAOK2EBTM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "S964HIIJT4", "title": "-0.6", "to": "TWSVUCODPE"}, {"arrowStrikethrough": false, "arrows": "to", "from": "MOWRT75LMU", "title": "-0.9", "to": "S964HIIJT4"}, {"arrowStrikethrough": false, "arrows": "to", "from": "1OSYCLD9GA", "title": "-0.1", "to": "MOWRT75LMU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JO92Q2RTRP", "title": "-2.2", "to": "1OSYCLD9GA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "04LA92Q885", "title": "-0.9", "to": "JO92Q2RTRP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NYBK6JZPHA", "title": "-0.1", "to": "04LA92Q885"}, {"arrowStrikethrough": false, "arrows": "to", "from": "RXKBIX0LUM", "title": "-0.7", "to": "NYBK6JZPHA"}, {"arrowStrikethrough": false, "arrows": "to", "from": "IHASIS7RVK", "title": "-0.2", "to": "RXKBIX0LUM"}, {"arrowStrikethrough": false, "arrows": "to", "from": "23NMYZJHE9", "title": "-0.0", "to": "IHASIS7RVK"}, {"arrowStrikethrough": false, "arrows": "to", "from": "ZRFP1DLJMX", "title": "-1.3", "to": "23NMYZJHE9"}, {"arrowStrikethrough": false, "arrows": "to", "from": "QRX9VX6RZI", "title": "-0.9", "to": "ZRFP1DLJMX"}, {"arrowStrikethrough": false, "arrows": "to", "from": "SQ5GG30RS5", "title": "-0.6", "to": "QRX9VX6RZI"}, {"arrowStrikethrough": false, "arrows": "to", "from": "28RPX1I0NL", "title": "-0.1", "to": "SQ5GG30RS5"}, {"arrowStrikethrough": false, "arrows": "to", "from": "68W2LBKW2F", "title": "-1.9", "to": "28RPX1I0NL"}, {"arrowStrikethrough": false, "arrows": "to", "from": "NPO4HYXP3Q", "title": "-0.1", "to": "68W2LBKW2F"}, {"arrowStrikethrough": false, "arrows": "to", "from": "EYYPC3TJK2", "title": "-0.1", "to": "NPO4HYXP3Q"}, {"arrowStrikethrough": false, "arrows": "to", "from": "H6DCZBFBPP", "title": "-0.1", "to": "EYYPC3TJK2"}, {"arrowStrikethrough": false, "arrows": "to", "from": "E8QE4OSM0L", "title": "-0.1", "to": "H6DCZBFBPP"}, {"arrowStrikethrough": false, "arrows": "to", "from": "CGTZ675WMY", "title": "-0.1", "to": "E8QE4OSM0L"}, {"arrowStrikethrough": false, "arrows": "to", "from": "AXTZ1U6SDU", "title": "-0.1", "to": "CGTZ675WMY"}, {"arrowStrikethrough": false, "arrows": "to", "from": "JTXNMUL0XU", "title": "-0.0", "to": "AXTZ1U6SDU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "T041ZWEDZN", "title": "-0.2", "to": "JTXNMUL0XU"}, {"arrowStrikethrough": false, "arrows": "to", "from": "X05OPADTT0", "title": "-2.1", "to": "T041ZWEDZN"}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": false,
+            "type": "continuous"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+        network.on("stabilizationProgress", function(params) {
+      		document.getElementById('loadingBar').removeAttribute("style");
+	        var maxWidth = 496;
+	        var minWidth = 20;
+	        var widthFactor = params.iterations/params.total;
+	        var width = Math.max(minWidth,maxWidth * widthFactor);
+
+	        document.getElementById('bar').style.width = width + 'px';
+	        document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+	    });
+	    network.once("stabilizationIterationsDone", function() {
+	        document.getElementById('text').innerHTML = '100%';
+	        document.getElementById('bar').style.width = '496px';
+	        document.getElementById('loadingBar').style.opacity = 0;
+	        // really clean the dom element
+	        setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+	    });
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>

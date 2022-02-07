@@ -1,14 +1,14 @@
 
-import editdistance
-from sacrebleu.metrics import BLEU
-from rouge_score import rouge_scorer
 import statistics
-from collections import defaultdict
 from collections import Counter
-import imp
+from collections import defaultdict
 from typing import List
-import nltk
+
+import editdistance
 import spacy
+from rouge_score import rouge_scorer
+from sacrebleu.metrics import BLEU
+
 nlp = spacy.load("en_core_web_sm")
 
 full_rouge_scorer = rouge_scorer.RougeScorer(
