@@ -13,7 +13,6 @@ debug = False    # fake model output
 # debug = True    # fake model output
 
 
-MODEL_CACHE = '/mnt/data1/jcxu/cache'
 
 
 def filter_by_score(group: List, top_k=20):

@@ -1,5 +1,3 @@
-
-
 from dataclasses import dataclass
 import torch
 from transformers.file_utils import ModelOutput

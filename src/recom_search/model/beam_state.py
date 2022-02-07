@@ -11,7 +11,7 @@ import random
 import string
 from typing import List
 import numpy as np
-from src.recom_search.model.bfs_util import NewHash
+from src.recom_search.model.bfs_util import HashObject
 random.seed(2021)
 
 
@@ -262,7 +262,7 @@ class BeamNodeEz():
         return reversed_tokens[::-1]
 
 class BeamNode():
-    def __init__(self, hash: NewHash, prob: float, token_idx: int, prev: List[str], prev_score: List,  min_len=10, finished=False, len_reward=0.0, master_node_uid=None) -> None:
+    def __init__(self, hash: HashObject, prob: float, token_idx: int, prev: List[str], prev_score: List, min_len=10, finished=False, len_reward=0.0, master_node_uid=None) -> None:
         self.hash = hash
         self.uid = gen_rand_id()
         self.prob = prob

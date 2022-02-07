@@ -1,14 +1,11 @@
-
 import random
 import logging
 import random
 
-
-from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
+from src.recom_search.model.beam_state import BeamNode, BeamNodeEz
 
 
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
-
     if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
         if a_tokens[-ngram_suffix:] == b_tokens[-ngram_suffix:]:
             # logging.debug(f"Stage 1: Suffix match SUCCESS")
@@ -27,18 +24,7 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     return True
 
 
-def write_recomb_records(match_suffix, seq_a, seq_b, doc_input, ngram_suffix, save_file='recomb_record.txt'):
-    list_doc_input = doc_input.squeeze().cpu().tolist()
-    prefix_a_token = seq_a.all_token_idx
-    prefix_b_token = seq_b.all_token_idx
-    a = prefix_a_token + match_suffix
-    b = prefix_b_token + match_suffix
-    with open(str(ngram_suffix)+save_file, 'a') as fd:
-        fd.write(f"{list_doc_input}\t{a}\t{b}\n")
-
-
-
-def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None, ngram_suffix=None):
+def naive_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None, ngram_suffix=None):
     """
     beam_par is the node to keep, beam_drop is to "discard"
     our goal is to merge them into a larger lattice ending with beam_par.uid
@@ -49,14 +35,15 @@ def core_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None, ngra
     # when does their suffix starts to differ?
     pointer_par = beam_par
     pointer_drop = beam_drop
-    
+
     pointer_par.add_prev_node(pointer_drop.prev[0], pointer_drop.score)
 
     return beam_par
 
-
     # go leftward to end of prev_par_paths, get all nodes
     # go leftward to end of
+
+
 if __name__ == '__main__':
     ng = 2
     hash = HashedGen(ng)
@@ -93,8 +80,8 @@ if __name__ == '__main__':
     hash.add_helper(n11, m3)
     hash.add_helper(m3, m4)
     hash.add_helper(m4, m23)
-    hash.add_helper(m23,m24)
+    hash.add_helper(m23, m24)
 
-    output_node = new_core_merge(n24, m24, hash,ngram_suffix=ng)
+    output_node = new_core_merge(n24, m24, hash, ngram_suffix=ng)
     # output_node.print_lattice()
     print(hash.data)

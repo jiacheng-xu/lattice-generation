@@ -33,8 +33,6 @@ def timing(f):
         return result
     return wrap
 
-# TODO
-
 
 def cal_model_call(f):
     @wraps(f)
