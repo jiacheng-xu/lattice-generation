@@ -15,7 +15,7 @@ i = 0
 bag = []
 
 
-base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100   "
+base = "PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100   "
 
 ngram = " -ngram_suffix 4 "
 length = " -min_len 3 -max_len -1 "
@@ -30,7 +30,7 @@ config_topp = ["-model topp -top_p 0.8", "-model topp -top_p 0.9"]
 config_temp = [" -model temp -temp 1.5"]
 config_recom = [" -model recom_bs"]
 # config_recom_sample = [' -model recom_sample -top_p 0.8 ',' -model recom_sample -top_p 0.9 ']
-# config_astar_base = ['-model astar_base -avg_score -1  -adhoc ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
+# config_astar_base = ['-model astar_base -avg_score -1  -dfs_expand ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
 baselines = config_dbs + config_bs + config_topp  + config_temp + config_recom
 # baselines = []      # ONLY a star
 

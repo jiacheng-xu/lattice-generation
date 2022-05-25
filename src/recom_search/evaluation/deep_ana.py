@@ -146,7 +146,7 @@ def deep_analyze_main(args, config_name, dict_io_data, dict_io_text, dict_io_sta
 
     # keys in args
     arg_keys = ['task', 'dataset', 'model', 'beam_size', 'max_len'] + ['ngram_suffix',
-                                                                       'len_diff', 'merge', 'post_ratio', 'adhoc', 'avg_score', 'heu_seq_score_len_rwd', 'top_p']
+                                                                       'len_diff', 'merge', 'post_ratio', 'dfs_expand', 'avg_score', 'heu_seq_score_len_rwd', 'top_p']
     for key in arg_keys:
         final[key] = getattr(args, key)
     final['error'] = error_rate

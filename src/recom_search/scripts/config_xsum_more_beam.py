@@ -1,6 +1,6 @@
 from subprocess import Popen
 
-base  = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100 "
+base  = "PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100 "
 cuda_range = [0,0,1,2]
 
 i = 0

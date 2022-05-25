@@ -20,22 +20,22 @@ The complete set of outputs are available on [Box](https://utexas.box.com/s/wmvh
 
 Beam Search:
 ```
-PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100  -ngram_suffix 4  -beam_size 16 -min_len 10 -max_len 35   -model bs 
+PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100  -ngram_suffix 4  -beam_size 16 -min_len 10 -max_len 35   -model bs 
 ```
 
 Best-first Search:
 ```
-PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100  -ngram_suffix 4  -beam_size 16 -min_len 10 -max_len 35   -model astar_baseline
+PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100  -ngram_suffix 4  -beam_size 16 -min_len 10 -max_len 35   -model astar_baseline
 ```
 
 Best-first Search with Recomb:
 ```
-PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100  -ngram_suffix 4 -beam_size 16 -min_len 10 -max_len 35 -model astar -merge imp  -avg_score 0.75  -adhoc 
+PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100  -ngram_suffix 4 -beam_size 16 -min_len 10 -max_len 35 -model astar -merge imp  -avg_score 0.75  -dfs_expand 
 ```
 
 Best-first Search with Zip:
 ```
-PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100  -ngram_suffix 4 -beam_size 16 -min_len 10 -max_len 35 -model astar -merge zip  -avg_score 0.75  -adhoc 
+PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100  -ngram_suffix 4 -beam_size 16 -min_len 10 -max_len 35 -model astar -merge zip  -avg_score 0.75  -dfs_expand 
 ```
 More detailed instructions coming soon!
 

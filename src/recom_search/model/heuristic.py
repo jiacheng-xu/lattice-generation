@@ -3,10 +3,9 @@ from src.recom_search.model.beam_state import BeamNode
 import math
 import scipy
 import random
-
 import logging
-
 import spacy
+
 nlp = spacy.load("en_core_web_sm")
 all_stopwords = spacy.lang.en.stop_words.STOP_WORDS
 

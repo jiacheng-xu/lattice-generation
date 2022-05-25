@@ -11,7 +11,6 @@ from src.recom_search.evaluation.analysis import analyze_data, analyze_main
 from src.recom_search.model.util import render_config_name
 from src.recom_search.command.run_eval import run_model
 
-from multiprocessing import Pool
 from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix, args, dict_io
 import logging
 
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     config_search = {
         'post': args.post,
         'post_ratio': args.post_ratio,  # ratio of model calls left for post finishing
-        'adhoc': args.adhoc,
+        'dfs_expand': args.dfs_expand,
         'heu': args.use_heu
     }
     combined_dict = {**config_search, **param_sim_function}

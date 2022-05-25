@@ -4,8 +4,28 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+        
         {
             "name": "summarization xsum",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/recom_search/command/run_pipeline.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python.envFile": "${workspaceFolder}/.env",
+            "args": [
+                "-model",
+                "astar",
+                "-adhoc",
+                "-ngram_suffix",
+                "4",
+                "-merge",
+                "imp"
+            ],
+        },
+        {
+            "name": "custom",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/recom_search/command/run_pipeline.py",
@@ -77,21 +97,7 @@
             "justMyCode": false,
             "python.envFile": "${workspaceFolder}/.env",
             "args": [
-                "-model",
-                "astar",
-                "-post_ratio",
-                "0.5",
-                "-post",
-                "-ngram_suffix",
-                "4",
-                "-merge",
-                "imp",
-                "-beam_size",
-                "20",
-                "-max_len",
-                "35",
-                "-avg_score",
-                "0.75"
+
             ],
             // "-use_heu", "-heu_seq_score_len_rwd","0.4","-heu_ent","1", "-avg_score"
             // "cwd": "/mnt/data1/jcxu/back_to_fact/", // "args": ["-model", "recom"], ,"-heu_seq_score_len_rwd","0.5", -model astar -use_heu -heu_seq_score_len_rwd 0.5

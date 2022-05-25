@@ -15,9 +15,6 @@ from src.recom_search.model.bfs_util import HashObject
 random.seed(2021)
 
 
-def gen_rand_id(N=10):
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
-
 
 def pprint(token_ids: List):
     return tokenizer.decode(token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)

@@ -17,14 +17,14 @@ bag = []
 # a star configs
 # avg_score =  [-1, 0.75]
 avg_score =  [0.75]
-astar_mode = [" -adhoc "]
+astar_mode = [" -dfs_expand "]
 common_a_star = []
 for score in avg_score:
     for m in astar_mode:
         common_a_star.append(f" -avg_score {score} {m} ")
 
 
-base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -nexample 100   "
+base = "PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -nexample 100   "
 
 ngram = " -ngram_suffix 4 "
 length = " -min_len 3 -max_len -1 "
@@ -43,7 +43,7 @@ config_greed = [" -model greedy"]
 config_temp = [" -model temp -temp 1.5", " -model temp -temp 1.25"]
 config_recom = [" -model recom_bs"]
 config_recom_sample = [' -model recom_sample -top_p 0.8 ',' -model recom_sample -top_p 0.9 ']
-config_astar_base = ['-model astar_base -avg_score -1  -adhoc ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
+config_astar_base = ['-model astar_base -avg_score -1  -dfs_expand ','-model astar_base -avg_score -1  -post -post_ratio 0.3 ']
 baselines = config_dbs + config_bs + config_topp + config_greed + config_temp + config_recom +  config_recom_sample + config_astar_base
 baselines = []      # ONLY a star
 

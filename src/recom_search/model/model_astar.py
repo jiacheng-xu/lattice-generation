@@ -86,7 +86,7 @@ def astar_step_baseline(tokenizer, start_seed: BeamNode, hash: HashObject, heap,
             if random.random() < 0.01:
                 logging.info(
                     f"Score: {pnum(score)}\tModel: {pnum(model_score)}\tHeu: {pnum(heu_score)}")
-            # print(score)
+
             heapq.heappush(heap, (-score, tmp_state.uid, pointer.uid))
         
         pointer = top1_state
@@ -97,7 +97,7 @@ def astar_step_baseline(tokenizer, start_seed: BeamNode, hash: HashObject, heap,
     return pointer, cnt_call
 
 
-def astar_step(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
+def astar_step(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_input_ids, model, param_sim_function, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu=None) -> Tuple[Any, int]:
     cnt_call = 0
     step = 0
     ngram_suffix = param_sim_function['ngram_suffix']
@@ -227,7 +227,7 @@ def a_star_baseline(model, tokenizer,
     finished_hypos = []
     # config_search.in: each time we expand a node, we always extend to end
     # config_search.post: after exploration, we try to extend all of the non-finished nodes until reach the budget
-    assert not (config_search['post'] and config_search['adhoc'])
+    assert not (config_search['post'] and config_search['dfs_expand'])
     if config_search['post']:
         budget_expl = comp_budget - \
             int(config_search['post_ratio'] *
@@ -252,7 +252,7 @@ def a_star_baseline(model, tokenizer,
         _, seed_uid = heapq.heappop(heap)
         seed = new_hash.retrieve_node(seed_uid)
 
-        if config_search['adhoc']:
+        if config_search['dfs_expand']:
             expl_steps = max_len
         else:
             expl_steps = 1
@@ -305,7 +305,7 @@ def a_star(model, tokenizer,
     finished_hypos = []
     # config_search.in: each time we expand a node, we always extend to end
     # config_search.post: after exploration, we try to extend all of the non-finished nodes until reach the budget
-    assert not (config_search['post'] and config_search['adhoc'])
+    assert not (config_search['post'] and config_search['dfs_expand'])
     if config_search['post']:
         budget_expl = comp_budget - \
             int(config_search['post_ratio'] *
@@ -339,7 +339,7 @@ def a_star(model, tokenizer,
             print('unexpanded kid skip')
             continue
         
-        if config_search['adhoc']:
+        if config_search['dfs_expand']:
             expl_steps = max_len
         else:
             expl_steps = 1

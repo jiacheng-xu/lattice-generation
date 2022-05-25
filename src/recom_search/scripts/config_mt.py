@@ -12,7 +12,7 @@ cuda_range = [0,0,1,2]
 i = 0
 
 bag = []
-cmd_base = "PYTHONPATH=./ python src/recom_search/command/run_pipeline.py -beam_size 10   "
+cmd_base = "PYTHONPATH=./ python src/recom_search/scripts/run_pipeline.py -beam_size 10   "
 
 ngram = " -ngram_suffix 4"
 beam = " -beam_group 5"
@@ -71,7 +71,7 @@ exit()
 d = {}
 
 avg_score =  [ -1, 0.5, 0.75]
-model = [" -adhoc ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.7 ']
+model = [" -dfs_expand ", '-post -post_ratio 0.3 ', '-post -post_ratio 0.7 ']
 models = []
 for score in avg_score:
     for m in model:

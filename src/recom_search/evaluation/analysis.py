@@ -474,7 +474,7 @@ if __name__ == "__main__":
     config_search = {
         'post': args.post,
         'post_ratio': args.post_ratio,  # ratio of model calls left for post finishing
-        'adhoc': args.adhoc,
+        'dfs_expand': args.dfs_expand,
         'heu': args.use_heu
     }
     combined_dict = {**config_search, **param_sim_function}
