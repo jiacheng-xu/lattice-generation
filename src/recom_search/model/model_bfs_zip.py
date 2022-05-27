@@ -15,15 +15,16 @@ from typing import Dict, List, Optional
 import logging
 import heapq
 import statistics
+from src.recom_search.model.beam_node_ez import BeamNodeEz
 from src.recom_search.model.merge_strategy import merge_zip, merge_imp
 from src.recom_search.model.bfs_util import  HashObject
 from src.recom_search.model.heuristic import DeployHeu
 from src.recom_search.model.merge import  similarity_heuristic
 from src.recom_search.model.util import pnum, render_name, run_inference_step
-from src.recom_search.model.beam_state import BeamNode
+
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-def astar_step_baseline(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_input_ids, model, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
+def step_bfs(tokenizer, start_seed: BeamNodeEz, hash: HashObject, heap, doc_input_ids, model, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
     cnt_call = 0
     step = 0
 
@@ -208,7 +209,7 @@ def astar_step(tokenizer, start_seed: BeamNode, hash: HashObject, heap, doc_inpu
     else:
         return pointer, cnt_call
 
-def a_star_baseline(model, tokenizer,
+def bfs(model, tokenizer,
            doc_input_ids: torch.LongTensor,
            param_sim_function: Optional[Dict],
            config_heu: Optional[Dict],
@@ -230,20 +231,18 @@ def a_star_baseline(model, tokenizer,
     assert not (config_search['post'] and config_search['dfs_expand'])
     if config_search['post']:
         budget_expl = comp_budget - \
-            int(config_search['post_ratio'] *
-                comp_budget)
+            int(config_search['post_ratio'] * comp_budget)
     else:
         budget_expl = comp_budget
 
     last = None
     for prefix in dec_prefix:
         if last:
-            init_seed = BeamNode(hash=new_hash, prob=1., token_idx=prefix,
+            init_seed = BeamNodeEz(hash=new_hash, prob=1., token_idx=prefix,
                                  prev=[last.uid], prev_score=[0])
         else:
-            init_seed = BeamNode(hash=new_hash, prob=1., token_idx=prefix,
+            init_seed = BeamNodeEz(hash=new_hash, prob=1., token_idx=prefix,
                                  prev=[], prev_score=[])
-
             last = init_seed
 
     heapq.heappush(heap, (-init_seed.prob, init_seed.uid))
@@ -256,7 +255,7 @@ def a_star_baseline(model, tokenizer,
             expl_steps = max_len
         else:
             expl_steps = 1
-        output_node, added_num_calls = astar_step_baseline(tokenizer, seed, new_hash, heap, doc_input_ids, model,  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
+        output_node, added_num_calls = step_bfs(tokenizer, seed, new_hash, heap, doc_input_ids, model,  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
 
         ncalls += added_num_calls
 
@@ -269,7 +268,7 @@ def a_star_baseline(model, tokenizer,
         _, seed_uid = heapq.heappop(heap)
         seed = new_hash.retrieve_node(seed_uid)
         expl_steps = max(1, max_len - seed.length)
-        output_node, added_num_calls = astar_step_baseline(tokenizer, seed, new_hash, [], doc_input_ids, model,  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
+        output_node, added_num_calls = step_bfs(tokenizer, seed, new_hash, [], doc_input_ids, model,  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
         ncalls += added_num_calls
         if output_node and output_node.finished:
             finished_hypos.append(output_node)

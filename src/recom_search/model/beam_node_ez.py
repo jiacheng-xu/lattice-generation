@@ -1,32 +1,24 @@
-
-import imp
-from pkgutil import ImpImporter
-from src.recom_search.model.setup import tokenizer
 from typing import List
-import math
+from src.recom_search.model.beam_state import find_prefix
+from src.recom_search.model.beam_node import BeamNode
 from src.recom_search.model.util import gen_rand_id
+import random,math
+from src.recom_search.model.exec_setup import tokenizer
 import logging
+import torch
+random.seed(2021)
 
-class BeamNodeEz():
-    def __init__(self, prob: float, token_idx: int, prev: List, prev_score: List,  min_len=5, finished=False) -> None:
-        self.uid = gen_rand_id()
-        self.prob = prob
-        self.score = math.log(prob)
-        self.prev = prev      # prev is always sorted where top1 has highest score
-        self.prev_score = prev_score
-        self.token_idx = token_idx
-        self.token_str = tokenizer.decode(self.token_idx) if tokenizer else f"{token_idx}"
-
-        self.set_full()
+class BeamNodeEz(BeamNode):
+    def __init__(self, prob: float, token_idx: int, prev: List, prev_score: List, min_len: int = 10, finished: bool = False) -> None:
+        super().__init__(prob, token_idx, prev, prev_score, min_len, finished)
+        self.get_canonical_path()
         assert self.all_token_idx
         assert self.all_score
         assert self.length
-
-        self.finished = finished
-        self.min_len = min_len
-
         self.has_finished()
 
+    def get_repr(self):
+        return self
 
     def get_path_sample(self):
         prev = self.prev
@@ -41,11 +33,6 @@ class BeamNodeEz():
             prev_score = p.prev_score
         return scores[::-1]
 
-    def has_finished(self):
-        if (self.token_str.strip() == '.' or self.token_str.strip() == '</s>') and self.length >= self.min_len:
-            self.finished = True
-        else:
-            self.finished = False
 
     def get_antecedent(self):
         antecedents = []
@@ -143,11 +130,11 @@ class BeamNodeEz():
 
         dfs(self, [])
         logging.info(
-            f"There are {len(recomb_units)} recomb units in this case.")
+            f"There are {len(recomb_units)} recomb phrases in this case.")
 
-    def set_full(self):
+    def get_canonical_path(self):
         """
-        Everytime a substructure is modified, we need to update the tokens and scores
+        To get the canonical path, we will recursively vist the first node of all previous nodes.
         """
         tokens = [self.token_idx]
         scores = [self.score]
@@ -156,12 +143,10 @@ class BeamNodeEz():
             prev = prev[0]
             tokens.append(prev.token_idx)
             scores.append(prev.score)
-            prev = prev.prev
+            prev = prev.prev        # update pointer
         self.all_score = scores[::-1]
         self.all_token_idx = tokens[::-1]
         self.length = len(tokens)
-    def __len__(self):
-        return self.length
 
     def get_tokens_str(self):
         out = [self.token_str]

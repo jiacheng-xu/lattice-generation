@@ -25,5 +25,6 @@ class TestSetup(unittest.TestCase):
         self.args.dataset = 'custom_input'
         self.args.hf_model_name = 'google/pegasus-xsum'
         tokenizer, model, dataset, dec_prefix = setup_model(self.args.task, self.args.dataset,self.args.hf_model_name,  self.args.device)
+    
 if __name__ == '__main__':
     unittest.main()

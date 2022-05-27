@@ -22,7 +22,6 @@ class HashObject():
         return k
 
     def retrieve_node(self, q_uid):
-
         key = q_uid
         while isinstance(key, str):
             key = self.uid_map[key]
@@ -41,8 +40,9 @@ class HashObject():
     def retrieve_group_nodes(self, keys):
         # keys contain some UIDs
         # return updated keys and retrieved nodes
-        candidates = [self.find_root_node_uid(k) for k in keys]
-        candidates = [i for n, i in enumerate(candidates) if i not in candidates[:n]]
+        # candidates = [self.find_root_node_uid(k) for k in keys]
+        candidates = set(map(self.find_root_node_uid, keys))
+        # candidates = [i for n, i in enumerate(candidates) if i not in candidates[:n]]
         cand_nodes = [self.uid_map[x] for x in candidates]
         return candidates, cand_nodes
 

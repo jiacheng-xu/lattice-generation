@@ -44,7 +44,7 @@ def setup_model(task='sum', dataset='xsum', model_name='facebook/bart-large-xsum
     device = torch.device(device_name)
     print(model_name)
     config = AutoConfig.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_config(config)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     if task == 'custom':
@@ -162,6 +162,7 @@ def process_arg():
     parser.add_argument('-ngram_suffix', type=int, default=4)
     parser.add_argument('-len_diff', type=int, default=5)
 
+    parser.add_argument('-k_best', type=int, default=5, help='Max number of next step prediction considered. LM will yield prob of vocab_size, and we only consider top_k_best and put them in the search frontier.')
     parser.add_argument('-avg_score', type=float, default=-1,
                         help='average model score coefficient. typical numbers like 0.6 or 0.8 or 0.9')
 

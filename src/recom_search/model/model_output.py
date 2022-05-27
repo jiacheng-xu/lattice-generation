@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import torch
 from transformers.file_utils import ModelOutput
 from typing import Any, Optional, Tuple, List, Text
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_node import BeamNode
 
 
 @dataclass

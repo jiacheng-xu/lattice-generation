@@ -7,7 +7,23 @@
 
         
         {
-            "name": "summarization xsum",
+            "name": "summ custom",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/recom_search/scripts/interactive.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python.envFile": "${workspaceFolder}/.env",
+            "args": [
+                "-model","bfs",
+                "-dfs_expand",
+                "-task","custom","-dataset","custom_input",
+            ],
+        },
+
+        
+        {
+            "name": "summ xsum",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/recom_search/command/run_pipeline.py",
