@@ -3,7 +3,7 @@ from src.recom_search.model.beam_node import BeamNode
 from typing import List
 
 class BeamNodeFull(BeamNode):
-    def __init__(self, hash:HashObject, prob: float, token_idx: int, prev: List, prev_score: List, min_len: int = 5, finished: bool = False, master_node_uid= None) -> None:
+    def __init__(self, hash:HashObject, prob: float, token_idx: int, prev: List, prev_score: List, min_len: int, finished: bool = False, master_node_uid= None) -> None:
         super().__init__(prob, token_idx, prev, prev_score, min_len, finished)
         self.hash = hash
         self.master_node_uid = master_node_uid or self.uid

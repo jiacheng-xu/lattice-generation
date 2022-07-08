@@ -16,7 +16,7 @@
             "python.envFile": "${workspaceFolder}/.env",
             "args": [
                 "-model","bfs",
-                "-dfs_expand",
+                // "-dfs_expand",
                 "-task","custom","-dataset","custom_input",
             ],
         },

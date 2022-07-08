@@ -1,26 +1,19 @@
 """
-
+Vanilla best-first search
 """
 
-import random
 import torch
-from collections import UserDict, defaultdict
 import math
-import pickle
 from typing import Dict, List, Optional
 import logging
 import heapq
-import statistics
+
 from src.recom_search.model.beam_node_ez import BeamNodeEz
 from src.recom_search.model.heuristic import DeployHeu
-from src.recom_search.model.util import pnum, render_name, run_inference_step
-
+from src.recom_search.model.util import run_inference_step
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-def search_frontier_committee(node, max_len):
-    if node.finished:
-        return False
-    
+
 def step_bfs(tokenizer, start_seed: BeamNodeEz, heap, doc_input_ids, model, use_heuristic: bool, avg_score, max_len: int, expl_steps: int, k_best: int, heu_func: DeployHeu) -> Tuple[Any, int]:
     step = 0
     finished_hypos = []
@@ -149,8 +142,7 @@ def bfs(model, tokenizer,
         empty_heap = [] # at this stage, we do not put new nodes in the heap, hence we only need an empty heap. 
         completed_hyps, added_num_calls = step_bfs(tokenizer, seed, empty_heap, doc_input_ids, model,  config_search['heu'], avg_score, max_len=max_len, k_best=k_best, heu_func=heu_func, expl_steps=expl_steps)
         ncalls += added_num_calls
-        if completed_hyps:
-            finished_hypos += completed_hyps
+        finished_hypos += completed_hyps
 
     for hypo in finished_hypos:
         if not hypo.finished:

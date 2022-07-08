@@ -207,7 +207,7 @@ def run_model(args, tokenizer, model, dataset, dec_prefix, wt_dir):
         # if 'Apple' not in document:
         #     continue
 
-        logging.info(f"\n\n===Inp Doc: {document[:2000]}\n---Sum: {ref_sum}")
+        logging.info(f"\n\n===Input Doc/Src: {document[:2000]}\n---Sum/Tgt: {ref_sum}")
         param_sim_function = {
             'ngram_suffix': args.ngram_suffix,
             'len_diff': args.len_diff,

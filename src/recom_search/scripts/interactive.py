@@ -1,3 +1,4 @@
+import logging
 import sys
 from src.recom_search.model.model_output import SearchModelOutput
 from src.recom_search.model.model_bfs import bfs
@@ -10,7 +11,9 @@ def main() -> int:
     """
 
     input_text = "Transformers provides APIs to easily download and train state-of-the-art pretrained models. Using pretrained models can reduce your compute costs, carbon footprint, and save you time from training a model from scratch. The models can be used across different modalities such as: Text: text classification, information extraction, question answering, summarization, translation, and text generation in over 100 languages. Images: image classification, object detection, and segmentation. Our library supports seamless integration between three of the most popular deep learning libraries: PyTorch, TensorFlow and JAX. Train your model in three lines of code in one framework, and load it for inference with another."
+
     args = process_arg()
+    logging.info(args)
     args.task = 'sum'
     args.dataset = 'xsum'
 
@@ -35,9 +38,12 @@ def main() -> int:
 
     input_ids = tokenizer(input_text, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
+        # if the max len changes a lot within the dataset, we use adaptively adjust the max len as 2 * current len. You can always adjust this number. 
         cur_max_len = input_ids.squeeze().size()[0] * 2
         comp_budget = cur_max_len * args.beam_size
     else:
+        # set max decoding length
+        assert args.max_len > 1
         comp_budget = args.max_len * args.beam_size
         cur_max_len = args.max_len
     

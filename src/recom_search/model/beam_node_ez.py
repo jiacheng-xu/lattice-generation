@@ -20,18 +20,6 @@ class BeamNodeEz(BeamNode):
     def get_repr(self):
         return self
 
-    def get_path_sample(self):
-        prev = self.prev
-        prev_score = self.prev_score
-        scores = [self.score]
-        while prev:
-            # who has largest prev_score
-            index_max_score = list(np.argsort(prev_score))[-1]
-            p = prev[index_max_score]
-            scores.append(p.score)
-            prev = p.prev
-            prev_score = p.prev_score
-        return scores[::-1]
 
 
     def get_antecedent(self):
@@ -60,7 +48,6 @@ class BeamNodeEz(BeamNode):
         self.prev.append(node)
         self.prev_score.append(score)
 
-        # sort
 
     def visualization(self):
         nodes, edges = {}, {}

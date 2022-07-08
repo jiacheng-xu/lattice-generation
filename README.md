@@ -1,5 +1,5 @@
 # [Massive-scale Decoding for Text Generation using Lattices](https://arxiv.org/abs/2112.07660)
-[Jiacheng Xu](https://www.cs.utexas.edu/~jcxu/), [Greg Durrett](https://www.cs.utexas.edu/~gdurrett/)
+[Jiacheng Xu](https://jiacheng-xu.github.io/), Sid Reddy, [Greg Durrett](https://www.cs.utexas.edu/~gdurrett/)
 
 TL;DR: a new search algorithm to construct lattices encoding many generation options; 
 two key technical contributions: (1) best-first search, (2) path recombination.
@@ -41,10 +41,10 @@ More detailed instructions coming soon!
 
 ## Citation
 ```
-@misc{xu-durrett-2021-massive,
+@misc{xu-etal-2022-massive,
     title={Massive-scale Decoding for Text Generation using Lattices},
-    author={Jiacheng Xu and Greg Durrett},
-    year={2021},
+    author = {Xu, Jiacheng and Jonnalagadda, Siddhartha Reddy and Durrett, Greg},
+    year={2022},
     eprint={2112.07660},
     archivePrefix={arXiv},
     primaryClass={cs.CL}
