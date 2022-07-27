@@ -1,5 +1,6 @@
+# Setup gector for automatic evaluation of grammar errors. 
+# Feel free to check the original repo: https://github.com/grammarly/gector
 
-cw
 git clone git@github.com:jiacheng-xu/gector.git
 git pull
 

@@ -1,9 +1,10 @@
 from torch.distributions.categorical import Categorical
 import pickle
 from transformers.generation_logits_process import TopPLogitsWarper
-from transformers.generation_utils import top_k_top_p_filtering
 
-from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
+
+from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_node_ez import BeamNodeEz
 
 from src.recom_search.model.merge import naive_merge, similarity_heuristic
 from src.recom_search.model.util import run_inference_step, render_name
@@ -66,7 +67,7 @@ def gen_init_seed_with_dec_prefix(dec_prefix)->BeamNodeEz:
         last = init_seed
     return last
 
-def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, max_len=20, num_return_hypo=100,  top_p=0.8):
+def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function, max_len=20, num_return_hypo=100,  top_p=0.8):
     topp_logit_wrapper = TopPLogitsWarper(top_p=top_p)
     """Neucleus sampling with path recombination"""
     # budget = max_len * beam size
@@ -141,7 +142,7 @@ def baseline_recomb_sample(doc_input_ids, dec_prefix, model, param_sim_function,
     return ends
 
 
-def recomb_baseline(doc_input_ids, dec_prefix, model, param_sim_function, eos_token_id=21, beam_size=5, max_len=20, avg_score:float=-1, debug: bool = False):
+def recomb_baseline(doc_input_ids, dec_prefix, model, param_sim_function, beam_size=5, max_len=20, avg_score:float=-1, debug: bool = False):
     init_seed = gen_init_seed_with_dec_prefix(dec_prefix)
 
     hypos:List[BeamNodeEz] = [init_seed]

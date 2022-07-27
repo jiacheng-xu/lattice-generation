@@ -1,5 +1,4 @@
-from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix, args, dict_io
-import random
+
 from pathlib import Path
 from tqdm import tqdm
 import os
@@ -8,12 +7,13 @@ import pickle
 from src.recom_search.model.model_output import SearchModelOutput
 from recom_search.model.model_bfs import a_star, bfs
 
-from src.recom_search.evaluation.eval_bench import rouge_single_pair
 import pandas as pd
 from collections import defaultdict
 from src.recom_search.model.baseline import baseline_recomb_sample, recomb_baseline
 from src.recom_search.model.generic_search import GenericSearch
-from src.recom_search.evaluation.eval_bench import eval_main, np_overlap, rouge, self_bleu
+from src.recom_search.model.model_bfs_zip import bfs_rcb_any
+from src.recom_search.model.setup import tokenizer, model, dataset, dec_prefix, args, dict_io
+
 import numpy as np
 
 from src.recom_search.model.util import *
@@ -53,7 +53,7 @@ def run_bs_recombination(args, model, input_doc, dec_prefix, param_sim_function,
     else:
         adj_batch_size = args.beam_size
     output = recomb_baseline(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,
-                             eos_token_id=tokenizer.eos_token_id, model=model, debug=False, beam_size=adj_batch_size, max_len=cur_max_len, avg_score=args.avg_score)
+                              model=model, debug=False, beam_size=adj_batch_size, max_len=cur_max_len, avg_score=args.avg_score)
     mo = SearchModelOutput(ends=output)
     return mo
 
@@ -66,22 +66,14 @@ def run_recom_sample(args, model, input_doc, dec_prefix, param_sim_function) -> 
     else:
         cur_max_len = args.max_len
     output = baseline_recomb_sample(doc_input_ids=input_ids, dec_prefix=dec_prefix, param_sim_function=param_sim_function,
-                                    eos_token_id=tokenizer.eos_token_id, model=model, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
+                                     model=model, max_len=cur_max_len, num_return_hypo=args.beam_size, top_p=args.top_p)
 
     mo = SearchModelOutput(ends=output)
     return mo
 
 
 def run_bfs(args, model, tokenizer, inp, dec_prefix, param_sim_function, config_search):
-    """
-    config_heu = {
-        'heu_seq_score': args.heu_seq_score,
-        'heu_seq_score_len_rwd': args.heu_seq_score_len_rwd,
-        'heu_pos': args.heu_pos,
-        'heu_ent': args.heu_ent,
-        'heu_word': args.heu_word
-    }
-    """
+
     input_ids = tokenizer(inp, return_tensors="pt").input_ids.to(args.device)
     if args.max_len == -1:
         cur_max_len = input_ids.squeeze().size()[0] * 2
@@ -112,7 +104,7 @@ def run_bfs_recombination(args, model, tokenizer, inp, dec_prefix, param_sim_fun
     else:
         comp_budget = args.max_len * args.beam_size
         cur_max_len = args.max_len
-    output = a_star(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
+    output = bfs_rcb_any(doc_input_ids=input_ids, model=model, tokenizer=tokenizer, param_sim_function=param_sim_function, dec_prefix=dec_prefix, avg_score=args.avg_score,
                     max_len=cur_max_len, k_best=5, comp_budget=comp_budget, config_heu=config_heu, config_search=config_search)
 
     mo = SearchModelOutput(ends=output)
