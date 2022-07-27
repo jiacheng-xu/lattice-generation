@@ -46,7 +46,9 @@ def step_bfs_rcb_any(tokenizer, start_seed: BeamNodeFull, hash: HashObject, heap
         token_txt = tokenizer.decode(indices[0]).strip().lower()
 
         top1_state = BeamNodeFull(hash=hash,
-                              prob=values[0], token_idx=indices[0], prev=[pointer.uid], prev_score=[math.log(values[0])])
+                              prob=values[0], 
+                              token_idx=indices[0], 
+                              prev=[pointer.uid], prev_score=[math.log(values[0])])
 
         if cur_len >= hash.ngram:
             retrieved = hash.query(cur_dec_input_ids + [top1_state.token_idx])
@@ -71,7 +73,7 @@ def step_bfs_rcb_any(tokenizer, start_seed: BeamNodeFull, hash: HashObject, heap
             if flag_merge:
                 if merge_method == 'zip':
                     merge_zip(hash, cand_par, top1_state, par_match_uids=cand_par_suffix_node_ids)
-                elif merge_method == 'imp':
+                elif merge_method == 'rcb':
                     flag = merge_imp(hash, cand_par, top1_state)
                     if not flag:
                         flag_merge = False
@@ -139,7 +141,6 @@ def bfs_rcb_any(model, tokenizer,
            k_best: Optional[int],
            comp_budget: Optional[int]):
     r"""
-
     """
 
     ncalls = 0
@@ -166,8 +167,6 @@ def bfs_rcb_any(model, tokenizer,
                                  prev=[], prev_score=[])
 
             last = init_seed
-
-
     heapq.heappush(heap, (-init_seed.prob, init_seed.uid, last.uid))
 
     while ncalls < budget_expl:

@@ -2,8 +2,9 @@ import random
 import logging
 import random
 
-from src.recom_search.model.beam_state import BeamNode, BeamNodeEz
 
+from src.recom_search.model.beam_node_ez import BeamNodeEz
+from src.recom_search.model.beam_node_full import BeamNodeFull
 
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     if len(a_tokens) > ngram_suffix and len(b_tokens) > ngram_suffix:
@@ -24,7 +25,7 @@ def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
     return True
 
 
-def naive_merge(beam_par: BeamNode, beam_drop: BeamNode, doc_input_ids=None, ngram_suffix=None):
+def naive_merge(beam_par: BeamNodeFull, beam_drop: BeamNodeFull, doc_input_ids=None, ngram_suffix=None):
     """
     beam_par is the node to keep, beam_drop is to "discard"
     our goal is to merge them into a larger lattice ending with beam_par.uid

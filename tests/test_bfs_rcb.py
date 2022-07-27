@@ -2,12 +2,13 @@
 import unittest
 import logging
 
-from src.recom_search.model.model_bfs import bfs
+from src.recom_search.model.model_bfs_zip import bfs_rcb_any
+
 from src.recom_search.model.setup import setup_model
 from src.recom_search.model.setup import process_arg
 from src.recom_search.model.model_output import SearchModelOutput
 
-# test of vanilla best first search
+# test of best first search rcb and zip
 class TestBfs(unittest.TestCase):
     def prepare_input(self):
 
@@ -25,7 +26,7 @@ class TestBfs(unittest.TestCase):
         args.task = 'custom'
         args.dataset = 'custom_input'
         # args.merge = 'rcb'
-        args.merge = 'none'
+        args.merge = 'rcb'
 
         # args.hf_model_name = 'facebook/bart-large-xsum'
         # args.hf_model_name = 'sshleifer/distilbart-cnn-6-6'
@@ -50,11 +51,24 @@ class TestBfs(unittest.TestCase):
         logging.info(args)
         return super().setUp()
 
-    def test_bfs(self):
-        output = bfs(doc_input_ids=self.input_ids, model=self.model,
-                     tokenizer=self.tokenizer, dec_prefix=self.dec_prefix, avg_score=self.args.avg_score, max_len=30, k_best=self.args.k_best, comp_budget=200, config_heu=None, config_search=self.config_search)
+    def test_bfs_rcb(self):        
+        self.param_sim_function['merge'] = 'rcb'
+        output = bfs_rcb_any(doc_input_ids=self.input_ids, model=self.model,
+                     tokenizer=self.tokenizer, dec_prefix=self.dec_prefix, param_sim_function=self.param_sim_function,  avg_score=self.args.avg_score,
+                    max_len=30, k_best=self.args.k_best, comp_budget=300, config_heu=None, config_search=self.config_search)
         mo = SearchModelOutput(ends=output)
         print(mo)
+
+    def test_bfs_zip(self):
+        self.param_sim_function['merge'] = 'zip'
+        
+        output = bfs_rcb_any(doc_input_ids=self.input_ids, model=self.model,
+                     tokenizer=self.tokenizer, dec_prefix=self.dec_prefix, param_sim_function=self.param_sim_function,  avg_score=self.args.avg_score,
+                    max_len=30, k_best=self.args.k_best, comp_budget=300, config_heu=None, config_search=self.config_search)
+
+        mo = SearchModelOutput(ends=output)
+        print(mo)
+
 
 
 if __name__ == '__main__':

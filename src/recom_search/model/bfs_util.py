@@ -44,7 +44,7 @@ class HashObject():
         candidates = set(map(self.find_root_node_uid, keys))
         # candidates = [i for n, i in enumerate(candidates) if i not in candidates[:n]]
         cand_nodes = [self.uid_map[x] for x in candidates]
-        return candidates, cand_nodes
+        return list(candidates), cand_nodes
 
     def retrieve_ngram_nodes(self, key_ngram):
         if key_ngram in self.data:

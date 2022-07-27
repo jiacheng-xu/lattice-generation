@@ -188,7 +188,7 @@ def process_arg():
                         help='Heuristic for good token.')
     # end of depricated
     parser.add_argument('-merge', type=str, default='zip',
-                        choices=['zip', 'rcb'])
+                        choices=['zip', 'rcb','none'])
 
     args = parser.parse_args()
     return args

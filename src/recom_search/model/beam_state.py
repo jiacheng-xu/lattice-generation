@@ -58,7 +58,7 @@ class BeamNode():
         self.token_str = tokenizer.decode(
             self.token_idx, skip_special_tokens=False) if tokenizer else f"{token_idx}"
         self.master_node_uid =master_node_uid or self.uid
-        self.set_full()
+        # self.set_full()
         assert self.all_token_idx
         assert self.all_score
         assert self.length
