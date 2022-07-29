@@ -3,7 +3,7 @@ import logging
 import random
 from typing import List
 
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_node import BeamNode
 
 def similarity_heuristic(a_tokens, b_tokens, ngram_suffix, len_diff) -> bool:
 

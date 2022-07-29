@@ -7,7 +7,7 @@ import enum
 import statistics
 import sys
 from src.recom_search.evaluation.eval_bench import rouge_single_pair
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_node import BeamNode
 from src.recom_search.evaluation.analysis import find_start_end
 from src.recom_search.model.setup import setup_model
 import random

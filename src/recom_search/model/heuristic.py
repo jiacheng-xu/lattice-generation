@@ -1,5 +1,5 @@
-from src.recom_search.model.beam_state import BeamNode
 
+from src.recom_search.model.beam_node import BeamNode
 import math
 import scipy
 import random

@@ -1,7 +1,9 @@
 import statistics
 import math
 from collections import defaultdict
-from src.recom_search.model.beam_state import BeamNode,BeamNodeEz
+from src.recom_search.model.beam_node_ez import BeamNodeEz
+from src.recom_search.model.beam_node_full  import BeamNodeFull
+from src.recom_search.model.beam_node import BeamNode
 
 
 def convert_seq_score(seq, inp_score):

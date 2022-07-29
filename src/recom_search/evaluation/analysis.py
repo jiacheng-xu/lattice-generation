@@ -5,7 +5,7 @@ from src.recom_search.command.run_eval import run_model
 from src.recom_search.model.util import render_config_name
 import pickle
 from typing import Dict, List
-from src.recom_search.model.beam_state import BeamNode
+from src.recom_search.model.beam_node import BeamNode
 from src.recom_search.model.model_output import SearchModelOutput
 from src.recom_search.model.setup import setup_logger
 from tqdm import tqdm

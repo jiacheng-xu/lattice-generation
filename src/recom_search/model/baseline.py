@@ -3,7 +3,8 @@ import pickle
 from transformers.generation_logits_process import TopPLogitsWarper
 
 
-from src.recom_search.model.beam_state import BeamNode
+
+from src.recom_search.model.beam_node import BeamNode
 from src.recom_search.model.beam_node_ez import BeamNodeEz
 
 from src.recom_search.model.merge import naive_merge, similarity_heuristic
