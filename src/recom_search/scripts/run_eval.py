@@ -5,7 +5,7 @@ import os
 import pickle
 
 from src.recom_search.model.model_output import SearchModelOutput
-from recom_search.model.model_bfs import a_star, bfs
+from src.recom_search.model.model_bfs import  bfs
 
 import pandas as pd
 from collections import defaultdict
